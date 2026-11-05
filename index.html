@@ -387,6 +387,7 @@
             const statusEl = document.getElementById('indian-status');
             const timerEl = document.getElementById('market-timer');
 
+            if (!statusEl || !timerEl) return;
             if (!isWeekend && currentTotalSec >= openTotalSec && currentTotalSec < closeTotalSec) {
                 statusEl.textContent = "MARKET OPEN";
                 statusEl.className = "status-open";
