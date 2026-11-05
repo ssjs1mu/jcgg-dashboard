@@ -105,9 +105,10 @@ try:
             except Exception: n = 1
         zcands.append((cid.group(1), isl, n, (t.group(1) if t else '')[:70]))
     for c in zcands[:8]: print('cand', c)
-    if not zcands and pos[:-1]: print('lockup0', h[pos[0]:pos[0]+1800].replace('\n', ' '))
     lv = [c for c in zcands if c[1]]
-    if lv: live = lv[0][0]
+    pg = [c for c in lv if re.search(r'zee business (24x7 )?live|share market live|first trade|market live|anil singhvi', c[3], re.I)]
+    if pg: live = sorted(pg, key=lambda c: -c[2])[0][0]
+    elif lv: live = sorted(lv, key=lambda c: -c[2])[0][0]
     if not live:
         h2 = ytget('https://www.youtube.com/@ZeeBusiness/live')
         m = re.search(r'<link rel="canonical" href="https://www\.youtube\.com/watch\?v=([\w-]{11})"', h2)
