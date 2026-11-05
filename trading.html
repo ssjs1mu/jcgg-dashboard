@@ -102,10 +102,16 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .nw .ch{display:inline-block;min-width:78px;font:900 10.5px "Segoe UI";color:#1a1030;background:#d2c08a;border-radius:3px;padding:0 5px;margin-right:6px;text-align:center}.nw .an{color:#8cf3c0;font-weight:800;margin-right:6px}
 .nw .ac{font:900 10.5px "Segoe UI";border-radius:3px;padding:0 5px;margin-right:6px;color:#fff}.nw .ac.B{background:#3f7d66}.nw .ac.S{background:#8c3f4d}.nw .ac.H{background:#4a5273}.nw .lv{color:#d2c08a;font-weight:800;margin-left:6px}
 .tvw{height:44vh;background:#000}.tvw iframe{width:100%;height:100%;border:0;display:block}
+.dockrow{display:flex;gap:8px;align-items:flex-start;padding-right:8px}.dockrow .wrap{flex:1;min-width:0}.tvd{width:300px;flex:none;margin-top:6px;border:1px solid #2c3458;border-radius:6px;background:#0a0f16;overflow:hidden}
+.tvh{display:flex;gap:4px;align-items:center;padding:2px 6px;background:#26364a;color:#d9cfae;font:800 10.5px "Segoe UI",sans-serif;letter-spacing:.06em}.tvh button{background:#1a2634;color:#dde4ee;border:1px solid #3a4268;border-radius:4px;font:700 10px "Segoe UI";cursor:pointer;padding:1px 6px}
+.tvd .tvw{height:auto;aspect-ratio:16/9}.tvd.min .tvw,.tvd.min input{display:none}@media(max-width:1100px){.dockrow{flex-direction:column}.tvd{width:auto;margin:0 8px}}
 </style></head><body>
 <div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
 <div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
-<div class="wrap"><table id="tb"></table></div>
+<div class="dockrow"><div class="wrap"><table id="tb"></table></div>
+<div class="tvd" id="tvB"><div class="tvh"><b>ZEE BUSINESS LIVE</b><span style="flex:1"></span><button id="tvM" title="unmute / mute">🔊</button><button id="tvP" title="Pop out - stays on top of other windows (Chrome/Edge)">⧉ Pop-out</button><button id="tvH" title="hide / show">▾</button></div>
+<div class="tvw" id="tvW"><iframe id="tvF" src="https://www.youtube.com/embed/GasohtgH7IA?autoplay=1&mute=1&rel=0&modestbranding=1&enablejsapi=1" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+<input id="tvU" placeholder="stream stopped? paste new YouTube live link" style="width:100%;box-sizing:border-box;font-size:10.5px"></div></div>
 <div class="split"><div class="hm" id="hm"><div class="hmh"><b>HEAT-MAP</b><span id="hmc" class="hmc"></span>
  <label>Open=Low<input type="checkbox" id="fOL" checked></label><label>Above prev close<input type="checkbox" id="fUP" checked></label>
  <label>Volume ≥<select id="fV"><option>1</option><option selected>1.5</option><option>2</option><option>3</option></select>× avg</label>
@@ -118,9 +124,8 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
  <button id="alS" class="alb">⚙ Triggers</button><span id="als" class="hmc" style="margin-left:auto"></span></div>
  <div id="alCfg" class="alcfg" style="display:none"></div>
  <div class="alt" id="alt"></div></div></div>
-<div class="split"><div class="hm" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div>
-<div class="hm" id="tvB"><div class="hmh"><b>ZEE BUSINESS · LIVE TV</b><span class="hmc">official YouTube live stream</span><input id="tvU" placeholder="paste new YouTube live link if video stops" size="30" style="margin-left:auto"><a class="alb" style="text-decoration:none" target="_blank" rel="noopener" href="https://www.youtube.com/@ZeeBusiness/live">open on YouTube ↗</a></div>
-<div class="tvw"><iframe id="tvF" src="https://www.youtube.com/embed/GasohtgH7IA?rel=0&modestbranding=1" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div></div>
+<div class="split" style="grid-template-columns:1fr"><div class="hm" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div>
+</div>
 <div class="foot" id="note"></div>
 <div class="mo" id="mo"><div class="md"><div class="mdh"><h2 id="mSym">—</h2><span class="cm" id="mCmp"></span><span id="mChg"></span>
  <label style="font:700 12px 'Segoe UI';color:#dde4ee">Timeframe <select id="mTf"><option value="5">5 min</option><option value="15" selected>15 min</option></select></label><small id="mSrc"></small><button class="x" id="mX">✕ Close</button></div>
@@ -445,6 +450,24 @@ function newsPaint(){
 }
 
 newsLoad(); (function ns(){ setTimeout(async()=>{ if(!document.hidden) await newsLoad(); ns(); }, 60000); })();
+
+/* ---- Zee Business live dock: mute, hide, always-on-top pop-out (Document Picture-in-Picture) ---- */
+(function(){ const f=$('tvF'), box=$('tvB'), w=$('tvW'); let muted=true, pip=null;
+ const cmd=(fn,a)=>{ try{ f.contentWindow.postMessage(JSON.stringify({event:'command',func:fn,args:a||[]}),'*'); }catch(e){} };
+ $('tvM').onclick=()=>{ muted=!muted; cmd(muted?'mute':'unMute'); if(!muted) cmd('playVideo'); $('tvM').textContent=muted?'🔇':'🔊'; };
+ $('tvM').textContent='🔇';
+ $('tvH').onclick=()=>{ box.classList.toggle('min'); $('tvH').textContent=box.classList.contains('min')?'▸':'▾'; };
+ $('tvP').onclick=async()=>{
+   if(pip){ pip.close(); return; }
+   if(window.documentPictureInPicture){ try{
+     pip=await documentPictureInPicture.requestWindow({width:480,height:300});
+     const st=pip.document.createElement('style'); st.textContent='html,body{margin:0;background:#000;height:100%}iframe{width:100%;height:100%;border:0;display:block}'; pip.document.head.appendChild(st);
+     pip.document.body.appendChild(f); $('tvW').innerHTML='<div style="color:#93a1b5;font:12px Segoe UI;padding:14px">Playing in the always-on-top window. Close it to bring the video back here.</div>';
+     pip.addEventListener('pagehide',()=>{ w.innerHTML=''; w.appendChild(f); pip=null; });
+     return; }catch(e){} }
+   window.open(f.src,'zeelive','popup=yes,width=480,height=300'); alert('Your browser has no always-on-top mode, so a small separate window opened. Use Chrome or Edge on desktop for stay-on-top.');
+ };
+})();
 clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load(); heatLoad();
 (function hs(){ setTimeout(async()=>{ if(!document.hidden) await heatLoad(); hs(); }, indiaOpen()?45000:180000); })();
 (function sched(){ setTimeout(async()=>{ if(!document.hidden) await load(); sched(); }, indiaOpen()?20000:120000); })();
