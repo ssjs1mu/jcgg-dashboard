@@ -19,6 +19,7 @@ PROG = re.compile(r'zee business (24x7 )?live|share market live|first trade|mark
 ok = []
 for vid, title in cands[:12]:
     w = get('https://www.youtube.com/watch?v=' + vid)
+    print('DBG3', vid, re.findall(r'"(?:publishDate|uploadDate|dateText|startDate|liveBroadcastDetails)":(?:"[^"]*"|\{[^}]{0,120}\})', w)[:4], re.findall(r'Started streaming[^"]{0,30}|Streaming started[^"]{0,30}|Premiered[^"]{0,30}|Streamed live[^"]{0,30}', w)[:2])
     print('DBG2', vid, 'lbd' , 'liveBroadcastDetails' in w, 'watching' in w, re.findall(r'[\d.,KkMm]+ watching now|Started streaming [^"]{0,30}|Streamed live [^"]{0,30}|Scheduled for [^"]{0,30}', w)[:3])
     print('DBG', vid, len(w), re.findall(r'"(?:isLiveNow|isLive|isUpcoming|startTimestamp|endTimestamp|isLiveContent)":(?:"[^"]*"|\w+)', w)[:8])
     live = re.search(r'"isLiveNow":true', w); st = re.search(r'"startTimestamp":"([^"]+)"', w); en = re.search(r'"endTimestamp":"', w)
