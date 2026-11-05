@@ -119,7 +119,7 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
  <div id="alCfg" class="alcfg" style="display:none"></div>
  <div class="alt" id="alt"></div></div></div>
 <div class="split"><div class="hm" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div>
-<div class="hm" id="tvB"><div class="hmh"><b>ZEE BUSINESS · LIVE TV</b><span class="hmc">official YouTube live stream</span><a class="alb" style="margin-left:auto;text-decoration:none" target="_blank" rel="noopener" href="https://www.youtube.com/@ZeeBusiness/live">open on YouTube ↗</a></div>
+<div class="hm" id="tvB"><div class="hmh"><b>ZEE BUSINESS · LIVE TV</b><span class="hmc">official YouTube live stream</span><input id="tvU" placeholder="paste new YouTube live link if video stops" size="30" style="margin-left:auto"><a class="alb" style="text-decoration:none" target="_blank" rel="noopener" href="https://www.youtube.com/@ZeeBusiness/live">open on YouTube ↗</a></div>
 <div class="tvw"><iframe id="tvF" src="https://www.youtube.com/embed/GasohtgH7IA?rel=0&modestbranding=1" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div></div>
 <div class="foot" id="note"></div>
 <div class="mo" id="mo"><div class="md"><div class="mdh"><h2 id="mSym">—</h2><span class="cm" id="mCmp"></span><span id="mChg"></span>
@@ -429,7 +429,9 @@ function clock(){ const d=ist(); $('clk').textContent=d.toISOString().slice(11,1
 $('note').innerHTML='Row 1 = last price + trend · Row 2 = points (% change) · Rows 3-4 = LIVE floating pivots from the day high, day low and last price (P=(H+L+C)/3; highlighted when price is within 0.35% of a level; narrow early in the session). VIX, USDINR and yields: a rise is pressure (red). Delayed Yahoo quotes · not advice.';
 
 /* ---- live news + TV calls (news branch, built by Actions from public RSS) ---- */
-let NW=null; const MY=()=>{ try{ const d=new Date().toISOString().slice(0,10); return JSON.parse(localStorage.getItem('jctv_'+d)||'[]'); }catch(e){ return []; } };
+let NW=null;
+(function(){ const f=$('tvF'); let id=''; try{ id=localStorage.getItem('jctv_id')||''; }catch(e){} if(id){ f.dataset.v=id; f.src='https://www.youtube.com/embed/'+id+'?rel=0&modestbranding=1'; }
+ $('tvU').addEventListener('change',e=>{ const m=e.target.value.match(/(?:v=|youtu\.be\/|live\/|embed\/)([\w-]{11})/); if(!m) return; try{ localStorage.setItem('jctv_id',m[1]); }catch(x){} f.dataset.v=m[1]; f.src='https://www.youtube.com/embed/'+m[1]+'?rel=0&modestbranding=1'; e.target.value=''; }); })(); const MY=()=>{ try{ const d=new Date().toISOString().slice(0,10); return JSON.parse(localStorage.getItem('jctv_'+d)||'[]'); }catch(e){ return []; } };
 async function newsLoad(){
   const u=['https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/news.json?ref=news','https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/news/news.json?x='+Date.now()];
   for(let i=0;i<u.length;i++){ try{ const r=await fetch(u[i],i===0?{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}:{cache:'no-store'}); if(!r.ok) continue; const j=await r.json(); if(j&&j.news){ NW=j; break; } }catch(e){} }
@@ -438,7 +440,7 @@ async function newsLoad(){
 function hhmm(t){ return new Date(t*1000).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false})+' '+new Date(t*1000).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short'}); }
 function newsPaint(){
   if(!NW){ $('nwL').textContent='News feed unavailable right now - retrying.';  return; }
-  if(!NW) return; if(NW.zee&&$('tvF').dataset.v!==NW.zee){ $('tvF').dataset.v=NW.zee; $('tvF').src='https://www.youtube.com/embed/'+NW.zee+'?rel=0&modestbranding=1'; } $('nwc').textContent=NW.news.length+' headlines'; $('nws').textContent='updated '+hhmm(Date.parse(NW.ts)/1000);
+  if(!NW) return; if(NW.zee&&!$('tvF').dataset.v){ $('tvF').dataset.v=NW.zee; $('tvF').src='https://www.youtube.com/embed/'+NW.zee+'?rel=0&modestbranding=1'; } $('nwc').textContent=NW.news.length+' headlines'; $('nws').textContent='updated '+hhmm(Date.parse(NW.ts)/1000);
   $('nwL').innerHTML=NW.news.map(n=>`<a href="${esc(n.link)}" target="_blank" rel="noopener"><span class="tm">${hhmm(n.t)}</span><span class="sr2">${esc(n.src)}</span>${esc(n.title)}</a>`).join('')||'No headlines.';
 }
 
