@@ -28,11 +28,29 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .sr{font-size:12px;padding:3px 3px!important;text-overflow:clip!important}.s b{color:#5cf0a8}.r b{color:#ff7d93}.sr i{font-style:normal;font:800 10px "Segoe UI",sans-serif;opacity:.75;margin-right:3px}.sr span+span{margin-left:7px}
 .near{background:rgba(255,235,120,.22);outline:1px solid #ffe678;border-radius:3px;padding:0 2px}
 .nodata{opacity:.6}
+.hm{margin:4px 8px 6px;border:1px solid #2c3458;border-radius:6px;background:#0b1126}
+.hmh{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:4px 8px;background:linear-gradient(180deg,#3a2a78,#241a52);border-radius:6px 6px 0 0;font:700 11px "Segoe UI",sans-serif;color:#e7e1ff}
+.hmh b{color:#ffe9a8;letter-spacing:.1em;font-weight:900}.hmh label{display:flex;gap:4px;align-items:center;white-space:nowrap}.hmh select,.hmh input{accent-color:#ffd35c;background:#141b3a;color:#fff;border:1px solid #3a4268;border-radius:4px;font:700 11px "Segoe UI",sans-serif}
+.hmc{color:#ffd35c}
+.hmg{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:3px;padding:4px;max-height:34vh;overflow:auto}
+.hc{position:relative;border-radius:4px;padding:2px 5px;height:35px;display:flex;flex-direction:column;justify-content:center;border:1px solid rgba(255,255,255,.06);cursor:default;min-width:0}
+.hc b{padding-right:20px;font:800 11px "Segoe UI",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+.hc span{font:700 10px ui-monospace,Consolas,monospace;color:#e8e8f8;white-space:nowrap}
+.hc.full{border:1px solid #ffe678;box-shadow:0 0 8px rgba(255,230,120,.55),0 0 0 1px rgba(255,230,120,.5) inset}
+.hc.part{opacity:.62}.hc.none{opacity:.34}
+.hc i{position:absolute;right:3px;top:3px;display:flex;gap:2px}.hc i u{width:5px;height:5px;border-radius:50%;background:#3a4268;text-decoration:none}.hc i u.on{background:#ffe678}
 .foot{padding:2px 12px 10px;color:var(--mut);font-size:10.5px}
 </style></head><body>
 <div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
 <div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
 <div class="wrap"><table id="tb"></table></div>
+<div class="hm" id="hm"><div class="hmh"><b>HEAT-MAP</b><span id="hmc" class="hmc"></span>
+ <label>Open=Low<input type="checkbox" id="fOL" checked></label><label>Above prev close<input type="checkbox" id="fUP" checked></label>
+ <label>Volume ≥<select id="fV"><option>1</option><option selected>1.5</option><option>2</option><option>3</option></select>× avg</label>
+ <label title="Compare volume with the share of the session already elapsed, so the filter works from the first hour">Pace-adjusted<input type="checkbox" id="fPC" checked></label>
+ <label>Group<select id="fG"><option value="">All 499</option><option value="L">Large 100</option><option value="M">Mid+Small 399</option></select></label>
+ <label>Show<select id="fN"><option>36</option><option selected>60</option><option>120</option><option value="9999">All</option></select></label>
+ <span id="hms" class="hmc"></span></div><div class="hmg" id="hmg"></div></div>
 <div class="foot" id="note"></div>
 <script>
 'use strict';
@@ -62,10 +80,16 @@ function trend(r,inv){
   if(chg<-0.2&&slope>0.05) return ['RECOVERY','sw'];
   return chg>0?['MILD BULL','bu']:chg<0?['MILD BEAR','be']:['SIDEWAYS','sw'];
 }
-const Q={}, PV={}; let srcLabel='loading…', snapTs=0;
+const Q={}; let srcLabel='loading…', snapTs=0;
+function livePv(r){ // floating pivots from today's live high/low and the current price
+  const sp=(r.sp||[]).filter(v=>v!=null); if(sp.length<3) return null;
+  const H=Math.max(r.hi||0,...sp,r.p), L=Math.min(r.lo||1e18,...sp,r.p); if(!(H>L)) return null;
+  const P=(H+L+r.p)/3, R=H-L; return {P,R1:2*P-L,S1:2*P-H,R2:P+R,S2:P-R};
+}
 function cell(a){
-  const s=a[0], d=DEF[s], r=Q[s], pv=PV[s];
+  const s=a[0], d=DEF[s], r=Q[s];
   if(!r||r.p==null) return ['<td class="nodata">no data</td>','<td></td>','<td></td>','<td></td>'];
+  const pv=livePv(r);
   const pt=r.pc?r.p-r.pc:0, pc=r.pc?(r.p/r.pc-1)*100:0, good=d.inv?pt<0:pt>0, cls=pt===0?'fl':(good?'up':'dn');
   let [txt,k]=trend(r,d.inv);
   if(d.inv&&(k==='bu'||k==='be')){txt=k==='bu'?'RISING':'FALLING'; k=k==='bu'?'be':'bu';}
@@ -93,25 +117,67 @@ async function snap(){ // newest snapshot: GitHub API (no CDN lag) -> raw branch
   return await getJ('data/snapshot.json?x='+Math.floor(Date.now()/60000),10000);
 }
 let quotaUntil=0, lvAt=0;
-async function loadLevels(){ if(Date.now()-lvAt<1800000) return; lvAt=Date.now(); try{ const j=await snap(); j.rows.forEach(r=>{ if(r.pv) PV[r.s]=r.pv; }); paint(); }catch(e){} }
 async function load(){
   const syms=COLS.map(a=>a[0]);
   if(Date.now()>quotaUntil){
     try{
       const j=await getJ(BACKEND+'?action=dash&symbols='+encodeURIComponent(syms.join(',')),12000);
-      if(j&&Array.isArray(j.rows)&&j.rows.length){ j.rows.forEach(r=>{if(r&&!r.err&&r.p!=null){const o=Q[r.s]; Q[r.s]=Object.assign(o&&o.hi?{hi:o.hi,lo:o.lo}:{},r);}}); srcLabel='LIVE'; snapTs=Date.now(); loadLevels(); return paint(); }
+      if(j&&Array.isArray(j.rows)&&j.rows.length){ j.rows.forEach(r=>{if(r&&!r.err&&r.p!=null){const o=Q[r.s]; Q[r.s]=Object.assign(o&&o.hi?{hi:o.hi,lo:o.lo}:{},r);}}); srcLabel='LIVE'; snapTs=Date.now(); return paint(); }
       if(j&&j.error&&/too many times|quota/i.test(j.error)) quotaUntil=Date.now()+30*60000;
     }catch(e){ quotaUntil=Date.now()+180000; } // quota page / timeout: retry the live feed in 3 min, meanwhile use the snapshot
   }
   try{
     const j=await snap();
-    j.rows.forEach(r=>{Q[r.s]=r; if(r.pv) PV[r.s]=r.pv;}); snapTs=Date.parse(j.ts); srcLabel='SNAPSHOT (live feed busy)';
+    j.rows.forEach(r=>{Q[r.s]=r;}); snapTs=Date.parse(j.ts); srcLabel='SNAPSHOT (live feed busy)';
   }catch(e){ srcLabel='no data source reachable'; }
   paint();
 }
+/* ---------------- HEAT-MAP: Open=Low · above previous close · volume ≥ N× average ---------------- */
+const HM={rows:[],ts:0,src:'',uni:null,at:0,busyUntil:0};
+const frac=()=>{const m=istMin(); return m>=555&&m<=930?Math.max((m-555)/375,0.04):1;};
+const istDay=()=>ist().toISOString().slice(0,10);
+async function heatFeed(){
+  // 1) live quotes through the backend (3-min back-off when it is out of quota)  2) GitHub 'heat' branch built every 5 min
+  if(Date.now()>quotaUntil && Date.now()>=HM.busyUntil){
+    HM.busyUntil=Date.now()+110000;
+    try{
+      if(!HM.uni) HM.uni=await getJ('data/universe.json',10000);
+      const all=HM.uni.large.map(x=>[x,'L']).concat(HM.uni.midsmall.map(x=>[x,'M'])), g={}; all.forEach(a=>g[a[0]]=a[1]);
+      const parts=[all.slice(0,250),all.slice(250)], rows=[];
+      const rs=await Promise.all(parts.map(p=>getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.map(a=>a[0]+'.NS').join(',')),30000)));
+      rs.forEach(j=>{ if(j&&j.ok) Object.keys(j.q).forEach(k=>{const q=j.q[k],sy=k.replace(/\.NS$/,''); if(q&&q[1]) rows.push([sy,g[sy]||'M',q[0],q[1],q[2],q[3],q[4],q[5],q[6],istDay()]);}); });
+      if(rows.length>all.length*0.5){ HM.rows=rows; HM.ts=Date.now(); HM.src='LIVE'; return; }
+    }catch(e){ quotaUntil=Math.max(quotaUntil,Date.now()+180000); }
+  }
+  try{
+    let j; const c=new AbortController(), t=setTimeout(()=>c.abort(),12000);
+    try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/heat.json?ref=heat',{headers:{Accept:'application/vnd.github.raw'},signal:c.signal}); if(r.ok) j=JSON.parse(await r.text()); }catch(e){} finally{clearTimeout(t)}
+    if(!j) j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Math.floor(Date.now()/60000),12000);
+    HM.rows=j.rows; HM.ts=Date.parse(j.ts); HM.src='SNAPSHOT';
+  }catch(e){ if(!HM.rows.length) HM.src='no feed'; }
+}
+function heatPaint(){
+  const ol=$('fOL').checked, up=$('fUP').checked, vm=+$('fV').value, pace=$('fPC').checked, grp=$('fG').value, lim=+$('fN').value, today=istDay(), f=frac();
+  const out=[]; HM.rows.forEach(r=>{
+    const [sy,g,p,pc,o,h,l,v,av,d]=r; if(grp&&g!==grp) return; if(!pc||!o) return;
+    const live=(d===today), pct=(p/pc-1)*100, cOL=live&&(o-l)/o*100<=0.05, cUP=live&&p>pc, vx=av?v/av:0, vpace=av?v/(av*f):0, cV=live&&(pace?vpace:vx)>=vm;
+    const need=(ol?1:0)+(up?1:0)+1, got=(ol&&cOL?1:0)+(up&&cUP?1:0)+(cV?1:0);
+    out.push({sy,g,p,pct,vx,vpace,cOL,cUP,cV,live,full:live&&got===need,got,need});
+  });
+  out.sort((a,b)=>(b.full-a.full)||(b.got-a.got)||(b.pct-a.pct));
+  const nf=out.filter(x=>x.full).length, tot=out.length, shown=out.slice(0,lim);
+  const col=(x)=>{const a=Math.min(Math.abs(x.pct)/4,1); return x.pct>=0?`rgba(18,${110+Math.round(a*80)},${70+Math.round(a*20)},${.45+a*.5})`:`rgba(${150+Math.round(a*70)},25,50,${.45+a*.45})`;};
+  $('hmg').innerHTML=shown.map(x=>`<div class="hc ${x.full?'full':x.got?'part':'none'}" style="background:${col(x)}" title="${x.sy}  ${fmt(x.p,2)}  ${sg(x.pct,2)}%  | Open=Low ${x.cOL?'yes':'no'} | above prev close ${x.cUP?'yes':'no'} | vol ${x.vx.toFixed(2)}x avg, pace ${x.vpace.toFixed(2)}x"><i><u class="${x.cOL?'on':''}"></u><u class="${x.cUP?'on':''}"></u><u class="${x.cV?'on':''}"></u></i><b>${x.sy}</b><span>${sg(x.pct,1)}% · ${(pace?x.vpace:x.vx).toFixed(1)}x</span></div>`).join('')||'<div class="nodata" style="padding:8px">no data yet</div>';
+  $('hmc').textContent=`MATCH ${nf} / ${tot}`;
+  const m=HM.ts?Math.max(0,Math.round((Date.now()-HM.ts)/60000)):null;
+  $('hms').textContent=(HM.src||'loading…')+(m==null?'':' · '+(m<1?'<1':m)+' min old')+(out.length&&!out[0].live?' · last session (market not open yet)':'');
+}
+async function heatLoad(){ await heatFeed(); heatPaint(); }
+['fOL','fUP','fV','fPC','fG','fN'].forEach(id=>$(id).addEventListener('change',heatPaint));
 function clock(){ const d=ist(); $('clk').textContent=d.toISOString().slice(11,19); const o=indiaOpen(); $('dot').className='dot'+(o?' live':''); $('mk').textContent=o?'NSE LIVE':'NSE CLOSED'; }
-$('note').innerHTML='Row 1 = last price + trend · Row 2 = points (% change) · Rows 3-4 = classic pivot support/resistance from the previous session (highlighted when price is within 0.35%). VIX, USDINR and yields: a rise is pressure (red). Delayed Yahoo quotes · not advice.';
-clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load();
+$('note').innerHTML='Row 1 = last price + trend · Row 2 = points (% change) · Rows 3-4 = LIVE floating pivots from the day high, day low and last price (P=(H+L+C)/3; highlighted when price is within 0.35% of a level; narrow early in the session). VIX, USDINR and yields: a rise is pressure (red). Delayed Yahoo quotes · not advice.';
+clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load(); heatLoad();
+(function hs(){ setTimeout(async()=>{ if(!document.hidden) await heatLoad(); hs(); }, indiaOpen()?45000:180000); })();
 (function sched(){ setTimeout(async()=>{ if(!document.hidden) await load(); sched(); }, indiaOpen()?20000:120000); })();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 </script></body></html>

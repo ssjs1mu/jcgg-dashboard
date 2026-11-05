@@ -1,0 +1,28 @@
+name: Heat-map feed (Nifty 100 + MidSmallCap 400, real Yahoo daily bars)
+# Every 5 minutes in market hours: one refresh, force-pushed as a single commit to branch `heat` (no history growth, no Pages redeploy).
+on:
+  schedule:
+    - cron: '*/5 3-10 * * 1-5'    # 08:30-16:30 IST
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: heat
+  cancel-in-progress: false
+jobs:
+  heat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Build and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUT=/tmp/heat.json python pipeline/heatmap.py
+          blob=$(git hash-object -w /tmp/heat.json)
+          tree=$(printf '100644 blob %s\theat.json\n' "$blob" | git mktree)
+          commit=$(git commit-tree "$tree" -m "heat $(date -u +%FT%TZ)")
+          git push -q -f origin "$commit":refs/heads/heat
