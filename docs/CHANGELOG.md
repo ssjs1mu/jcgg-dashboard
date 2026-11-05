@@ -24,3 +24,4 @@
 | 2026-11-05 | **[Claude]** trading.html: (1) Fear & Greed icon changed from "weather" to a CONTRARIAN market stance (greed = risky, fear = opportunity; fear + 2 adverse macro factors = wait). (2) Only one live TV across open tabs/windows (a new tab claiming the TV pauses the others). (3) Write-up enlarged (15 px text, 17 px headings). |
 | 2026-11-05 | **[Claude]** trading.html: stance text shortened to fit the Fear & Greed tile; Write-up sections 7, 12, 13 updated for the contrarian stance. |
 | 2026-11-05 | **[Claude]** trading.html: fixed a script syntax error (apostrophe in the stance text) that stopped the page loading. |
+| 2026-11-05 | **[Claude]** BIG FISH trigger: pipeline/heatmap.py adds RSI14 (row[14]) and a 'bf' map (first minute each stock met all conditions, replayed on 5-min bars); trading.html marks Big Fish in heat-map (violet glow, fish) and Live alerts (BF type) with today's results and times. |
