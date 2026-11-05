@@ -23,12 +23,13 @@ jobs:
       - name: Refresh loop
         run: |
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          N=1; [ "${{ github.event.schedule }}" = "" ] && N=2 || { case "${{ github.event.schedule }}" in '*/5 3-10 * * 1-5') N=5;; *) N=1;; esac; }
+          case "${{ github.event.schedule }}" in '*/5 3-10 * * 1-5') N=5;; '') N=2;; *) N=1;; esac
           for i in $(seq 1 $N); do
             OUT=/tmp/snapshot.json python pipeline/snapshot.py || { sleep 20; continue; }
             blob=$(git hash-object -w /tmp/snapshot.json)
             tree=$(printf '100644 blob %s\tsnapshot.json\n' "$blob" | git mktree)
             commit=$(git commit-tree "$tree" -m "snapshot $(date -u +%FT%TZ)")
             git push -q -f origin "$commit":refs/heads/snapshot || true
-            [ $i -lt $N ] && sleep 45
+            if [ $i -lt $N ]; then sleep 45; fi
           done
+          exit 0
