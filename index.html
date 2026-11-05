@@ -70,6 +70,23 @@ tr.clk:hover td{background:rgba(111,240,255,.1)!important}
 .tabs{display:flex;gap:4px}.tabs button{background:#1a2634;color:#cfd8e6;border:1px solid #33475f;border-radius:8px;font:800 11.5px "Segoe UI";padding:5px 12px;cursor:pointer}.tabs button.on{background:#17435c;border-color:var(--cy);color:#fff}
 .cwf{padding:6px 16px;background:#0f1824;border-top:1px solid var(--line);font:600 10.5px "Segoe UI";color:var(--mu);line-height:1.4}.cwf b{color:var(--gold)}
 @media(max-width:800px){.cwm{grid-template-columns:1fr}.cwr{display:none}}
+
+.work{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;height:calc(100vh - 150px);min-height:640px}
+.cp{grid-column:span 3;background:#121c2a;border:1px solid #38506f;border-radius:14px;display:grid;grid-template-rows:auto auto 1fr auto;overflow:hidden;min-width:0}
+.cp:fullscreen{border-radius:0;height:100vh}
+.ip{grid-column:span 2;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(0,0,0,.12)),var(--card);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.ixh{display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(90deg,#26374f,#1d2c42);border-bottom:1px solid var(--line)}.ixh b{font:800 12.5px "Segoe UI";letter-spacing:.1em;color:var(--gold)}.ixh span{margin-left:auto;font:800 10.5px ui-monospace,Consolas,monospace;padding:2px 10px;border-radius:999px}
+.ixl{display:flex;gap:14px;flex-wrap:wrap;padding:4px 14px;font:600 10px "Segoe UI";color:var(--mu);border-bottom:1px solid var(--line)}.ixl span{display:inline-flex;align-items:center;gap:5px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 7px #ff4d6d}.dot.on{background:#2dff9a;box-shadow:0 0 9px #2dff9a;animation:pl 2.4s ease-in-out infinite}@keyframes pl{50%{opacity:.55}}
+.ixw{flex:1;overflow:auto;min-height:0}.ixt{width:100%;table-layout:fixed;border-collapse:collapse}.ixt th{top:0;z-index:2}
+.ixt tr.gh td{background:#223450;color:var(--gold);font:800 10.5px "Segoe UI";letter-spacing:.14em;text-transform:uppercase;text-align:left;padding:4px 10px;position:sticky;top:26px;z-index:1}
+.ixt tr.ir{cursor:pointer}.ixt tr.ir.sel td{background:rgba(111,240,255,.14)!important;box-shadow:inset 3px 0 0 var(--cy)}
+.ixt td{padding:5px 8px;font-size:12px}.ixt td:first-child{display:flex;align-items:center;gap:7px;white-space:nowrap;overflow:hidden}.ixt td:first-child small{margin:0 0 0 2px;display:inline}
+.flg{width:22px;height:16px;border-radius:2px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,.25);flex:none}.ic{width:22px;text-align:center;flex:none}
+.bt{display:inline-block;min-width:78px;text-align:center;padding:1px 6px;border-radius:6px;font:800 10px "Segoe UI";letter-spacing:.06em}
+.bt.g{color:#3dffb4;background:rgba(61,255,180,.13);border:1px solid rgba(61,255,180,.4)}.bt.r{color:#ff6fae;background:rgba(255,111,174,.13);border:1px solid rgba(255,111,174,.4)}.bt.n{color:#6ff0ff;background:rgba(111,240,255,.1);border:1px solid rgba(111,240,255,.35)}.bt.a{color:#ffc04d;background:rgba(255,192,77,.1);border:1px solid rgba(255,192,77,.4)}
+.reg{grid-template-columns:repeat(5,1fr)}@media(max-width:1000px){.work{grid-template-columns:1fr;height:auto}.cp,.ip{grid-column:auto}.cp{height:78vh}.ip{height:70vh}.reg{grid-template-columns:repeat(2,1fr)}}
+.cwh{display:flex;align-items:center;gap:12px;padding:8px 14px;background:linear-gradient(90deg,#26374f,#1b2a3f);border-bottom:1px solid var(--line);flex-wrap:wrap}
 </style></head>
 <body>
 <header>
@@ -78,14 +95,23 @@ tr.clk:hover td{background:rgba(111,240,255,.1)!important}
  <div class="system-status"><div class="badge-live" id="live-indicator">CONNECTING…</div><div class="time-box" id="ist-clock">IST: --:--:--</div><div class="timer-box" id="market-timer">CLOSING IN: --:--:--</div></div>
 </header>
 <main>
- <div class="sect">Key markets · live</div><div class="kpis" id="kpis"></div>
  <div class="sect">Region pulse · average move</div><div class="reg" id="reg"></div>
- <div class="sect">Markets in detail</div><div class="dashboard-grid" id="grid"><div class="card"><div class="card-header"><h2>Loading live data…</h2></div></div></div>
+ <div class="sect">Chart workspace · click any index to load its chart</div>
+ <div class="work">
+  <section class="cp" id="cp">
+   <div class="cwh"><h3 id="cwt">Chart</h3><div class="cwp" id="cwp"></div><span class="sp2"></span><div class="tabs" id="cwtabs"><button class="on" data-tab="c">Candles · live data</button><button data-tab="t" id="tabT" style="display:none">TradingView</button></div><a class="cwbtn" id="cwo" target="_blank" rel="noopener">Open on TradingView ↗</a><button class="cwbtn" id="cwfs">⛶ Full screen</button></div>
+   <div class="cwt" id="cwtb"><span class="lbl">Timeframe</span><span id="tfs"></span><span class="lbl" style="margin-left:12px">Indicators</span><span id="inds"></span><span class="lg" id="lgd"></span></div>
+   <div class="cwc"><div id="lc"><div id="lcp"></div><div id="lcr"></div><div id="lcm"></div></div><div id="tvc" style="display:none"></div></div>
+   <div class="cwf" id="cwf"></div>
+  </section>
+  <section class="ip">
+   <div class="ixh"><b>INDICES · REGION-WISE</b><span id="ixs"></span></div>
+   <div class="ixl"><span><i class="dot on"></i>market open</span><span><i class="dot"></i>closed</span><span>Bias = day move + position in day range + recent slope</span></div>
+   <div class="ixw"><table class="ixt"><colgroup><col style="width:35%"><col style="width:7%"><col style="width:20%"><col style="width:18%"><col style="width:20%"></colgroup><thead><tr><th>Index</th><th></th><th>Last</th><th>Change</th><th>Bias / trend</th></tr></thead><tbody id="ixb"></tbody></table></div>
+  </section>
+ </div>
+ <div class="sect">Sentiment · news · flows · options</div><div class="dashboard-grid" id="grid"><div class="card"><div class="card-header"><h2>Loading live data…</h2></div></div></div>
 </main>
-<div class="cw" id="cw"><div class="cwb"><div class="cwh"><h3 id="cwt">Chart</h3><div class="cwp" id="cwp"></div><span class="sp2"></span><div class="tabs" id="cwtabs"><button class="on" data-tab="c">Candles · live data</button><button data-tab="t" id="tabT">TradingView</button></div><a class="cwbtn" id="cwo" target="_blank" rel="noopener">Open on TradingView ↗</a><button class="cwbtn" id="cwfs">⛶ Full screen</button><button class="cwbtn" id="cwx">✕ Close</button></div>
-<div class="cwt" id="cwtb"><span class="lbl">Timeframe</span><span id="tfs"></span><span class="lbl" style="margin-left:14px">Indicators</span><span id="inds"></span><span class="lg" id="lgd"></span></div>
-<div class="cwm"><div class="cwr" id="cwr"></div><div class="cwc"><div id="lc"><div id="lcp"></div><div id="lcr"></div><div id="lcm"></div></div><div id="tvc" style="display:none"></div></div></div>
-<div class="cwf" id="cwf"></div></div></div>
 <footer>Joshi's Corner Wealth Desk Terminal &bull; Real data only: Yahoo Finance via GitHub snapshot, NSE flows, public news feeds &bull; n/a = no free feed</footer>
 <script>
 const API='https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/', RAW='https://raw.githubusercontent.com/';
@@ -115,8 +141,8 @@ function kpis(){ if(!SNAP) return ''; return KP.map(([n,k,d])=>{ const q=SNAP.m[
 function regions(){ if(!SNAP) return ''; return SEC.map(s=>{ const L=s[2].filter(r=>r[1]&&SNAP.m[r[1]]&&!INV.test(r[0])&&!/Dollar/i.test(r[0])&&!/T-Note/i.test(r[0])).map(r=>{ const q=SNAP.m[r[1]]; return q.pc?(q.p/q.pc-1)*100:0; }); if(!L.length) return ''; const av=L.reduce((a,b)=>a+b,0)/L.length, up=L.filter(x=>x>0).length, nm=s[0].replace(/^\S+\s/,'').replace(/ \(.*\)/,'');
   return `<div class="r ${Math.abs(av)<0.05?'fl':av>0?'up':'dn'}"><i>${esc(nm)}</i><b>${av>=0?'+':''}${av.toFixed(2)}%</b><span>${up} up · ${L.length-up} down of ${L.length}</span></div>`; }).join(''); }
 function render(){
- document.getElementById('kpis').innerHTML=kpis(); document.getElementById('reg').innerHTML=regions();
- let h=SEC.map(tbl).join('');
+ document.getElementById('reg').innerHTML=regions(); renderIdx();
+ let h='';
  const v=SNAP&&SNAP.m['^INDIAVIX']; if(v){ const lv=v.p<13?['Low · complacent','#3dffb4']:v.p<18?['Normal','#d6c85a']:v.p<24?['Elevated','#ff9a3c']:['High fear','#ff6fae'], pos=Math.min(100,Math.max(0,(v.p-8)/(32-8)*100));
   h+=`<div class="card"><div class="card-header"><h2>📊 Market sentiment · India VIX</h2></div><div class="gauge"><div class="gt"><b style="color:${lv[1]}">${fm(v.p)}</b><span style="color:${lv[1]}">${lv[0]}</span></div><div class="gb"><u style="left:calc(${pos.toFixed(0)}% - 2px)"></u></div><div class="gl"><span>8 calm</span><span>13</span><span>18</span><span>24</span><span>32 panic</span></div><div class="gl" style="font-weight:600;letter-spacing:0">VIX is the market's own fear gauge: a low value means traders pay little for protection (complacent), a high value means fear. Contrarian view: complacency is risky, fear builds opportunity.</div></div></div>`; }
  if(NEWS) h+=`<div class="card"><div class="card-header"><h2>📰 Live market news</h2><span class="status-open">${NEWS.news.length} headlines</span></div><div class="table-container"><table><colgroup><col style="width:24%"><col><col style="width:17%"></colgroup><thead><tr><th>Source</th><th style="text-align:left">Headline</th><th>Time IST</th></tr></thead><tbody>${NEWS.news.slice(0,12).map(n=>`<tr><td>${esc(n.src)}</td><td class="hl"><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a></td><td>${new Date(n.t*1000).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</td></tr>`).join('')}</tbody></table></div></div>`;
@@ -129,7 +155,7 @@ function render(){
  const tb=document.getElementById('trendTxt'), li=document.getElementById('live-indicator'), bd=document.getElementById('global-trend-badge');
  if(av==null){ tb.textContent='GLOBAL TREND: no data'; } else { tb.textContent=(av>0.3?'▲ GLOBAL TREND: RISK-ON':av<-0.3?'▼ GLOBAL TREND: RISK-OFF':'◆ GLOBAL TREND: MIXED')+' ('+(av>=0?'+':'')+av.toFixed(2)+'% avg)'; bd.className='macro-trend-indicator '+(av>0.3?'up':av<-0.3?'dn':''); }
  if(SNAP){ const age=Math.round((Date.now()-SNAP.ts)/60000); li.textContent=age<=15?'LIVE FEED (GitHub snapshot, '+age+' min old)':'SNAPSHOT '+(age>1440?Math.round(age/1440)+' d':age>=60?Math.round(age/60)+' h':age+' min')+' old'; li.style.opacity=age<=15?1:.75; } else li.textContent='FEED UNAVAILABLE';
- updateTerminalClock(); if(document.getElementById('cw').classList.contains('on')){ cwHead(); cwRail(); }
+ updateTerminalClock(); cwHead(); if(!CUR){ const L=(lsg('jcm_last')||'^NSEI|NIFTY 50').split('|'); openChart(L[0],L[1]); }
 }
 
 /* ---------- chart window: own candles (real Yahoo OHLCV) + indicators; TradingView tab where TradingView allows embedding ---------- */
@@ -153,7 +179,7 @@ const f2=(v,d)=>v==null?'-':Number(v).toLocaleString('en-IN',{minimumFractionDig
 function cwHead(){ if(!CUR) return; const q=SNAP&&SNAP.m[CUR.k], n=CUR.n; document.getElementById('cwt').textContent=n; const p=document.getElementById('cwp');
   if(!q){ p.innerHTML='<span style="color:var(--mu);font-size:13px">no price in snapshot</span>'; return; } const c=cinfo(n,q), up=c.pc>=0, col=c.flat?'#6ff0ff':c.good?'#3dffb4':'#ff6fae';
   p.innerHTML=`<span style="color:${col}">${fm(q.p,q.p>1000?2:3)}</span><em style="color:${col};background:${col}22;border:1px solid ${col}66">${up?'▲ +':'▼ '}${fm(c.pc,2)}%</em>`; }
-function cwRail(){ const L=[]; SEC.forEach(s=>s[2].forEach(r=>{ if(r[1]&&(!CH||CH[r[1]])) L.push([r[1],r[0]]); })); document.getElementById('cwr').innerHTML=L.map(([k,n])=>{ const q=SNAP&&SNAP.m[k]; let sub=''; if(q){ const c=cinfo(n,q); sub=`<small style="color:${c.flat?'#6ff0ff':c.good?'#3dffb4':'#ff6fae'}">${c.pc>=0?'+':''}${fm(c.pc,2)}%</small>`; } return `<button data-k="${esc(k)}" data-n="${esc(n)}" class="${CUR&&CUR.k===k?'on':''}">${esc(n)}${sub}</button>`; }).join(''); }
+function cwRailOld(){ const L=[]; SEC.forEach(s=>s[2].forEach(r=>{ if(r[1]&&(!CH||CH[r[1]])) L.push([r[1],r[0]]); })); document.getElementById('cwr').innerHTML=L.map(([k,n])=>{ const q=SNAP&&SNAP.m[k]; let sub=''; if(q){ const c=cinfo(n,q); sub=`<small style="color:${c.flat?'#6ff0ff':c.good?'#3dffb4':'#ff6fae'}">${c.pc>=0?'+':''}${fm(c.pc,2)}%</small>`; } return `<button data-k="${esc(k)}" data-n="${esc(n)}" class="${CUR&&CUR.k===k?'on':''}">${esc(n)}${sub}</button>`; }).join(''); }
 function cwBar(){ document.getElementById('tfs').innerHTML=TFS.map(([v,l])=>`<button data-tf="${v}" class="${TF===v?'on':''}">${l}</button>`).join(''); document.getElementById('inds').innerHTML=INDS.map(([v,l])=>`<button data-ind="${v}" class="${IND[v]?'on':''}">${l}</button>`).join(''); }
 function cwFoot(){ document.getElementById('cwf').innerHTML=TAB==='c'?`<b>Candles:</b> real Yahoo Finance data prepared by the GitHub data job about every 2-5 min (market hours); the last candle follows the live snapshot price. 5m = ~5 days, 1D = ~8 months. Futures and global indices trade nearly 24 h, so their 5m view is shorter. Times shown in IST. <b>Indicators</b> (EMA 9/21, VWAP resets daily, Bollinger 20/2, RSI 14, MACD 12/26/9) are calculated on this page. Your timeframe, indicator choices and last chart are remembered on this device. <b>TradingView login:</b> TradingView does not allow sign-in inside free embedded charts, so use “Open on TradingView ↗” - your own login stays there.`:`<b>TradingView embedded chart</b> (free widget). Only some symbols are allowed by TradingView: Nifty, Bank Nifty, VIX, US 10Y, dollar index, Asian and US futures are blocked, so they only show in the Candles tab. Use “Open on TradingView ↗” for the full site with your saved layouts and login.`; }
 function cwKill(){ LCH.forEach(c=>{ try{ c.remove(); }catch(e){} }); LCH=[]; ['lcp','lcr','lcm'].forEach(i=>document.getElementById(i).innerHTML=''); }
@@ -182,18 +208,33 @@ async function showTab(tb){ TAB=tb; document.querySelectorAll('#cwtabs button').
   if(c){ await drawCandles(); return; } const box=document.getElementById('tvc'), ok=TVOK[CUR.k]; if(!ok){ box.innerHTML='<div style="padding:30px;color:#cfd8e6;font:600 14px Segoe UI">TradingView does not allow this symbol in its free embedded chart. Use the Candles tab, or “Open on TradingView ↗”.</div>'; return; }
   box.innerHTML='<div style="padding:30px;color:#93a4b9">Loading TradingView chart…</div>'; try{ await loadScript('https://s3.tradingview.com/tv.js','TradingView'); }catch(e){ box.innerHTML='<div style="padding:30px;color:#ff9aa8">TradingView could not be loaded.</div>'; return; }
   box.innerHTML=''; new TradingView.widget({container_id:'tvc',autosize:true,symbol:ok[0],interval:ok[1],timezone:'Asia/Kolkata',theme:'dark',style:'1',locale:'en',toolbar_bg:'#121c2a',backgroundColor:'#0e1621',enable_publishing:false,allow_symbol_change:true,hide_side_toolbar:false,withdateranges:true,details:false,hotlist:false,calendar:false,studies:['MASimple@tv-basicstudies','BB@tv-basicstudies','RSI@tv-basicstudies','MACD@tv-basicstudies','Volume@tv-basicstudies']}); }
-async function openChart(k,n){ CUR={k,n}; lss('jcm_last',k+'|'+n); document.getElementById('cw').classList.add('on'); cwHead(); cwRail(); cwBar();
+async function openChart(k,n){ CUR={k,n}; lss('jcm_last',k+'|'+n); cwHead(); cwBar(); renderIdx();
   document.getElementById('cwo').href='https://www.tradingview.com/chart/?symbol='+encodeURIComponent(TVS[k]||k); document.getElementById('tabT').style.display=TVOK[k]?'':'none';
   if(!CH){ document.getElementById('lcp').innerHTML='<div style="padding:30px;color:#93a4b9">Loading candles…</div>'; await loadCharts(); }
   await showTab(TVOK[k]&&TAB==='t'?'t':'c'); }
-function closeChart(){ document.getElementById('cw').classList.remove('on'); cwKill(); document.getElementById('tvc').innerHTML=''; }
-setInterval(async()=>{ if(CUR&&document.getElementById('cw').classList.contains('on')&&TAB==='c'&&!document.hidden){ await loadCharts(); drawCandles(); } },90000);
+setInterval(async()=>{ if(CUR&&TAB==='c'&&!document.hidden){ await loadCharts(); drawCandles(); } },90000);
 document.addEventListener('click',e=>{ const tf=e.target.closest('[data-tf]'), ind=e.target.closest('[data-ind]'), tab=e.target.closest('[data-tab]');
   if(tf){ TF=tf.dataset.tf; lss('jcm_tf',TF); cwBar(); drawCandles(); return; } if(ind){ IND[ind.dataset.ind]=IND[ind.dataset.ind]?0:1; lss('jcm_ind',JSON.stringify(IND)); cwBar(); drawCandles(); return; } if(tab){ showTab(tab.dataset.tab); return; }
-  const x=e.target.closest('[data-k]'); if(x&&!e.target.closest('a')&&x.matches('.k,tr.clk,.cwr button')){ openChart(x.dataset.k,x.dataset.n); return; }
-  if(e.target.id==='cwx'||e.target.id==='cw') closeChart();
-  if(e.target.id==='cwfs'){ const b=document.querySelector('.cwb'); if(document.fullscreenElement) document.exitFullscreen(); else if(b.requestFullscreen) b.requestFullscreen(); } });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('cw').classList.contains('on')) closeChart(); });
+  const x=e.target.closest('tr.ir[data-k]'); if(x){ openChart(x.dataset.k,x.dataset.n); return; }
+  if(e.target.id==='cwfs'){ const b=document.getElementById('cp'); if(document.fullscreenElement) document.exitFullscreen(); else if(b.requestFullscreen) b.requestFullscreen(); } });
+document.addEventListener('fullscreenchange',()=>setTimeout(()=>{ if(CUR&&TAB==='c') drawCandles(); },300));
+/* ---------- region-wise indices table: flag, open/closed dot, last, change, bias ---------- */
+const FL=u=>`<img class="flg" src="https://flagcdn.com/w40/${u}.png" alt="${u}" onerror="this.style.display='none'">`;
+const IX=[['INDIA','in',[['NIFTY 50','^NSEI',2],['BANK NIFTY','^NSEBANK',2],['SENSEX','^BSESN',2],['NIFTY IT','^CNXIT',2],['NIFTY MIDCAP','^NSMIDCP',2],['INDIA VIX','^INDIAVIX',2],['USD/INR','USDINR=X',4],['Gift Nifty',null],['India 10Y yield',null],['Nifty PCR',null]]],
+ ['UNITED STATES','us',[['Dow futures','YM=F',2],['S&P 500 futures','ES=F',2],['Nasdaq 100 futures','NQ=F',2],['US 10Y yield','^TNX',3],['10Y T-Note futures','ZN=F',3],['US Dollar Index','DX-Y.NYB',3]]],
+ ['ASIA','',[['Nikkei 225','^N225',2,'jp'],['Hang Seng','^HSI',2,'hk'],['Taiwan Weighted','^TWII',2,'tw'],['China A50','XIN9.FGI',2,'cn']]],
+ ['EUROPE','',[['DAX','^GDAXI',2,'de'],['FTSE 100','^FTSE',2,'gb'],['Euro Stoxx 50','^STOXX50E',2,'eu'],['Euro-Bund / Long Gilt',null,0,'eu']]],
+ ['COMMODITIES','',[['Brent crude','BZ=F',2,'🛢️'],['WTI crude','CL=F',2,'🛢️'],['Gold','GC=F',2,'🥇'],['Silver','SI=F',3,'🥈'],['Copper','HG=F',3,'🔶'],['Natural gas','NG=F',3,'🔥']]]];
+function biasOf(name,q){ const ch=q.pc?(q.p/q.pc-1)*100:0, pos=(q.hi!=null&&q.lo!=null&&q.hi>q.lo)?(q.p-q.lo)/(q.hi-q.lo):0.5, inv=INV.test(name); let tag,k;
+  if(Math.abs(ch)<0.2){ tag='SIDEWAYS'; k='n'; } else if(ch>0){ if(pos<0.35){ tag='PULLBACK'; k='a'; } else if(ch>=0.5&&pos>=0.7){ tag='BULLISH'; k='g'; } else { tag='MILD BULL'; k='g'; } } else { if(pos>0.65){ tag='RECOVERY'; k='a'; } else if(ch<=-0.5&&pos<=0.3){ tag='BEARISH'; k='r'; } else { tag='MILD BEAR'; k='r'; } }
+  if(inv&&(k==='g'||k==='r')) k=k==='g'?'r':'g'; if(inv&&tag==='BULLISH') tag='RISING'; if(inv&&tag==='BEARISH') tag='FALLING'; return {tag,k,ch}; }
+function renderIdx(){ const body=document.getElementById('ixb'); if(!body) return; let up=0,n=0,sum=0;
+  body.innerHTML=IX.map(([g,fl,rows])=>`<tr class="gh"><td colspan="5">${g}</td></tr>`+rows.map(r=>{ const [nm,k,d,f2x]=r, fc=f2x||fl, ico=fc&&/^[a-z]{2}$/.test(fc)?FL(fc):fc?`<span class="ic">${fc}</span>`:'<span class="ic"></span>', q=k&&SNAP&&SNAP.m[k];
+    if(!q) return `<tr><td>${ico}<span style="opacity:.6">${esc(nm)}</span></td><td></td><td>n/a</td><td><span class="pill na" style="min-width:0">no feed</span></td><td></td></tr>`;
+    const c=cinfo(nm,q), b=biasOf(nm,q), open=SNAP.ts-q.t*1000<25*60000&&Date.now()-SNAP.ts<50*60000, tm=new Date(q.t*1000).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false}), cls=c.flat?'na':c.good?'positive':'negative';
+    if(!INV.test(nm)&&!/Dollar|T-Note/i.test(nm)){ n++; sum+=c.pc; if(c.pc>0) up++; }
+    return `<tr class="ir ${CUR&&CUR.k===k?'sel':''}" data-k="${esc(k)}" data-n="${esc(nm)}" title="Last trade ${tm} IST · click for chart"><td>${ico}<span>${esc(nm)}</span></td><td><i class="dot ${open?'on':''}"></i></td><td>${fm(q.p,d)}</td><td><span class="pill ${cls}" style="min-width:0;width:100%">${c.pc>=0?'+':''}${fm(c.pc,2)}%</span></td><td><span class="bt ${b.k}">${b.tag}</span></td></tr>`; }).join('')).join('');
+  const av=n?sum/n:0, el=document.getElementById('ixs'); el.textContent=(av>0.3?'RISK-ON':av<-0.3?'RISK-OFF':'MIXED')+' · '+up+' up / '+(n-up)+' down · '+(av>=0?'+':'')+av.toFixed(2)+'%'; el.style.cssText=av>0.3?'background:rgba(61,255,180,.14);color:#3dffb4;border:1px solid rgba(61,255,180,.4)':av<-0.3?'background:rgba(255,111,174,.14);color:#ff6fae;border:1px solid rgba(255,111,174,.4)':'background:rgba(111,240,255,.1);color:#6ff0ff;border:1px solid rgba(111,240,255,.35)'; }
 async function loadAll(){
  const j=await getJ([API+'snapshot.json?ref=snapshot',RAW+'ssjs1mu/jcgg-dashboard/snapshot/snapshot.json?x='+Date.now(),'data/snapshot.json']);
  if(j&&j.rows){ const m={}; j.rows.forEach(r=>{ if(r.p!=null&&r.pc!=null) m[r.s]={p:r.p,pc:r.pc,t:r.t,sp:r.sp,hi:r.hi,lo:r.lo}; }); SNAP={m,ts:j.ts?Date.parse(j.ts):Date.now()}; }
