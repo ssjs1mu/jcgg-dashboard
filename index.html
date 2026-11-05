@@ -56,7 +56,7 @@ footer{max-width:1500px;margin:18px auto 0;text-align:center;color:var(--mu);fon
 tr.clk:hover td{background:rgba(111,240,255,.1)!important}
 .gnote{font:600 9px "Segoe UI";color:rgba(255,255,255,.55);letter-spacing:.03em;text-align:left;margin-top:3px;line-height:1.25}
 .cnote{padding:5px 14px;font:600 10.5px "Segoe UI";color:var(--mu);background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}.cnote b{color:var(--gold)}
-.dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:1000px){.dashboard-grid{grid-template-columns:1fr}}
+.dashboard-grid{grid-template-columns:1fr}@media(max-width:1000px){.dashboard-grid{grid-template-columns:1fr}}
 .cw{position:fixed;inset:0;z-index:50;background:rgba(5,9,15,.78);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:2.5vh 2.5vw}.cw.on{display:flex}
 .cwb{width:95vw;height:92vh;max-width:1700px;background:#121c2a;border:1px solid #38506f;border-radius:16px;box-shadow:0 12px 60px rgba(0,0,0,.6),0 0 30px rgba(111,240,255,.12);display:grid;grid-template-rows:auto auto 1fr auto;overflow:hidden}
 .cwh{display:flex;align-items:center;gap:14px;padding:9px 16px;background:linear-gradient(90deg,#26374f,#1b2a3f);border-bottom:1px solid var(--line);flex-wrap:wrap}
@@ -110,7 +110,7 @@ tr.clk:hover td{background:rgba(111,240,255,.1)!important}
    <div class="ixw"><table class="ixt"><colgroup><col style="width:35%"><col style="width:7%"><col style="width:20%"><col style="width:18%"><col style="width:20%"></colgroup><thead><tr><th>Index</th><th></th><th>Last</th><th>Change</th><th>Bias / trend</th></tr></thead><tbody id="ixb"></tbody></table></div>
   </section>
  </div>
- <div class="sect">Sentiment · news · flows · options</div><div class="dashboard-grid" id="grid"><div class="card"><div class="card-header"><h2>Loading live data…</h2></div></div></div>
+ <div class="sect">Stock options · open interest</div><div class="dashboard-grid" id="grid"><div class="card"><div class="card-header"><h2>Loading live data…</h2></div></div></div>
 </main>
 <footer>Joshi's Corner Wealth Desk Terminal &bull; Real data only: Yahoo Finance via GitHub snapshot, NSE flows, public news feeds &bull; n/a = no free feed</footer>
 <script>
@@ -143,11 +143,6 @@ function regions(){ if(!SNAP) return ''; return SEC.map(s=>{ const L=s[2].filter
 function render(){
  document.getElementById('reg').innerHTML=regions(); renderIdx();
  let h='';
- const v=SNAP&&SNAP.m['^INDIAVIX']; if(v){ const lv=v.p<13?['Low · complacent','#3dffb4']:v.p<18?['Normal','#d6c85a']:v.p<24?['Elevated','#ff9a3c']:['High fear','#ff6fae'], pos=Math.min(100,Math.max(0,(v.p-8)/(32-8)*100));
-  h+=`<div class="card"><div class="card-header"><h2>📊 Market sentiment · India VIX</h2></div><div class="gauge"><div class="gt"><b style="color:${lv[1]}">${fm(v.p)}</b><span style="color:${lv[1]}">${lv[0]}</span></div><div class="gb"><u style="left:calc(${pos.toFixed(0)}% - 2px)"></u></div><div class="gl"><span>8 calm</span><span>13</span><span>18</span><span>24</span><span>32 panic</span></div><div class="gl" style="font-weight:600;letter-spacing:0">VIX is the market's own fear gauge: a low value means traders pay little for protection (complacent), a high value means fear. Contrarian view: complacency is risky, fear builds opportunity.</div></div></div>`; }
- if(NEWS) h+=`<div class="card"><div class="card-header"><h2>📰 Live market news</h2><span class="status-open">${NEWS.news.length} headlines</span></div><div class="table-container"><table><colgroup><col style="width:24%"><col><col style="width:17%"></colgroup><thead><tr><th>Source</th><th style="text-align:left">Headline</th><th>Time IST</th></tr></thead><tbody>${NEWS.news.slice(0,12).map(n=>`<tr><td>${esc(n.src)}</td><td class="hl"><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a></td><td>${new Date(n.t*1000).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</td></tr>`).join('')}</tbody></table></div></div>`;
- if(FD){ const d=Object.keys(FD.daily).sort().slice(-6).reverse(), m=FD.fpi_equity_monthly||{}, yr=new Date().getFullYear(), ytd=Object.keys(m).filter(k=>k.startsWith(yr)).reduce((a,k)=>a+m[k],0), c=x=>x>=0?'positive':'negative', mx=Math.max(1,...d.map(k=>Math.max(Math.abs(FD.daily[k].fii_net),Math.abs(FD.daily[k].dii_net)))), bar=x=>`<span class="bar2"><s style="width:${Math.max(2,Math.abs(x)/mx*60).toFixed(0)}px;background:${x>=0?'#3dffb4':'#ff6fae'}"></s><span class="${c(x)}">${fm(x,0)}</span></span>`;
-  h+=`<div class="card"><div class="card-header"><h2>🏛️ Institutional flows · ₹ crore, NSE cash</h2><span class="status-open">${esc(d[0]||'')}</span></div><div class="table-container"><table><colgroup><col style="width:30%"><col style="width:35%"><col style="width:35%"></colgroup><thead><tr><th>Date</th><th>FII net</th><th>DII net</th></tr></thead><tbody>${d.map(k=>`<tr><td>${k}</td><td>${bar(FD.daily[k].fii_net)}</td><td>${bar(FD.daily[k].dii_net)}</td></tr>`).join('')}<tr><td>FPI equity ${yr} YTD</td><td>${bar(ytd)}</td><td><small style="display:block;margin:0;color:var(--mu)">NSDL to ${esc(FD.fpi_equity_upto)}</small></td></tr></tbody></table></div></div>`; }
  if(OI){ const rows=Object.entries(OI.stocks).map(([k,x])=>[k,x,(x.ce||0)+(x.pe||0)]).sort((a,b)=>b[2]-a[2]).slice(0,12);
   h+=`<div class="card" style="grid-column:1/-1"><div class="card-header"><h2>🎯 Stock option OI · last close, nearest expiry</h2><span class="status-open">${esc((OI.asof||'').slice(0,10))}</span></div><div class="table-container"><table><thead><tr><th>Stock</th><th>Spot</th><th>Expiry</th><th>PCR</th><th>Call wall</th><th>Put wall</th><th>Total OI</th></tr></thead><tbody>${rows.map(([k,x,t])=>`<tr><td>${esc(k)}</td><td>${fm(x.spot)}</td><td>${esc(x.expiry)}</td><td class="${x.pcr>=1?'positive':'negative'}">${fm(x.pcr)}</td><td>${fm(x.callWall,0)}</td><td>${fm(x.putWall,0)}</td><td>${fm(t,0)}</td></tr>`).join('')}</tbody></table></div></div>`; }
  document.getElementById('grid').innerHTML=h;
@@ -238,8 +233,7 @@ function renderIdx(){ const body=document.getElementById('ixb'); if(!body) retur
 async function loadAll(){
  const j=await getJ([API+'snapshot.json?ref=snapshot',RAW+'ssjs1mu/jcgg-dashboard/snapshot/snapshot.json?x='+Date.now(),'data/snapshot.json']);
  if(j&&j.rows){ const m={}; j.rows.forEach(r=>{ if(r.p!=null&&r.pc!=null) m[r.s]={p:r.p,pc:r.pc,t:r.t,sp:r.sp,hi:r.hi,lo:r.lo}; }); SNAP={m,ts:j.ts?Date.parse(j.ts):Date.now()}; }
- NEWS=await getJ([API+'news.json?ref=news',RAW+'ssjs1mu/jcgg-dashboard/news/news.json?x='+Date.now()])||NEWS;
- FD=FD||await getJ([RAW+'ssjs1mu/jc-stock-analyst/main/data/fiidii.json']); OI=OI||await getJ([RAW+'ssjs1mu/jc-stock-analyst/main/data/fno_oi.json']);
+  OI=OI||await getJ([RAW+'ssjs1mu/jc-stock-analyst/main/data/fno_oi.json']);
  render();
 }
 </script>
