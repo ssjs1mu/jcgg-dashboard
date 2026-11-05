@@ -35,3 +35,4 @@
 | 2026-11-05 | **[Claude]** Early reversal tiles: 2 rows x 4 compact tiles so text fits. |
 | 2026-11-05 | **[Claude]** index.html (Macro dashboard) redesigned: key-market KPI tiles with sparklines and day-range bars, region pulse tiles, aligned tables (name left, numbers right, change pill, range bar, trend), VIX gauge, FII/DII bars. All from real snapshot/news/NSE data. |
 | 2026-11-05 | **[Claude]** Macro dashboard: KPI tiles 5 per row, empty day range hidden; trading terminal Live alerts numeric columns right-aligned with matching headers. |
+| 2026-11-05 | **[Claude]** Macro dashboard: click any key-market tile or table row to open a chart window with the live TradingView chart (SMA, Bollinger, RSI, MACD, Volume), instrument list rail, Open-on-TradingView link, full screen; graph notes on tiles and tables; 2-column realigned grid. TradingView login happens inside the widget (browser-kept); the page never handles credentials. |

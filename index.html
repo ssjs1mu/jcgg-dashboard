@@ -51,6 +51,22 @@ td a{color:#dbe6f5;text-decoration:none;white-space:normal}td a:hover{color:var(
 .gl{display:flex;justify-content:space-between;font:700 10px "Segoe UI";color:var(--mu);letter-spacing:.08em}
 footer{max-width:1500px;margin:18px auto 0;text-align:center;color:var(--mu);font:600 11px "Segoe UI"}
 @media(max-width:700px){.dashboard-grid{grid-template-columns:1fr}header{grid-template-columns:1fr}.header-left,.system-status{justify-self:center;justify-content:center}}
+
+.k,tr.clk{cursor:pointer}.k{transition:transform .15s,box-shadow .15s}.k:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 22px var(--gl)}
+tr.clk:hover td{background:rgba(111,240,255,.1)!important}
+.gnote{font:600 9px "Segoe UI";color:rgba(255,255,255,.55);letter-spacing:.03em;text-align:left;margin-top:3px;line-height:1.25}
+.cnote{padding:5px 14px;font:600 10.5px "Segoe UI";color:var(--mu);background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}.cnote b{color:var(--gold)}
+.dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:1000px){.dashboard-grid{grid-template-columns:1fr}}
+.cw{position:fixed;inset:0;z-index:50;background:rgba(5,9,15,.78);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:2.5vh 2.5vw}.cw.on{display:flex}
+.cwb{width:95vw;height:92vh;max-width:1700px;background:#121c2a;border:1px solid #38506f;border-radius:16px;box-shadow:0 12px 60px rgba(0,0,0,.6),0 0 30px rgba(111,240,255,.12);display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+.cwh{display:flex;align-items:center;gap:14px;padding:9px 16px;background:linear-gradient(90deg,#26374f,#1b2a3f);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.cwh h3{font:800 16px "Segoe UI";letter-spacing:.08em;color:var(--gold);text-transform:uppercase}.cwp{display:flex;align-items:baseline;gap:10px;font:900 20px ui-monospace,Consolas,monospace}.cwp em{font:800 13px ui-monospace,Consolas,monospace;font-style:normal;padding:1px 10px;border-radius:999px}
+.cwh .sp2{flex:1}.cwbtn{background:#1a2634;color:#e3eaf3;border:1px solid #3a4f6a;border-radius:8px;font:700 11.5px "Segoe UI";padding:5px 12px;cursor:pointer;text-decoration:none;white-space:nowrap}.cwbtn:hover{border-color:var(--cy);color:var(--cy)}
+.cwm{display:grid;grid-template-columns:150px 1fr;min-height:0}
+.cwr{overflow:auto;background:#0f1824;border-right:1px solid var(--line);padding:6px}.cwr button{display:block;width:100%;text-align:left;margin:0 0 4px;padding:6px 9px;border-radius:8px;border:1px solid transparent;background:transparent;color:#cfd8e6;font:700 11.5px "Segoe UI";cursor:pointer}.cwr button small{display:block;font:700 10px ui-monospace,Consolas,monospace;margin-top:1px}.cwr button:hover{background:#1b2a3f}.cwr button.on{background:#223652;border-color:var(--cy);color:#fff}
+#tvc{min-height:0;height:100%;background:#0e1621}
+.cwf{padding:6px 16px;background:#0f1824;border-top:1px solid var(--line);font:600 10.5px "Segoe UI";color:var(--mu);line-height:1.4}.cwf b{color:var(--gold)}
+@media(max-width:800px){.cwm{grid-template-columns:1fr}.cwr{display:none}}
 </style></head>
 <body>
 <header>
@@ -63,6 +79,7 @@ footer{max-width:1500px;margin:18px auto 0;text-align:center;color:var(--mu);fon
  <div class="sect">Region pulse · average move</div><div class="reg" id="reg"></div>
  <div class="sect">Markets in detail</div><div class="dashboard-grid" id="grid"><div class="card"><div class="card-header"><h2>Loading live data…</h2></div></div></div>
 </main>
+<div class="cw" id="cw"><div class="cwb"><div class="cwh"><h3 id="cwt">Chart</h3><div class="cwp" id="cwp"></div><span class="sp2"></span><a class="cwbtn" id="cwo" target="_blank" rel="noopener">Open on TradingView ↗</a><button class="cwbtn" id="cwfs">⛶ Full screen</button><button class="cwbtn" id="cwx">✕ Close</button></div><div class="cwm"><div class="cwr" id="cwr"></div><div id="tvc"></div></div><div class="cwf"><b>Live chart by TradingView</b> · indicators loaded: SMA, Bollinger Bands, RSI, MACD, Volume (change them from the chart's own toolbar) · switch instrument from the list or the chart's search box · <b>Login:</b> sign in once inside the chart (top-left menu) - your browser keeps it signed in on this device when it allows tradingview.com cookies; this page never sees or stores your password. Exchange data may be delayed on the free widget.</div></div></div>
 <footer>Joshi's Corner Wealth Desk Terminal &bull; Real data only: Yahoo Finance via GitHub snapshot, NSE flows, public news feeds &bull; n/a = no free feed</footer>
 <script>
 const API='https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/', RAW='https://raw.githubusercontent.com/';
@@ -85,10 +102,10 @@ function cinfo(name,q){ const ch=q.p-q.pc, pc=q.pc?ch/q.pc*100:0, inv=INV.test(n
 function tbl(sec){ const [t,st,rows,rg]=sec;
  const body=rows.map(r=>{ const q=r[1]&&SNAP&&SNAP.m[r[1]]; if(!q) return `<tr><td>${esc(r[0])}<small>${esc(r[2])}</small></td><td>n/a</td><td><span class="pill na">no free feed</span></td><td></td><td></td></tr>`;
   const c=cinfo(r[0],q), cls=c.flat?'na':c.good?'positive':'negative';
-  return `<tr><td>${esc(r[0])}<small>${esc(r[2])}</small></td><td>${fm(q.p,r[3])}</td><td><span class="pill ${cls}">${c.pc>=0?'+':''}${fm(c.pc,2)}%</span></td><td>${rbar(q)}</td><td>${spark(q.sp,c.pc>=0,78,20)}</td></tr>`; }).join('');
- return `<div class="card"><div class="card-header"><h2>${t}</h2>${st?`<span class="status-open" id="${st}">…</span>`:''}</div><div class="table-container"><table><colgroup><col style="width:30%"><col style="width:21%"><col style="width:20%"><col style="width:13%"><col style="width:16%"></colgroup><thead><tr><th>Instrument</th><th>Last</th><th>Change</th><th>Day range</th><th>Trend</th></tr></thead><tbody>${body}</tbody></table></div></div>`; }
+  return `<tr class="clk" data-k="${esc(r[1])}" data-n="${esc(r[0])}" title="Click for the live TradingView chart"><td>${esc(r[0])}<small>${esc(r[2])}</small></td><td>${fm(q.p,r[3])}</td><td><span class="pill ${cls}">${c.pc>=0?'+':''}${fm(c.pc,2)}%</span></td><td>${rbar(q)}</td><td>${spark(q.sp,c.pc>=0,78,20)}</td></tr>`; }).join('');
+ return `<div class="card"><div class="card-header"><h2>${t}</h2>${st?`<span class="status-open" id="${st}">…</span>`:''}</div><div class="cnote"><b>Trend</b> = today's intraday closes · <b>Day range</b> = low to high, marker = last price · <b>click a row</b> for the live chart</div><div class="table-container"><table><colgroup><col style="width:30%"><col style="width:21%"><col style="width:20%"><col style="width:13%"><col style="width:16%"></colgroup><thead><tr><th>Instrument</th><th>Last</th><th>Change</th><th>Day range</th><th>Trend</th></tr></thead><tbody>${body}</tbody></table></div></div>`; }
 function kpis(){ if(!SNAP) return ''; return KP.map(([n,k,d])=>{ const q=SNAP.m[k]; if(!q) return ''; const c=cinfo(n,q), cl=c.flat?'fl':c.good?'up':'dn', col=c.pc>=0;
-  return `<div class="k ${cl}"><i>${n}</i><b>${fm(q.p,d)}</b><em>${c.pc>=0?'▲':'▼'} ${c.pc>=0?'+':''}${fm(c.ch,d>2?3:2)} · ${c.pc>=0?'+':''}${fm(c.pc,2)}%</em>${spark(q.sp,col,160,30).replace('class="sp"','')}${(q.hi!=null&&q.lo!=null&&q.hi>q.lo&&q.lo>0)?`<div class="rng"><u style="left:calc(${Math.min(100,Math.max(0,(q.p-q.lo)/((q.hi-q.lo)||1)*100)).toFixed(0)}% - 1px)"></u></div><small><span>${fm(q.lo,d)}</span><span>day range</span><span>${fm(q.hi,d)}</span></small>`:''}</div>`; }).join(''); }
+  return `<div class="k ${cl}" data-k="${esc(k)}" data-n="${esc(n)}" title="Click for the live TradingView chart"><i>${n}</i><b>${fm(q.p,d)}</b><em>${c.pc>=0?'▲':'▼'} ${c.pc>=0?'+':''}${fm(c.ch,d>2?3:2)} · ${c.pc>=0?'+':''}${fm(c.pc,2)}%</em>${spark(q.sp,col,160,30).replace('class="sp"','')}${(q.hi!=null&&q.lo!=null&&q.hi>q.lo&&q.lo>0)?`<div class="rng"><u style="left:calc(${Math.min(100,Math.max(0,(q.p-q.lo)/((q.hi-q.lo)||1)*100)).toFixed(0)}% - 1px)"></u></div><small><span>${fm(q.lo,d)}</span><span>day range</span><span>${fm(q.hi,d)}</span></small>`:''}<div class="gnote">Line: today's intraday closes · bar: low→high, marker = last · click: live chart</div></div>`; }).join(''); }
 function regions(){ if(!SNAP) return ''; return SEC.map(s=>{ const L=s[2].filter(r=>r[1]&&SNAP.m[r[1]]&&!INV.test(r[0])&&!/Dollar/i.test(r[0])&&!/T-Note/i.test(r[0])).map(r=>{ const q=SNAP.m[r[1]]; return q.pc?(q.p/q.pc-1)*100:0; }); if(!L.length) return ''; const av=L.reduce((a,b)=>a+b,0)/L.length, up=L.filter(x=>x>0).length, nm=s[0].replace(/^\S+\s/,'').replace(/ \(.*\)/,'');
   return `<div class="r ${Math.abs(av)<0.05?'fl':av>0?'up':'dn'}"><i>${esc(nm)}</i><b>${av>=0?'+':''}${av.toFixed(2)}%</b><span>${up} up · ${L.length-up} down of ${L.length}</span></div>`; }).join(''); }
 function render(){
@@ -106,8 +123,29 @@ function render(){
  const tb=document.getElementById('trendTxt'), li=document.getElementById('live-indicator'), bd=document.getElementById('global-trend-badge');
  if(av==null){ tb.textContent='GLOBAL TREND: no data'; } else { tb.textContent=(av>0.3?'▲ GLOBAL TREND: RISK-ON':av<-0.3?'▼ GLOBAL TREND: RISK-OFF':'◆ GLOBAL TREND: MIXED')+' ('+(av>=0?'+':'')+av.toFixed(2)+'% avg)'; bd.className='macro-trend-indicator '+(av>0.3?'up':av<-0.3?'dn':''); }
  if(SNAP){ const age=Math.round((Date.now()-SNAP.ts)/60000); li.textContent=age<=15?'LIVE FEED (GitHub snapshot, '+age+' min old)':'SNAPSHOT '+(age>1440?Math.round(age/1440)+' d':age>=60?Math.round(age/60)+' h':age+' min')+' old'; li.style.opacity=age<=15?1:.75; } else li.textContent='FEED UNAVAILABLE';
- updateTerminalClock();
+ updateTerminalClock(); cwHead(); if(document.getElementById('cw').classList.contains('on')) cwRail();
 }
+
+/* ---------- live TradingView chart window ---------- */
+const TVS={'^NSEI':'NSE:NIFTY','^NSEBANK':'NSE:BANKNIFTY','^BSESN':'BSE:SENSEX','^CNXIT':'NSE:CNXIT','^NSMIDCP':'NSE:CNXMIDCAP','^INDIAVIX':'NSE:INDIAVIX','USDINR=X':'FX_IDC:USDINR','BZ=F':'TVC:UKOIL','CL=F':'TVC:USOIL','GC=F':'TVC:GOLD','SI=F':'TVC:SILVER','HG=F':'COMEX:HG1!','NG=F':'NYMEX:NG1!','^TNX':'TVC:US10Y','YM=F':'CBOT_MINI:YM1!','ES=F':'CME_MINI:ES1!','NQ=F':'CME_MINI:NQ1!','ZN=F':'CBOT:ZN1!','DX-Y.NYB':'TVC:DXY','^N225':'TVC:NI225','^HSI':'TVC:HSI','^TWII':'TWSE:TAIEX','XIN9.FGI':'SGX:CN1!','^GDAXI':'XETR:DAX','^FTSE':'TVC:UKX','^STOXX50E':'TVC:SX5E'};
+const lsg=k=>{try{return localStorage.getItem(k)}catch(e){return null}}, lss=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+let CUR=null, tvLoad=null;
+function loadTV(){ if(window.TradingView) return Promise.resolve(); if(tvLoad) return tvLoad; return tvLoad=new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://s3.tradingview.com/tv.js'; s.onload=res; s.onerror=()=>{tvLoad=null;rej();}; document.head.appendChild(s); }); }
+function cwHead(){ if(!CUR) return; const q=SNAP&&SNAP.m[CUR.k], n=CUR.n; document.getElementById('cwt').textContent=n; const p=document.getElementById('cwp');
+  if(!q){ p.innerHTML='<span style="color:var(--mu);font-size:13px">no price in snapshot</span>'; return; } const c=cinfo(n,q), up=c.pc>=0, col=c.flat?'#6ff0ff':c.good?'#3dffb4':'#ff6fae';
+  p.innerHTML=`<span style="color:${col}">${fm(q.p,q.p>1000?2:3)}</span><em style="color:${col};background:${col}22;border:1px solid ${col}66">${up?'▲ +':'▼ '}${fm(c.pc,2)}%</em><span style="font:600 10.5px 'Segoe UI';color:var(--mu)">snapshot ${SNAP?Math.round((Date.now()-SNAP.ts)/60000):'?'} min old - the chart itself is live</span>`; }
+function cwRail(){ const L=[]; SEC.forEach(s=>s[2].forEach(r=>{ if(r[1]&&TVS[r[1]]) L.push([r[1],r[0]]); })); document.getElementById('cwr').innerHTML=L.map(([k,n])=>{ const q=SNAP&&SNAP.m[k]; let sub=''; if(q){ const c=cinfo(n,q); sub=`<small style="color:${c.flat?'#6ff0ff':c.good?'#3dffb4':'#ff6fae'}">${c.pc>=0?'+':''}${fm(c.pc,2)}%</small>`; } return `<button data-k="${esc(k)}" data-n="${esc(n)}" class="${CUR&&CUR.k===k?'on':''}">${esc(n)}${sub}</button>`; }).join(''); }
+async function openChart(k,n){ if(!TVS[k]) return; CUR={k,n}; const w=document.getElementById('cw'); w.classList.add('on'); lss('jcm_last',k+'|'+n); cwHead(); cwRail();
+  document.getElementById('cwo').href='https://www.tradingview.com/chart/?symbol='+encodeURIComponent(TVS[k]);
+  const box=document.getElementById('tvc'); box.innerHTML='<div style="padding:30px;color:#93a4b9">Loading TradingView chart…</div>';
+  try{ await loadTV(); }catch(e){ box.innerHTML='<div style="padding:30px;color:#ff9aa8">TradingView could not be loaded (blocked network or ad-blocker). Use “Open on TradingView ↗”.</div>'; return; }
+  box.innerHTML=''; const iv=lsg('jcm_iv')||'5';
+  new TradingView.widget({container_id:'tvc',autosize:true,symbol:TVS[k],interval:iv,timezone:'Asia/Kolkata',theme:'dark',style:'1',locale:'en',toolbar_bg:'#121c2a',backgroundColor:'#0e1621',enable_publishing:false,allow_symbol_change:true,hide_side_toolbar:false,withdateranges:true,details:false,hotlist:false,calendar:false,save_image:true,studies:['MASimple@tv-basicstudies','BB@tv-basicstudies','RSI@tv-basicstudies','MACD@tv-basicstudies','Volume@tv-basicstudies']}); }
+document.addEventListener('click',e=>{ const x=e.target.closest('[data-k]'); if(x&&!e.target.closest('a')&&(x.matches('.k,tr.clk,.cwr button'))){ openChart(x.dataset.k,x.dataset.n); return; }
+  if(e.target.id==='cwx'||e.target.id==='cw'){ document.getElementById('cw').classList.remove('on'); document.getElementById('tvc').innerHTML=''; }
+  if(e.target.id==='cwfs'){ const b=document.querySelector('.cwb'); if(document.fullscreenElement) document.exitFullscreen(); else if(b.requestFullscreen) b.requestFullscreen(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.getElementById('cw').classList.contains('on')){ document.getElementById('cw').classList.remove('on'); document.getElementById('tvc').innerHTML=''; } });
+
 async function loadAll(){
  const j=await getJ([API+'snapshot.json?ref=snapshot',RAW+'ssjs1mu/jcgg-dashboard/snapshot/snapshot.json?x='+Date.now(),'data/snapshot.json']);
  if(j&&j.rows){ const m={}; j.rows.forEach(r=>{ if(r.p!=null&&r.pc!=null) m[r.s]={p:r.p,pc:r.pc,t:r.t,sp:r.sp,hi:r.hi,lo:r.lo}; }); SNAP={m,ts:j.ts?Date.parse(j.ts):Date.now()}; }
