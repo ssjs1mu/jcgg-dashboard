@@ -105,11 +105,15 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .dockrow{display:flex;gap:8px;align-items:flex-start;padding-right:8px}.dockrow .lcol{flex:1;min-width:0;display:flex;flex-direction:column;align-self:stretch}.lcol .wrap{flex:none}.nwg{margin:2px 8px 4px;flex:1;min-height:110px;position:relative;overflow:hidden}.nwg .nw{position:absolute;left:0;right:0;bottom:0;top:26px;height:auto!important;max-height:none!important;overflow:auto}.nwg .hmh{padding:2px 10px;height:22px;box-sizing:border-box}.tvd{width:300px;flex:none;margin-top:6px;border:1px solid #2c3458;border-radius:6px;background:#0a0f16;overflow:hidden}
 .tvh{display:flex;gap:4px;align-items:center;padding:2px 6px;background:#26364a;color:#d9cfae;font:800 10.5px "Segoe UI",sans-serif;letter-spacing:.06em}.tvh button{background:#1a2634;color:#dde4ee;border:1px solid #3a4268;border-radius:4px;font:700 10px "Segoe UI";cursor:pointer;padding:1px 6px}
 .tvd .tvw{height:auto;aspect-ratio:16/9}.tvd.min .tvw,.tvd.min input{display:none}@media(max-width:1100px){.nwg{min-height:190px}.dockrow{flex-direction:column}.tvd{width:auto;margin:0 8px}}
+.mini{flex:1;min-height:110px;display:grid;grid-template-columns:1.5fr 1fr 1.3fr;gap:6px;margin:2px 8px 4px}.mini .nwg{margin:0;min-height:0}
+@media(max-width:1100px){.mini{grid-template-columns:1fr;flex:none}.mini .nwg{height:190px}}
+.bgt{width:100%;border-collapse:collapse}.bgt td{padding:2px 8px;font:700 11.5px ui-monospace,Consolas,monospace;border-bottom:1px solid #1d2a38}.bgt td:last-child{text-align:right}
+.gau{height:9px;border-radius:5px;margin:4px 8px 2px;background:linear-gradient(90deg,#8c3f4d,#a98a4a 50%,#3f7d66);position:relative}.gau i{position:absolute;top:-3px;width:3px;height:15px;background:#fff;border-radius:2px}
+.rv{display:block;padding:3px 8px;border-bottom:1px solid #1d2a38;font:600 11.5px "Segoe UI",sans-serif;color:#dde4ee;cursor:default}.rv b{font-weight:900}.rv.u b{color:#8fc7ad}.rv.d b{color:#d39098}.rv .tm{color:#d2c08a;font:700 10.5px ui-monospace,Consolas,monospace;margin-right:6px}.rv .tg{font:900 9.5px "Segoe UI";border-radius:3px;padding:0 4px;margin-left:4px;color:#fff;background:#4a5a70}.rv .tg.cf{background:#3f7d66}
 </style></head><body>
 <div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
 <div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
-<div class="dockrow"><div class="lcol"><div class="wrap"><table id="tb"></table></div><div class="hm nwg" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div></div>
-<div class="tvd" id="tvB"><div class="tvh"><b>ZEE BUSINESS LIVE</b><span style="flex:1"></span><button id="tvR" title="Reload the TV only (page is not reloaded)">↻ TV</button><button id="tvM" title="unmute / mute">🔊</button><button id="tvP" title="Pop out - stays on top of other windows (Chrome/Edge)">⧉ Pop-out</button><button id="tvH" title="hide / show">▾</button></div>
+<div class="dockrow"><div class="lcol"><div class="wrap"><table id="tb"></table></div><div class="mini"><div class="hm nwg bx" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div><div class="hm nwg bx" id="bgB"><div class="hmh"><b>MARKET BAROMETER</b><span id="bgc" class="hmc"></span></div><div class="nw" id="bgL">loading…</div></div><div class="hm nwg bx" id="rvB"><div class="hmh"><b>EARLY REVERSAL ALERTS</b><span id="rvc" class="hmc"></span></div><div class="nw" id="rvL">scanning…</div></div></div></div><div class="tvd" id="tvB"><div class="tvh"><b>ZEE BUSINESS LIVE</b><span style="flex:1"></span><button id="tvR" title="Reload the TV only (page is not reloaded)">↻ TV</button><button id="tvM" title="unmute / mute">🔊</button><button id="tvP" title="Pop out - stays on top of other windows (Chrome/Edge)">⧉ Pop-out</button><button id="tvH" title="hide / show">▾</button></div>
 <div class="tvw" id="tvW"><iframe id="tvF" src="about:blank" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
 <div id="tvS" style="font:600 10.5px Segoe UI;color:#93a1b5;padding:2px 6px"></div><input id="tvU" placeholder="stream stopped? paste new YouTube live link" style="width:100%;box-sizing:border-box;font-size:10.5px"></div></div>
 <div class="split"><div class="hm" id="hm"><div class="hmh"><b>HEAT-MAP</b><span id="hmc" class="hmc"></span>
@@ -470,6 +474,40 @@ newsLoad(); (function ns(){ setTimeout(async()=>{ if(!document.hidden) await new
    window.open(f.src,'zeelive','popup=yes,width=480,height=300'); alert('Your browser has no always-on-top mode, so a small separate window opened. Use Chrome or Edge on desktop for stay-on-top.');
  };
 })();
+
+/* ---- market barometer, fear & greed, early trend-reversal alerts (all computed from live feed data in this page) ---- */
+const RV={}; const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)), hm5=()=>new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false});
+function miniRun(){ try{ baro(); }catch(e){ $('bgL').textContent='Barometer error'; } try{ reversal(); }catch(e){ $('rvL').textContent='Reversal scan error'; } }
+function baro(){
+  const today=istDay(), rows=HM.rows.filter(r=>r[9]===today&&r[3]&&r[2]);
+  if(rows.length<50){ $('bgL').innerHTML='<div style="padding:8px;color:#93a1b5">Needs live heat-map data (market session).</div>'; $('bgc').textContent=''; return; }
+  let adv=0,dec=0,h1=0,l1=0,h52=0,l52=0,nh=0,nl=0,sum=0;
+  rows.forEach(r=>{ const [sy,g,p,pc,o,h,l]=r, st=HM.stat[sy]||[], mh=r[10]??st[0], ml=r[11]??st[1], wh=r[12]??st[2], wl=r[13]??st[3]; const c=(p/pc-1)*100; sum+=c; if(p>pc) adv++; else if(p<pc) dec++; if(h&&p>=h*0.998) nh++; if(l&&p<=l*1.002) nl++; if(mh&&p>=mh) h1++; if(ml&&p<=ml) l1++; if(wh&&p>=wh) h52++; if(wl&&p<=wl) l52++; });
+  const n=rows.length, ap=adv/(adv+dec||1)*100, avg=sum/n, vx=Q['^INDIAVIX'], nf=Q['^NSEI'];
+  const comp=[]; if(vx&&vx.p) comp.push(['India VIX '+vx.p.toFixed(1),clamp((25-vx.p)/15*100,0,100)]); comp.push(['Breadth '+ap.toFixed(0)+'% up',ap]);
+  if(h1+l1>0) comp.push(['1M highs vs lows '+h1+'/'+l1,h1/(h1+l1)*100]); if(nf&&nf.pc) comp.push(['Nifty '+((nf.p/nf.pc-1)*100).toFixed(2)+'%',clamp(50+((nf.p/nf.pc-1)*100)*25,0,100)]);
+  const fg=comp.reduce((a,c)=>a+c[1],0)/comp.length, lab=fg<25?'EXTREME FEAR':fg<45?'FEAR':fg<55?'NEUTRAL':fg<75?'GREED':'EXTREME GREED', lc=fg<45?'dn':fg>55?'up':'fl';
+  $('bgc').textContent=n+' stocks';
+  $('bgL').innerHTML=`<div style="padding:4px 8px 0;font:800 11px 'Segoe UI';color:#d9cfae">FEAR & GREED <span class="${lc}" style="font-size:15px;margin-left:6px">${fg.toFixed(0)} · ${lab}</span></div><div class="gau"><i style="left:calc(${fg.toFixed(0)}% - 1px)"></i></div>
+  <table class="bgt"><tr><td>Advancing / Declining</td><td><span class="up">${adv}</span> / <span class="dn">${dec}</span> (${ap.toFixed(0)}% up)</td></tr><tr><td>Avg stock move</td><td class="${avg>=0?'up':'dn'}">${avg>=0?'+':''}${avg.toFixed(2)}%</td></tr><tr><td>At day high / low</td><td><span class="up">${nh}</span> / <span class="dn">${nl}</span></td></tr><tr><td>1-month high / low</td><td><span class="up">${h1}</span> / <span class="dn">${l1}</span></td></tr><tr><td>52-week high / low</td><td><span class="up">${h52}</span> / <span class="dn">${l52}</span></td></tr></table>
+  <div style="padding:3px 8px;font:600 9.5px 'Segoe UI';color:#93a1b5">Our own score from: ${comp.map(c=>c[0]).join(' · ')}. Not an official index.</div>`;
+}
+function reversal(){
+  const today=istDay(), t0=hm5();
+  const add=(k,cls,txt,tag)=>{ if(!RV[k]||RV[k].tag!==tag){ RV[k]={t:t0,cls,txt,tag,ts:Date.now()}; } else { RV[k].txt=txt; RV[k].cls=cls; } };
+  const live=new Set();
+  ['^NSEI','^NSEBANK','^BSESN'].forEach(s=>{ const r=Q[s]; if(!r) return; const sp=(r.sp||[]).filter(v=>v!=null); if(sp.length<14||!r.p) return; const p=r.p, hi=Math.max(...sp,r.hi||0), lo=Math.min(...sp.filter(v=>v>0),r.lo||1e18), n=sp.length, iH=sp.lastIndexOf(Math.max(...sp)), iL=sp.lastIndexOf(Math.min(...sp.filter(v=>v>0)));
+    const sl=(a,b)=>(a/b-1)*100, s4=sl(sp[n-1],sp[n-5]), pre=sl(sp[Math.max(iL,0)],sp[Math.max(iL-8,0)]), pre2=sl(sp[Math.max(iH,0)],sp[Math.max(iH-8,0)]), nm=DEF[s].n, up=(p-lo)/p*100, dn=(hi-p)/p*100;
+    if(up>=0.25&&iL>=n-20&&s4>0&&pre<0){ const k=s+'U'; live.add(k+(up>=0.6?'C':'E')); add(k,'u',`<b>${nm} ▲ turning UP</b> · ${up.toFixed(2)}% off day low ${fx(lo,DEF[s].dp)} · last 4 bars rising`,up>=0.6?'CONFIRMED':'EARLY'); }
+    if(dn>=0.25&&iH>=n-20&&s4<0&&pre2>0){ const k=s+'D'; live.add(k+(dn>=0.6?'C':'E')); add(k,'d',`<b>${nm} ▼ turning DOWN</b> · ${dn.toFixed(2)}% off day high ${fx(hi,DEF[s].dp)} · last 4 bars falling`,dn>=0.6?'CONFIRMED':'EARLY'); } });
+  // stocks with intraday bars (top 40 by filter rank): EMA9 / EMA21 cross on 15 min within the last 3 bars, with volume rising
+  Object.keys(BARS).forEach(sy=>{ try{ const D=aggr(BARS[sy],15), n=D.c.length; if(n<30||dayOf(D.t[n-1])!==today) return; const a=ema(D.c,9), b=ema(D.c,21), d0=a[n-1]-b[n-1], d3=a[n-4]-b[n-4]; if(a[n-4]==null||b[n-4]==null||d0*d3>=0) return; const vN=D.v[n-1]+D.v[n-2], vP=D.v[n-3]+D.v[n-4]; if(!(vN>vP)) return; const bull=d0>0, k=sy+(bull?'U':'D'); live.add(k+'E'); add(k,bull?'u':'d',`<b>${sy} ${bull?'▲ EMA9 crossed above EMA21':'▼ EMA9 crossed below EMA21'}</b> (15 min) · volume rising`,'EARLY'); }catch(e){} });
+  Object.keys(RV).forEach(k=>{ const alive=[...live].some(x=>x.startsWith(k)); if(!alive&&Date.now()-RV[k].ts>45*60000) delete RV[k]; });
+  const list=Object.keys(RV).map(k=>RV[k]).sort((a,b)=>b.ts-a.ts).slice(0,40);
+  $('rvc').textContent=list.length+' today';
+  $('rvL').innerHTML=list.map(x=>`<span class="rv ${x.cls}"><span class="tm">${x.t}</span>${x.txt}<span class="tg ${x.tag==='CONFIRMED'?'cf':''}">${x.tag}</span></span>`).join('')||'<div style="padding:8px;color:#93a1b5">No reversal setups right now. Watches Nifty, Bank Nifty, Sensex (bounce / pullback of 0.25%+ from the day extreme with direction change) and 15-min EMA9/21 crosses with rising volume on the top-40 stocks.</div>';
+}
+setTimeout(miniRun,4000); setInterval(miniRun,15000);
 clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load(); heatLoad();
 (function hs(){ setTimeout(async()=>{ if(!document.hidden) await heatLoad(); hs(); }, indiaOpen()?45000:180000); })();
 (function sched(){ setTimeout(async()=>{ if(!document.hidden) await load(); sched(); }, indiaOpen()?20000:120000); })();
