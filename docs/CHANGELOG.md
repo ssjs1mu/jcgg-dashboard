@@ -43,3 +43,4 @@
 | 2026-11-05 | **[Claude]** Macro dashboard: chart header wraps instead of clipping (tabs, buttons, legend visible at 1280 px). |
 | 2026-11-05 | Macro dashboard: chart header and indicator row wrap inside the chart panel (no clipping at 1280) |
 | 2026-11-05 | **[Claude]** Macro dashboard: chart panel inner grid column constrained (minmax(0,1fr)) so header and indicator row no longer overflow the panel. |
+| 2026-11-05 | **[Claude]** Trading terminal: scrip popup (heat-map and alerts) bottom-left now shows option-OI key strikes: top-3 call-OI (resistance) and put-OI (support) strikes with broken/sustain status vs CMP, most-active strikes (highest total OI), long/short stop-loss walls, PCR. F&O OI job (jc-stock-analyst) now resumes and merges across runs so coverage grows beyond the first 31 names. |
