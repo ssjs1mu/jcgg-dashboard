@@ -13,7 +13,7 @@ def rsi14(cl):
     for x in d[14:]:
         ag = (ag * 13 + max(x, 0)) / 14; al = (al * 13 + max(-x, 0)) / 14
     return 100.0 if al == 0 else 100 - 100 / (1 + ag / al)
-CLOSES = {}
+CLOSES = {}; SDAILY = {}
 def get(a):
     s, g = a
     u = 'https://query1.finance.yahoo.com/v8/finance/chart/%s.NS?range=1y&interval=1d&includePrePost=false' % urllib.parse.quote(s)
@@ -26,7 +26,7 @@ def get(a):
             t, o, h, l, c, v = bars[-1]; pc = bars[-2][4]; pv = [b[5] for b in bars[-21:-1] if b[5]]
             p = x.get('meta', {}).get('regularMarketPrice') or c
             pr = bars[:-1]; mh = max(b[2] for b in pr[-20:]); ml = min(b[3] for b in pr[-20:]); wh = max(b[2] for b in pr[-250:]); wl = min(b[3] for b in pr[-250:])
-            CLOSES[s] = [b[4] for b in pr[-120:]]; rs = rsi14(CLOSES[s] + [p])
+            CLOSES[s] = [b[4] for b in pr[-120:]]; SDAILY[s] = [[b[0], round(b[1], 2), round(b[2], 2), round(b[3], 2), round(b[4], 2), int(b[5])] for b in bars[-130:]]; rs = rsi14(CLOSES[s] + [p])
             return [s, g, round(p, 2), round(pc, 2), round(o, 2), round(h, 2), round(l, 2), int(v), int(sum(pv) / len(pv)) if pv else 0, datetime.fromtimestamp(t + 19800, timezone.utc).strftime('%Y-%m-%d'), round(mh, 2), round(ml, 2), round(wh, 2), round(wl, 2), round(rs, 1) if rs is not None else None]
         except Exception:
             time.sleep(1 + t)
@@ -96,10 +96,12 @@ def bars(sy):
         try:
             x = json.load(urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=15))['chart']['result'][0]; q = x['indicators']['quote'][0]
             ok = [i for i in range(len(x['timestamp'])) if None not in (q['high'][i], q['low'][i], q['close'][i])]
-            return sy, {'t': [x['timestamp'][i] for i in ok], 'h': [round(q['high'][i], 2) for i in ok], 'l': [round(q['low'][i], 2) for i in ok], 'c': [round(q['close'][i], 2) for i in ok], 'v': [int(q['volume'][i] or 0) for i in ok]}
+            return sy, {'t': [x['timestamp'][i] for i in ok], 'o': [round(q['open'][i] if q['open'][i] is not None else q['close'][i], 2) for i in ok], 'h': [round(q['high'][i], 2) for i in ok], 'l': [round(q['low'][i], 2) for i in ok], 'c': [round(q['close'][i], 2) for i in ok], 'v': [int(q['volume'][i] or 0) for i in ok]}
         except Exception:
             time.sleep(1 + t)
     return sy, None
 with ThreadPoolExecutor(8) as ex: B = {k: v for k, v in ex.map(bars, top) if v}
 print('bars', len(B), 'of', len(top))
 json.dump({'ts': ts, 'bars': B}, open(os.environ.get('OUT_BARS', 'data/bars.json'), 'w'), separators=(',', ':'))
+
+json.dump({'ts': ts, 'd': SDAILY}, open(os.environ.get('OUT_STK', 'data/stocks.json'), 'w'), separators=(',', ':'))

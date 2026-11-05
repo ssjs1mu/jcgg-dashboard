@@ -21,8 +21,8 @@ jobs:
       - name: Build and publish
         run: |
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          OUT=/tmp/heat.json OUT_BARS=/tmp/bars.json python pipeline/heatmap.py
-          b1=$(git hash-object -w /tmp/heat.json); b2=$(git hash-object -w /tmp/bars.json)
-          tree=$(printf '100644 blob %s\tbars.json\n100644 blob %s\theat.json\n' "$b2" "$b1" | git mktree)
+          OUT=/tmp/heat.json OUT_BARS=/tmp/bars.json OUT_STK=/tmp/stocks.json python pipeline/heatmap.py
+          b1=$(git hash-object -w /tmp/heat.json); b2=$(git hash-object -w /tmp/bars.json); b3=$(git hash-object -w /tmp/stocks.json)
+          tree=$(printf '100644 blob %s\tbars.json\n100644 blob %s\theat.json\n100644 blob %s\tstocks.json\n' "$b2" "$b1" "$b3" | git mktree)
           commit=$(git commit-tree "$tree" -m "heat $(date -u +%FT%TZ)")
           git push -q -f origin "$commit":refs/heads/heat
