@@ -105,6 +105,7 @@ try:
             except Exception: n = 1
         zcands.append((cid.group(1), isl, n, (t.group(1) if t else '')[:70]))
     for c in zcands[:8]: print('cand', c)
+    if not zcands and pos[:-1]: print('lockup0', h[pos[0]:pos[0]+1800].replace('\n', ' '))
     lv = [c for c in zcands if c[1]]
     if lv: live = sorted(lv, key=lambda c: -c[2])[0][0]
     if not live:
