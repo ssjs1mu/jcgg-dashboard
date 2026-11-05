@@ -15,7 +15,7 @@ for i in range(len(pos) - 1):
     seg = h[pos[i]:min(pos[i + 1], pos[i] + 9000)]; cid = re.search(r'i\.ytimg\.com/vi/([\w-]{11})/', seg)
     if cid and re.search(r'[\d.,]+[KkMm]? watching', seg) and not re.search(r'Streamed [^"]{0,20} ago', seg):
         t = re.search(r'"title":\{"content":"((?:[^"\\]|\\.)*)"', seg); cands.append((cid.group(1), t.group(1) if t else ''))
-PROG = re.compile(r'zee business|share market|first trade|market live|anil singhvi|closing bell|market radar|stock market', re.I)
+PROG = re.compile(r'zee business|share market|first trade|final trade|market live|anil singhvi|closing bell|market radar|stock market', re.I)
 ok = []
 for vid, title in cands[:12]:
     w = get('https://www.youtube.com/watch?v=' + vid); m = re.search(r'"dateText":\{"simpleText":"Started streaming (\d+) (minute|hour|day)s? ago"\}', w)
