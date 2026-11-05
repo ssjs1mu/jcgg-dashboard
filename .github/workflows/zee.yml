@@ -1,0 +1,29 @@
+name: Zee Business live programme link
+# Programmes run 25-30 min, so: every 15 min across market hours (08:30-16:30 IST), hourly otherwise. Single force-pushed commit on branch `zee`.
+on:
+  schedule:
+    - cron: '*/15 3-11 * * 1-5'
+    - cron: '7 0-2,12-23 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zee
+  cancel-in-progress: true
+jobs:
+  zee:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Resolve and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUT=/tmp/zee.json python pipeline/zee.py
+          b=$(git hash-object -w /tmp/zee.json)
+          tree=$(printf '100644 blob %s\tzee.json\n' "$b" | git mktree)
+          commit=$(git commit-tree "$tree" -m "zee $(date -u +%FT%TZ)")
+          git push -q -f origin "$commit":refs/heads/zee

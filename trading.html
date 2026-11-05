@@ -445,10 +445,12 @@ async function newsLoad(){
 function hhmm(t){ return new Date(t*1000).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false})+' '+new Date(t*1000).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short'}); }
 function newsPaint(){
   if(!NW){ $('nwL').textContent='News feed unavailable right now - retrying.';  return; }
-  if(!NW) return; if(NW.zee&&!$('tvF').dataset.man&&$('tvF').dataset.v!==NW.zee){ $('tvF').dataset.v=NW.zee; $('tvF').src='https://www.youtube.com/embed/'+NW.zee+'?autoplay=1&mute=1&rel=0&modestbranding=1&enablejsapi=1'; } $('nwc').textContent=NW.news.length+' headlines'; $('nws').textContent='updated '+hhmm(Date.parse(NW.ts)/1000);
+  if(!NW) return;  $('nwc').textContent=NW.news.length+' headlines'; $('nws').textContent='updated '+hhmm(Date.parse(NW.ts)/1000);
   $('nwL').innerHTML=NW.news.map(n=>`<a href="${esc(n.link)}" target="_blank" rel="noopener"><span class="tm">${hhmm(n.t)}</span><span class="sr2">${esc(n.src)}</span>${esc(n.title)}</a>`).join('')||'No headlines.';
 }
 
+async function zeeLoad(){ try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/zee.json?ref=zee',{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}); if(!r.ok) return; const z=await r.json(), f=$('tvF'); const h=document.querySelector('#tvB .tvh b'); if(z.id&&!f.dataset.man&&f.dataset.v!==z.id){ f.dataset.v=z.id; f.src='https://www.youtube.com/embed/'+z.id+'?autoplay=1&mute=1&rel=0&modestbranding=1&enablejsapi=1'; } if(h&&z.title&&!f.dataset.man) h.textContent='ZEE BUSINESS LIVE · '+z.title.slice(0,38); }catch(e){} }
+zeeLoad(); setInterval(()=>{ if(!document.hidden) zeeLoad(); },120000);
 newsLoad(); (function ns(){ setTimeout(async()=>{ if(!document.hidden) await newsLoad(); ns(); }, 60000); })();
 
 /* ---- Zee Business live dock: mute, hide, always-on-top pop-out (Document Picture-in-Picture) ---- */
