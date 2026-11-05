@@ -138,8 +138,9 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 #bgL .tiw .ti,#rvL .mx .ti{display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0;padding:2px 4px;border-radius:12px}
 #bgL .tiw .ti i,#rvL .mx .ti i{font-size:clamp(8px,.75vw,11px)}#bgL .tiw .ti b,#rvL .mx .ti b{font-size:clamp(11px,1.15vw,17px);white-space:nowrap}
 #rvL{display:flex;flex-direction:column;gap:6px;padding:4px 8px 6px;overflow:hidden}
-#rvL .mx{padding:0;border:0;display:grid;grid-template-columns:repeat(7,1fr);gap:6px;flex:0 0 46px;min-height:0}
-#rvL .rvl{flex:1 1 0;min-height:0;overflow:auto;border-radius:8px;background:#121b27}
+#rvL .mx{padding:0;border:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:34px;gap:6px;flex:0 0 auto}
+#rvL .mx .ti{overflow:hidden;padding:1px 3px;border-radius:9px}#rvL .mx .ti i{font-size:8.5px;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}#rvL .mx .ti b{font-size:11.5px;line-height:1.15}
+#rvL .rvl{flex:1 1 0;min-height:30px;min-height:0;overflow:auto;border-radius:8px;background:#121b27}
 .rf{display:inline-block;filter:hue-rotate(150deg) saturate(4) brightness(1.15)}
 .lgd{display:flex;flex-wrap:wrap;gap:3px 16px;padding:2px 10px 4px;font:700 10.5px "Segoe UI",sans-serif;color:#cfd8e6}.lgd span{display:inline-flex;align-items:center;gap:5px}.lgd u{display:inline-block;width:13px;height:10px;border:2px solid;border-radius:3px}
 </style></head><body>
@@ -574,7 +575,7 @@ function reversal(){
   // stocks with intraday bars (top 40 by filter rank): EMA9 / EMA21 cross on 15 min within the last 3 bars, with volume rising
   Object.keys(BARS).forEach(sy=>{ try{ const D=aggr(BARS[sy],15), n=D.c.length; if(n<30||dayOf(D.t[n-1])!==today) return; const a=ema(D.c,9), b=ema(D.c,21), d0=a[n-1]-b[n-1], d3=a[n-4]-b[n-4]; if(a[n-4]==null||b[n-4]==null||d0*d3>=0) return; const vN=D.v[n-1]+D.v[n-2], vP=D.v[n-3]+D.v[n-4]; if(!(vN>vP)) return; const bull=d0>0, k=sy+(bull?'U':'D'); live.add(k+'E'); add(k,bull?'u':'d',`<b>${sy} ${bull?'▲ EMA9 crossed above EMA21':'▼ EMA9 crossed below EMA21'}</b> (15 min) · volume rising`,'EARLY'); }catch(e){} });
   Object.keys(RV).forEach(k=>{ const alive=[...live].some(x=>x.startsWith(k)); if(!alive&&Date.now()-RV[k].ts>45*60000) delete RV[k]; });
-  const list=Object.keys(RV).map(k=>RV[k]).sort((a,b)=>b.ts-a.ts).slice(0,40); const strip='<div class="mx">'+M.out.map(x=>`<div class="ti ${x.state||''}${x.state==='bad'?' pu':''}" title="30-min move vs alert limit"><i>${x.n}</i><b>${x.mv>0?'▲':x.mv<0?'▼':'■'} ${x.mv>=0?'+':''}${x.mv.toFixed(2)}%</b></div>`).join('')+`<div class="ti ${M.bad>M.good?'bad':M.good>M.bad?'good':''}"><i>Adverse / Supportive</i><b>${M.bad} / ${M.good}</b></div></div>`;
+  const list=Object.keys(RV).map(k=>RV[k]).sort((a,b)=>b.ts-a.ts).slice(0,40); const strip='<div class="mx">'+M.out.map(x=>`<div class="ti ${x.state||''}${x.state==='bad'?' pu':''}" title="30-min move vs alert limit"><i>${x.n}</i><b>${x.mv>0?'▲':x.mv<0?'▼':'■'} ${x.mv>=0?'+':''}${x.mv.toFixed(2)}%</b></div>`).join('')+`<div class="ti ${M.bad>M.good?'bad':M.good>M.bad?'good':''}"><i>Adv / Supp</i><b>${M.bad} / ${M.good}</b></div></div>`;
   $('rvc').textContent=list.length+' today';
   $('rvL').innerHTML=strip+'<div class="rvl">'+(list.map(x=>`<span class="rv ${x.cls}"><span class="tm">${x.t}</span>${x.txt}<span class="tg ${x.tag==='CONFIRMED'||x.tag==='RISK-ON'?'cf':''}">${x.tag}</span></span>`).join('')||'<div style="padding:8px;color:#93a1b5">No reversal setups right now. Watches index turns, 15-min EMA9/21 crosses on the top-40 stocks, and sudden 30-min moves in VIX, USDINR, Brent, US$ index, US 10Y and Dow.</div>')+'</div>';
 }
