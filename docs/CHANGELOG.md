@@ -42,3 +42,4 @@
 | 2026-11-05 | **[Claude]** Macro dashboard: live scrip search in chart header (Nifty 100 + MidSmallCap 400 + index tiles; heat branch now also carries stocks.json daily candles for all 499 and 'o' in bars.json; 5m only for the heat-map top 40); FII/DII day, month-to-date, last month, YTD card beside the options table (3+2 columns); workspace height fitted to the screen. |
 | 2026-11-05 | **[Claude]** Macro dashboard: chart header wraps instead of clipping (tabs, buttons, legend visible at 1280 px). |
 | 2026-11-05 | Macro dashboard: chart header and indicator row wrap inside the chart panel (no clipping at 1280) |
+| 2026-11-05 | **[Claude]** Macro dashboard: chart panel inner grid column constrained (minmax(0,1fr)) so header and indicator row no longer overflow the panel. |
