@@ -78,6 +78,13 @@ for (kind, name, u), raw in res:
             tg, sl = levels(it['title'])
             calls.setdefault(k, dict(it, ch=name, analyst=analyst(it['title']), act=a, tg=tg, sl=sl))
 news = sorted(news.values(), key=lambda x: -x['t'])[:80]; calls = sorted(calls.values(), key=lambda x: -x['t'])[:60]
+live = ''
+try:
+    h = (fetch('https://www.youtube.com/@ZeeBusiness/live') or b'').decode('utf8', 'ignore')
+    m = re.search(r'<link rel="canonical" href="https://www\.youtube\.com/watch\?v=([\w-]{11})"', h)
+    if m and re.search(r'"isLiveNow":true|"isLive":true', h): live = m.group(1)
+except Exception: pass
+print('zee live id', live or 'not resolved')
 print('feeds', len(jobs), 'news', len(news), 'calls', len(calls), 'with analyst', sum(1 for c in calls if c['analyst']))
 if not news and not calls: raise SystemExit('nothing fetched - keeping the previous file')
-json.dump({'ts': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'news': news, 'calls': calls}, open(os.environ.get('OUT', 'data/news.json'), 'w'), separators=(',', ':'), ensure_ascii=False)
+json.dump({'ts': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'zee': live, 'news': news, 'calls': calls}, open(os.environ.get('OUT', 'data/news.json'), 'w'), separators=(',', ':'), ensure_ascii=False)

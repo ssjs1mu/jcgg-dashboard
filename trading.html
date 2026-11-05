@@ -120,7 +120,7 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
  <div class="alt" id="alt"></div></div></div>
 <div class="split"><div class="hm" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div>
 <div class="hm" id="tvB"><div class="hmh"><b>ZEE BUSINESS · LIVE TV</b><span class="hmc">official YouTube live stream</span><a class="alb" style="margin-left:auto;text-decoration:none" target="_blank" rel="noopener" href="https://www.youtube.com/@ZeeBusiness/live">open on YouTube ↗</a></div>
-<div class="tvw"><iframe id="tvF" src="https://www.youtube.com/embed/live_stream?channel=UCkXopQ3ubd-rnXnStZqCl2w&autoplay=0&rel=0&modestbranding=1" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div></div>
+<div class="tvw"><iframe id="tvF" src="https://www.youtube.com/embed/GasohtgH7IA?rel=0&modestbranding=1" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div></div>
 <div class="foot" id="note"></div>
 <div class="mo" id="mo"><div class="md"><div class="mdh"><h2 id="mSym">—</h2><span class="cm" id="mCmp"></span><span id="mChg"></span>
  <label style="font:700 12px 'Segoe UI';color:#dde4ee">Timeframe <select id="mTf"><option value="5">5 min</option><option value="15" selected>15 min</option></select></label><small id="mSrc"></small><button class="x" id="mX">✕ Close</button></div>
@@ -438,7 +438,7 @@ async function newsLoad(){
 function hhmm(t){ return new Date(t*1000).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false})+' '+new Date(t*1000).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short'}); }
 function newsPaint(){
   if(!NW){ $('nwL').textContent='News feed unavailable right now - retrying.';  return; }
-  if(!NW) return; $('nwc').textContent=NW.news.length+' headlines'; $('nws').textContent='updated '+hhmm(Date.parse(NW.ts)/1000);
+  if(!NW) return; if(NW.zee&&$('tvF').dataset.v!==NW.zee){ $('tvF').dataset.v=NW.zee; $('tvF').src='https://www.youtube.com/embed/'+NW.zee+'?rel=0&modestbranding=1'; } $('nwc').textContent=NW.news.length+' headlines'; $('nws').textContent='updated '+hhmm(Date.parse(NW.ts)/1000);
   $('nwL').innerHTML=NW.news.map(n=>`<a href="${esc(n.link)}" target="_blank" rel="noopener"><span class="tm">${hhmm(n.t)}</span><span class="sr2">${esc(n.src)}</span>${esc(n.title)}</a>`).join('')||'No headlines.';
 }
 
