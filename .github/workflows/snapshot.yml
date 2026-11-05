@@ -26,8 +26,9 @@ jobs:
           case "${{ github.event.schedule }}" in '*/5 3-10 * * 1-5') N=5;; '') N=2;; *) N=1;; esac
           for i in $(seq 1 $N); do
             OUT=/tmp/snapshot.json python pipeline/snapshot.py || { sleep 20; continue; }
+            if [ $((i % 2)) -eq 1 ] || [ ! -f /tmp/charts.json ]; then OUT_CH=/tmp/charts.new python pipeline/charts.py && mv /tmp/charts.new /tmp/charts.json || true; fi
             blob=$(git hash-object -w /tmp/snapshot.json)
-            tree=$(printf '100644 blob %s\tsnapshot.json\n' "$blob" | git mktree)
+            if [ -f /tmp/charts.json ]; then cb=$(git hash-object -w /tmp/charts.json); tree=$(printf '100644 blob %s\tcharts.json\n100644 blob %s\tsnapshot.json\n' "$cb" "$blob" | git mktree); else tree=$(printf '100644 blob %s\tsnapshot.json\n' "$blob" | git mktree); fi
             commit=$(git commit-tree "$tree" -m "snapshot $(date -u +%FT%TZ)")
             git push -q -f origin "$commit":refs/heads/snapshot || true
             if [ $i -lt $N ]; then sleep 45; fi
