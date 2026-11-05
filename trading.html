@@ -101,6 +101,7 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .nw .tm{color:#d2c08a;font:700 10.5px ui-monospace,Consolas,monospace;margin-right:6px}.nw .sr2{color:#9fb0ff;font-weight:800;font-size:10.5px;margin-right:6px}
 .nw .ch{display:inline-block;min-width:78px;font:900 10.5px "Segoe UI";color:#1a1030;background:#d2c08a;border-radius:3px;padding:0 5px;margin-right:6px;text-align:center}.nw .an{color:#8cf3c0;font-weight:800;margin-right:6px}
 .nw .ac{font:900 10.5px "Segoe UI";border-radius:3px;padding:0 5px;margin-right:6px;color:#fff}.nw .ac.B{background:#3f7d66}.nw .ac.S{background:#8c3f4d}.nw .ac.H{background:#4a5273}.nw .lv{color:#d2c08a;font-weight:800;margin-left:6px}
+.tvw{height:44vh;background:#000}.tvw iframe{width:100%;height:100%;border:0;display:block}
 </style></head><body>
 <div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
 <div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
@@ -118,9 +119,8 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
  <div id="alCfg" class="alcfg" style="display:none"></div>
  <div class="alt" id="alt"></div></div></div>
 <div class="split"><div class="hm" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div>
-<div class="hm" id="tvB"><div class="hmh"><b>CHANNEL CALLS</b><span id="tvc" class="hmc"></span>
- <select id="tvF" title="channel"><option value="">All channels</option><option>Zee Business</option><option>CNBC Awaaz</option><option>NDTV Profit</option><option>CNBC-TV18</option><option>ET Now</option></select>
- <button id="tvA" class="alb">＋ Add call you saw on TV</button><span class="hmc" style="margin-left:auto;font-weight:600;opacity:.8">auto rows = channel website headlines (NOT the on-screen ticker) · yours are marked ✎</span></div><div id="tvForm" style="display:none;padding:6px 10px;background:#17222f;gap:6px;flex-wrap:wrap" class="hmh"><select id="tfC"><option>Zee Business</option><option>CNBC Awaaz</option><option>NDTV Profit</option><option>CNBC-TV18</option><option>ET Now</option></select><input id="tfA" placeholder="Analyst" size="14"><input id="tfS" placeholder="Stock" size="12"><select id="tfT"><option>BUY</option><option>SELL</option><option>HOLD</option></select><input id="tfG" placeholder="Target" size="7"><input id="tfL" placeholder="SL" size="7"><button id="tfOK" class="alb">Save</button></div><div class="nw" id="tvL">loading…</div></div></div>
+<div class="hm" id="tvB"><div class="hmh"><b>ZEE BUSINESS · LIVE TV</b><span class="hmc">official YouTube live stream</span><a class="alb" style="margin-left:auto;text-decoration:none" target="_blank" rel="noopener" href="https://www.youtube.com/@ZeeBusiness/live">open on YouTube ↗</a></div>
+<div class="tvw"><iframe id="tvF" src="https://www.youtube.com/embed/live_stream?channel=UCkXopQ3ubd-rnXnStZqCl2w&autoplay=0&rel=0&modestbranding=1" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div></div>
 <div class="foot" id="note"></div>
 <div class="mo" id="mo"><div class="md"><div class="mdh"><h2 id="mSym">—</h2><span class="cm" id="mCmp"></span><span id="mChg"></span>
  <label style="font:700 12px 'Segoe UI';color:#dde4ee">Timeframe <select id="mTf"><option value="5">5 min</option><option value="15" selected>15 min</option></select></label><small id="mSrc"></small><button class="x" id="mX">✕ Close</button></div>
@@ -437,17 +437,11 @@ async function newsLoad(){
 }
 function hhmm(t){ return new Date(t*1000).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false})+' '+new Date(t*1000).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short'}); }
 function newsPaint(){
-  if(!NW&&!MY().length){ $('nwL').textContent='News feed unavailable right now - retrying.'; $('tvL').textContent='TV calls unavailable right now - retrying.'; return; }
+  if(!NW){ $('nwL').textContent='News feed unavailable right now - retrying.';  return; }
   if(!NW) return; $('nwc').textContent=NW.news.length+' headlines'; $('nws').textContent='updated '+hhmm(Date.parse(NW.ts)/1000);
   $('nwL').innerHTML=NW.news.map(n=>`<a href="${esc(n.link)}" target="_blank" rel="noopener"><span class="tm">${hhmm(n.t)}</span><span class="sr2">${esc(n.src)}</span>${esc(n.title)}</a>`).join('')||'No headlines.';
-  const f=$('tvF').value, cs=MY().concat(NW.calls).filter(c=>!f||c.ch===f);
-  $('tvc').textContent=cs.length+' calls';
-  $('tvL').innerHTML=cs.map(c=>{ const a=c.act||'', k=a==='BUY'?'B':a==='SELL'?'S':'H';
-    return `<a href="${esc(c.link)}" target="_blank" rel="noopener"><span class="tm">${hhmm(c.t)}</span><span class="ch">${esc(c.ch)}</span>${c.analyst?`<span class="an">${esc(c.analyst)}</span>`:''}${a?`<span class="ac ${k}">${esc(a)}</span>`:''}${c.my?'✎ ':''}${esc(c.title)}${c.tg?`<span class="lv">T ${esc(c.tg)}</span>`:''}${c.sl?`<span class="lv">SL ${esc(c.sl)}</span>`:''}</a>`; }).join('')||'No calls found for this channel in the last 3 days.';
 }
-$('tvF').addEventListener('change',newsPaint);
-$('tvA').onclick=()=>{ const f=$('tvForm'); f.style.display=f.style.display==='none'?'flex':'none'; };
-$('tfOK').onclick=()=>{ const st=$('tfS').value.trim(); if(!st) return; const c={t:Math.floor(Date.now()/1000),ch:$('tfC').value,analyst:$('tfA').value.trim(),act:$('tfT').value,tg:$('tfG').value.trim(),sl:$('tfL').value.trim(),title:st+' (seen on TV)',link:'#',my:1}; try{ const d=new Date().toISOString().slice(0,10), a=MY(); a.unshift(c); localStorage.setItem('jctv_'+d,JSON.stringify(a)); }catch(e){} $('tfS').value=''; $('tfG').value=''; $('tfL').value=''; if(!NW) NW={news:[],calls:[],ts:new Date().toISOString()}; newsPaint(); };
+
 newsLoad(); (function ns(){ setTimeout(async()=>{ if(!document.hidden) await newsLoad(); ns(); }, 60000); })();
 clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load(); heatLoad();
 (function hs(){ setTimeout(async()=>{ if(!document.hidden) await heatLoad(); hs(); }, indiaOpen()?45000:180000); })();
