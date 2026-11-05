@@ -91,11 +91,11 @@ try:
     pos = [m.start() for m in re.finditer(r'"lockupViewModel":\{', h)] + [len(h)]
     for i in range(len(pos) - 1):
         seg = h[pos[i]:min(pos[i + 1], pos[i] + 9000)]
-        cid = re.search(r'"contentId":"([\w-]{11})"', seg)
+        cid = re.search(r'i\.ytimg\.com/vi/([\w-]{11})/', seg)
         if not cid: continue
         t = re.search(r'"title":\{"content":"((?:[^"\\]|\\.)*)"', seg)
         w = re.search(r'"content":"([\d.,]+[KkMm]?) watching', seg)
-        isl = bool(w) or bool(re.search(r'"text":"LIVE"|BADGE_STYLE_TYPE_LIVE_NOW|THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE', seg))
+        isl = 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE' in seg[:3000]
         n = 0
         if w:
             x = w.group(1).replace(',', ''); mul = 1
@@ -107,7 +107,7 @@ try:
     for c in zcands[:8]: print('cand', c)
     if not zcands and pos[:-1]: print('lockup0', h[pos[0]:pos[0]+1800].replace('\n', ' '))
     lv = [c for c in zcands if c[1]]
-    if lv: live = sorted(lv, key=lambda c: -c[2])[0][0]
+    if lv: live = lv[0][0]
     if not live:
         h2 = ytget('https://www.youtube.com/@ZeeBusiness/live')
         m = re.search(r'<link rel="canonical" href="https://www\.youtube\.com/watch\?v=([\w-]{11})"', h2)
