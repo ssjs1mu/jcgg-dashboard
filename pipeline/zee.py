@@ -18,6 +18,7 @@ PROG = re.compile(r'zee business (24x7 )?live|share market live|first trade|mark
 ok = []
 for vid, title in cands[:12]:
     w = get('https://www.youtube.com/watch?v=' + vid)
+    print('DBG', vid, len(w), re.findall(r'"(?:isLiveNow|isLive|isUpcoming|startTimestamp|endTimestamp|isLiveContent)":(?:"[^"]*"|\w+)', w)[:8])
     live = re.search(r'"isLiveNow":true', w); st = re.search(r'"startTimestamp":"([^"]+)"', w); en = re.search(r'"endTimestamp":"', w)
     if not live or en or not st: print('skip', vid, 'live' if live else 'not live', title[:50]); continue
     try: start = datetime.fromisoformat(st.group(1)).astimezone(IST)
