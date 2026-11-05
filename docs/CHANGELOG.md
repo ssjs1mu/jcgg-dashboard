@@ -32,3 +32,4 @@
 | 2026-11-05 | **[Claude]** Heat-map: Big Fish boosts strength x1.6 instead of a separate tier, so strong bear tiles rank among bull tiles; reversal tiles in one row. |
 | 2026-11-05 | **[Claude]** Heat-map colour legend (Big Fish violet, Big Fish Short orange-red, bear rose, bull match gold). |
 | 2026-11-05 | **[Claude]** Heat-map: removed the final sort that pushed bear tiles to the bottom; Big Fish Short pinned first, other flagged bull and bear tiles mixed by technical strength; red fish mark for short; strong SELL calls (down 2%+, 1.5x pace) count as bear tiles. |
+| 2026-11-05 | **[Claude]** Early reversal tiles: 2 rows x 4 compact tiles so text fits. |
