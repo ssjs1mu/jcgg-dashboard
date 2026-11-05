@@ -31,16 +31,16 @@ def gnews(q): return 'https://news.google.com/rss/search?q=%s&hl=en-IN&gl=IN&cei
 NEWS = [('Economic Times', 'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms'), ('Moneycontrol', 'https://www.moneycontrol.com/rss/marketreports.xml'),
         ('Moneycontrol', 'https://www.moneycontrol.com/rss/latestnews.xml'), ('Mint', 'https://www.livemint.com/rss/markets'), ('Business Standard', 'https://www.business-standard.com/rss/markets-106.rss'),
         ('Google News', gnews('(Sensex OR Nifty OR "Bank Nifty") when:1d'))]
-CH = {'Zee Business': ['"Zee Business" (buy OR sell OR target OR "stocks to buy") when:2d', 'zeebiz stocks to buy sell when:2d'],
-      'CNBC Awaaz': ['"CNBC Awaaz" (buy OR sell OR target OR "stock picks") when:2d', 'CNBC Awaaz stocks to buy when:2d'],
+CH = {'Zee Business': ['"Zee Business" (buy OR sell OR target OR "stocks to buy") when:3d', 'zeebiz.com stocks to buy when:3d', 'Anil Singhvi stocks when:3d', 'Sumeet Bagadia stocks to buy when:3d'],
+      'CNBC Awaaz': ['"CNBC Awaaz" (buy OR sell OR target OR "stock picks") when:3d', 'CNBC Awaaz stocks to buy when:3d', 'Sandeep Jain OR "Mitessh Thakkar" OR "Ashwani Gujral" CNBC Awaaz when:3d', 'सीएनबीसी आवाज़ खरीदें स्टॉक when:3d'],
       'NDTV Profit': ['"NDTV Profit" (buy OR sell OR target OR "stocks to buy") when:2d'],
       'CNBC-TV18': ['"CNBC-TV18" (buy OR sell OR target OR "stocks to buy") when:2d', 'cnbctv18 stocks to buy sell when:2d'],
       'ET Now': ['"ET Now" (buy OR sell OR target OR "stocks to buy") when:2d']}
-KEY = {'Zee Business': r'zee ?business|zeebiz', 'CNBC Awaaz': r'cnbc[- ]?awaaz', 'NDTV Profit': r'ndtv ?profit', 'CNBC-TV18': r'cnbc[- ]?tv ?18|cnbctv18', 'ET Now': r'et ?now|etnow'}
+KEY = {'Zee Business': r'zee ?business|zeebiz|anil singhvi|sumeet bagadia', 'CNBC Awaaz': r'cnbc[- ]?awaaz|awaaz|आवाज', 'NDTV Profit': r'ndtv ?profit', 'CNBC-TV18': r'cnbc[- ]?tv ?18|cnbctv18', 'ET Now': r'et ?now|etnow'}
 SEED = ['Anil Singhvi','Sumeet Bagadia','Sudip Bandyopadhyay','Mitessh Thakkar','Prakash Gaba','Rajesh Palviya','Ashwani Gujral','Shrikant Chouhan','Kunal Shah','Jay Thakkar','Sandeep Jain','Vaishali Parekh','Chandan Taparia','Nooresh Merani','Ruchit Jain','Rohit Srivastava','Hrishikesh Yedve','Ajit Mishra','Vinay Rajani','Dharmesh Shah','Gaurav Ratnaparkhi','Aditya Agarwala','Shiju Koothupalackal','Vikas Jain','Jigar Patel','Amit Trivedi','Tejas Khoday','Siddharth Sedani','Dr VK Vijayakumar','Santosh Meena','Mustafa Nadeem','Anuj Gupta','Kranthi Bathini','Sachin Gupta','Sameet Chavan','Rahul Shah']
 VERB = r'(?:recommends?|suggests?|picks?|bets?|advises?|says?|expects?|sees?|backs?|likes?|favou?rs?|prefers?|names?|tips?|eyes?|identifies|shares?|bullish on|bearish on)'
 NAME = r"((?:Dr\.? )?[A-Z][a-zA-Z'\.]+(?: [A-Z][a-zA-Z'\.]+){1,2})"
-BAD = re.compile(r'^(Stocks?|Buy|Sell|Top|Nifty|Sensex|Bank|Market|Markets|Trade|Trading|Share|Shares|Intraday|Today|Tomorrow|Zee|CNBC|NDTV|ET|India|Indian|Why|How|What|Here|These|This|The|Mid|Small|Large|Expert|Experts|Analyst|Analysts|Brokerage|Tata|HDFC|ICICI|Reliance|Adani|Bajaj|Axis|State|Kotak|Maruti|Mahindra|Infosys|Wipro)\b')
+BAD = re.compile(r'^(Check|Full|Q\d|Stocks?|Buy|Sell|Top|Nifty|Sensex|Bank|Market|Markets|Trade|Trading|Share|Shares|Intraday|Today|Tomorrow|Zee|CNBC|NDTV|ET|India|Indian|Why|How|What|Here|These|This|The|Mid|Small|Large|Expert|Experts|Analyst|Analysts|Brokerage|Tata|HDFC|ICICI|Reliance|Adani|Bajaj|Axis|State|Kotak|Maruti|Mahindra|Infosys|Wipro)\b')
 def analyst(title):
     for n in SEED:
         if n.lower() in title.lower(): return n
@@ -55,7 +55,7 @@ def action(title):
     if re.search(r'\bhold\b|wait|neutral', t): return 'HOLD'
     return ''
 def levels(title):
-    m1 = re.search(r'target(?:s)?(?: price)?(?: of| at|:)?\s*(?:Rs\.?|₹)?\s*([\d,]+(?:\.\d+)?)', title, re.I); m2 = re.search(r'(?:stop[- ]?loss|SL)(?: of| at|:)?\s*(?:Rs\.?|₹)?\s*([\d,]+(?:\.\d+)?)', title, re.I)
+    m1 = re.search(r'target(?:s)?(?: price)?(?: of| at|:)?\s*(?:Rs\.?|₹)?\s*(\d[\d,]{1,}(?:\.\d+)?)(?!\s*%|\d)', title, re.I); m2 = re.search(r'(?:stop[- ]?loss|SL)(?: of| at|:)?\s*(?:Rs\.?|₹)?\s*(\d[\d,]{1,}(?:\.\d+)?)(?!\s*%|\d)', title, re.I)
     return (m1.group(1) if m1 else ''), (m2.group(1) if m2 else '')
 jobs = [('news', s, u) for s, u in NEWS] + [('call', ch, gnews(q)) for ch, qs in CH.items() for q in qs]
 with ThreadPoolExecutor(8) as ex: res = list(ex.map(lambda j: (j, fetch(j[2])), jobs))
@@ -72,7 +72,8 @@ for (kind, name, u), raw in res:
             blob = it['title'] + ' ' + it['link'] + ' ' + it['src']
             if not (re.search(KEY[name], blob, re.I) or re.search(KEY[name], it['src'], re.I)): continue
             a = action(it['title'])
-            if not (a or re.search(r'pick|view|idea|recommend|target', it['title'], re.I)): continue
+            if re.search(r'\bQ[1-4]\b.*(review|results)|review:', it['title'], re.I) and not analyst(it['title']): continue
+            if not (a and (re.search(r'stocks? to (buy|sell)|\bbuy\b|\bsell\b|picks?|top calls|trading (idea|call)|intraday|breakout', it['title'], re.I) or analyst(it['title']))): continue
             tg, sl = levels(it['title'])
             calls.setdefault(k, dict(it, ch=name, analyst=analyst(it['title']), act=a, tg=tg, sl=sl))
 news = sorted(news.values(), key=lambda x: -x['t'])[:80]; calls = sorted(calls.values(), key=lambda x: -x['t'])[:60]
