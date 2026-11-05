@@ -173,6 +173,7 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
  <div class="mdn">EMA = exponential moving average on closing prices of the chosen timeframe (warmed up over the last 5 sessions) · VWAP = volume-weighted average price of today's session · Standard pivot from the previous session · Live pivot and Fibonacci retracement from today's high/low · EMA50 used as the day's stop-loss reference. Delayed Yahoo data · study aid, not advice.</div></div></div>
 <script>
 'use strict';
+window.TVM=(function(){ try{ return localStorage.getItem('jctv_mode')==='yt'?'yt':'hls'; }catch(e){ return 'hls'; } })();   // TV source is decided before any TV code runs
 /* ---- config ---- */
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'; // shared Joshi's Corner Apps Script (action=dash)
 const COLS=[['^NSEI','NIFTY50',2],['^NSEBANK','BANKNIFTY',2],['^BSESN','SENSEX',2],['^INDIAVIX','INDVIX',2,1],['USDINR=X','USDINR',3,1],['BZ=F','BRENT CRUDE',2],['DX-Y.NYB','US $ INDEX',2],['^TNX','US 10Y',3,1]];
@@ -514,7 +515,7 @@ $('note').innerHTML='Row 1 = last price + trend · Row 2 = points (% change) · 
 
 /* ---- live news + TV calls (news branch, built by Actions from public RSS) ---- */
 let NW=null;
-(function(){ const f=$('tvF'); let id=''; try{ id=localStorage.getItem('jctv_id')||''; }catch(e){} if(id){ f.dataset.man='1'; f.dataset.v=id; f.src='https://www.youtube.com/embed/'+id+'?rel=0&modestbranding=1'; }
+(function(){ const f=$('tvF'); let id=''; try{ id=localStorage.getItem('jctv_id')||''; }catch(e){} if(id&&window.TVM!=='hls'){ f.dataset.man='1'; f.dataset.v=id; f.src='https://www.youtube.com/embed/'+id+'?rel=0&modestbranding=1'; }
  $('tvU').addEventListener('change',e=>{ const m=e.target.value.match(/(?:v=|youtu\.be\/|live\/|embed\/)([\w-]{11})/); if(!m) return; try{ localStorage.setItem('jctv_id',m[1]); }catch(x){} f.dataset.man='1'; f.dataset.v=m[1]; f.src='https://www.youtube.com/embed/'+m[1]+'?rel=0&modestbranding=1'; e.target.value=''; }); })(); const MY=()=>{ try{ const d=new Date().toISOString().slice(0,10); return JSON.parse(localStorage.getItem('jctv_'+d)||'[]'); }catch(e){ return []; } };
 async function newsLoad(){
   const u=['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/news/news.json?x='+Date.now(),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/news.json?ref=news'];
@@ -606,7 +607,7 @@ $('wuB').onclick=()=>{ $('wu').classList.add('on'); }; $('wuX').onclick=()=>{ $(
 /* only one live TV across open tabs */
 (function(){ if(!window.BroadcastChannel) return; const ch=new BroadcastChannel('jc-tv'), me=Math.random().toString(36).slice(2); let stopped=false;
  ch.onmessage=e=>{ if(e.data&&e.data.t==='play'&&e.data.me!==me){ const f=$('tvF'); if(f&&f.src&&f.src!=='about:blank'&&!stopped){ stopped=true; f.dataset.v=''; f.src='about:blank'; $('tvS').innerHTML='<b style="color:#d2c08a">TV is playing in another tab/window.</b> Press ↻ TV to play it here instead.'; } } };
- const claim=()=>{ stopped=false; ch.postMessage({t:'play',me}); };
+ const claim=()=>{ if(window.TVM==='hls') return; stopped=false; ch.postMessage({t:'play',me}); };
  $('tvF').addEventListener('load',()=>{ if($('tvF').src!=='about:blank') claim(); });
  $('tvR').addEventListener('click',()=>{ stopped=false; });
 })();
@@ -614,8 +615,7 @@ $('wuB').onclick=()=>{ $('wu').classList.add('on'); }; $('wuX').onclick=()=>{ $(
 /* ---- Zee Business live: official stream played natively (hls.js); YouTube kept as a fallback source ---- */
 (function(){
  const box=$('tvB'), v=$('tvV'), f=$('tvF'), S=$('tvS'); const TOK='https://03nwj0csy5.execute-api.ap-south-1.amazonaws.com/prod/cf-token', SRC='https://dwby15d04agvq.cloudfront.net/index.m3u8', LIB='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js';
- let mode='hls', hls=null, fails=0, last=-1, stall=0, muted=true, other=false, busy=false; try{ if(localStorage.getItem('jctv_mode')==='yt') mode='yt'; }catch(e){}
- window.TVM=mode;
+ let mode=window.TVM, hls=null, fails=0, last=-1, stall=0, muted=true, other=false, busy=false;
  const say=h=>{ S.innerHTML=h; }, tm=()=>new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false});
  const lib=()=>window.Hls?Promise.resolve():new Promise((ok,no)=>{ const e=document.createElement('script'); e.src=LIB; e.onload=ok; e.onerror=()=>no(new Error('player library blocked')); document.head.appendChild(e); });
  const stop=()=>{ try{ if(hls){ hls.destroy(); } }catch(e){} hls=null; try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} };
