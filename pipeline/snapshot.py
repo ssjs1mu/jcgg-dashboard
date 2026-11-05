@@ -3,7 +3,8 @@
 import os, json, sys, time, urllib.request, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-SYMS = ['^NSEI','^NSEBANK','^BSESN','^INDIAVIX','^CNXIT','^NSMIDCP','BZ=F','CL=F','USDINR=X','DX-Y.NYB','^TNX','GC=F','^DJI','^GSPC','^IXIC','^N225']
+SYMS = ['^NSEI','^NSEBANK','^BSESN','^INDIAVIX','^CNXIT','^NSMIDCP','BZ=F','CL=F','USDINR=X','DX-Y.NYB','^TNX','GC=F','^DJI','^GSPC','^IXIC','^N225',
+        'YM=F','ES=F','NQ=F','ZN=F','^HSI','^TWII','XIN9.FGI','^GDAXI','^FTSE','^STOXX50E','SI=F','HG=F','NG=F']
 UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36', 'Accept': '*/*'}
 def pivots(s):
     """classic pivots from the previous completed session (daily bars): P, S1, S2, R1, R2"""
@@ -28,7 +29,7 @@ def get(s):
             if p is None: return None
             c = [round(v, 4) for v in (q.get('close') or []) if v is not None][-80:]
             return {'s': s, 'p': p, 'pc': m.get('chartPreviousClose', m.get('previousClose')), 't': m.get('regularMarketTime'), 'sp': c,
-                    'hi': m.get('regularMarketDayHigh'), 'lo': m.get('regularMarketDayLow'), 'pv': pivots(s)}
+                    'hi': m.get('regularMarketDayHigh'), 'lo': m.get('regularMarketDayLow')}
         except Exception:
             time.sleep(1 + a)
 with ThreadPoolExecutor(8) as ex: rows = [r for r in ex.map(get, SYMS) if r]

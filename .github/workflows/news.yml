@@ -1,0 +1,29 @@
+name: Market news + TV-channel trading calls (public RSS, no keys)
+# Every 10 minutes in the trading day (every 30 minutes otherwise): force-pushes ONE commit to branch `news` (no history growth, no Pages redeploy).
+on:
+  schedule:
+    - cron: '*/10 2-11 * * 1-5'      # 07:30-17:30 IST
+    - cron: '17,47 0-1,12-23 * * *'  # rest of the day, every 30 min
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: news
+  cancel-in-progress: false
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Build and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUT=/tmp/news.json python pipeline/news.py
+          b=$(git hash-object -w /tmp/news.json)
+          tree=$(printf '100644 blob %s\tnews.json\n' "$b" | git mktree)
+          commit=$(git commit-tree "$tree" -m "news $(date -u +%FT%TZ)")
+          git push -q -f origin "$commit":refs/heads/news
