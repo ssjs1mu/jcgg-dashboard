@@ -108,7 +108,7 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .mini{flex:1;min-height:110px;display:grid;grid-template-columns:1.5fr 1fr 1.3fr;gap:6px;margin:2px 8px 4px}.mini .nwg{margin:0;min-height:0}
 @media(max-width:1100px){.mini{grid-template-columns:1fr;flex:none}.mini .nwg{height:190px}}
 .bgt{width:100%;border-collapse:collapse}.bgt td{padding:2px 8px;font:700 11.5px ui-monospace,Consolas,monospace;border-bottom:1px solid #1d2a38}.bgt td:last-child{text-align:right}
-.gau{height:9px;border-radius:5px;margin:4px 8px 2px;background:linear-gradient(90deg,#8c3f4d,#a98a4a 50%,#3f7d66);position:relative}.gau i{position:absolute;top:-3px;width:3px;height:15px;background:#fff;border-radius:2px}
+.chp{display:flex;flex-wrap:wrap;gap:3px 10px;padding:2px 8px;font:700 11px ui-monospace,Consolas,monospace;color:#b9c4d4}.chp b{font-weight:900}.gau{height:7px;border-radius:5px;margin:4px 8px 2px;background:linear-gradient(90deg,#8c3f4d,#a98a4a 50%,#3f7d66);position:relative}.gau i{position:absolute;top:-3px;width:3px;height:15px;background:#fff;border-radius:2px}
 .rv{display:block;padding:3px 8px;border-bottom:1px solid #1d2a38;font:600 11.5px "Segoe UI",sans-serif;color:#dde4ee;cursor:default}.rv b{font-weight:900}.rv.u b{color:#8fc7ad}.rv.d b{color:#d39098}.rv .tm{color:#d2c08a;font:700 10.5px ui-monospace,Consolas,monospace;margin-right:6px}.rv .tg{font:900 9.5px "Segoe UI";border-radius:3px;padding:0 4px;margin-left:4px;color:#fff;background:#4a5a70}.rv .tg.cf{background:#3f7d66}
 </style></head><body>
 <div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
@@ -489,8 +489,8 @@ function baro(){
   const fg=comp.reduce((a,c)=>a+c[1],0)/comp.length, lab=fg<25?'EXTREME FEAR':fg<45?'FEAR':fg<55?'NEUTRAL':fg<75?'GREED':'EXTREME GREED', lc=fg<45?'dn':fg>55?'up':'fl';
   $('bgc').textContent=n+' stocks';
   $('bgL').innerHTML=`<div style="padding:4px 8px 0;font:800 11px 'Segoe UI';color:#d9cfae">FEAR & GREED <span class="${lc}" style="font-size:15px;margin-left:6px">${fg.toFixed(0)} · ${lab}</span></div><div class="gau"><i style="left:calc(${fg.toFixed(0)}% - 1px)"></i></div>
-  <table class="bgt"><tr><td>Advancing / Declining</td><td><span class="up">${adv}</span> / <span class="dn">${dec}</span> (${ap.toFixed(0)}% up)</td></tr><tr><td>Avg stock move</td><td class="${avg>=0?'up':'dn'}">${avg>=0?'+':''}${avg.toFixed(2)}%</td></tr><tr><td>At day high / low</td><td><span class="up">${nh}</span> / <span class="dn">${nl}</span></td></tr><tr><td>1-month high / low</td><td><span class="up">${h1}</span> / <span class="dn">${l1}</span></td></tr><tr><td>52-week high / low</td><td><span class="up">${h52}</span> / <span class="dn">${l52}</span></td></tr></table>
-  <div style="padding:3px 8px;font:600 9.5px 'Segoe UI';color:#93a1b5">Our own score from: ${comp.map(c=>c[0]).join(' · ')}. Not an official index.</div>`;
+  <div class="chp"><span>Adv/Dec <b class="up">${adv}</b>/<b class="dn">${dec}</b></span><span>Avg <b class="${avg>=0?'up':'dn'}">${avg>=0?'+':''}${avg.toFixed(2)}%</b></span><span>Day H/L <b class="up">${nh}</b>/<b class="dn">${nl}</b></span><span>1M H/L <b class="up">${h1}</b>/<b class="dn">${l1}</b></span><span>52W H/L <b class="up">${h52}</b>/<b class="dn">${l52}</b></span></div>
+  <div style="padding:3px 8px;font:600 9.5px 'Segoe UI';color:#93a1b5">Own score: ${comp.map(c=>c[0]).join(' · ')} (not an official index)</div>`;
 }
 function reversal(){
   const today=istDay(), t0=hm5();
