@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Joshi's Corner | Live Trading Screen</title>
+<style>
+:root{--bg:#070b1c;--ink:#f4f1ff;--mut:#b9b2d9}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 500px at 15% -10%,#2a1b5e 0%,transparent 60%),radial-gradient(900px 500px at 100% 0,#0b3a52 0%,transparent 55%),var(--bg);color:var(--ink);font:13px "Segoe UI",system-ui,sans-serif;min-height:100vh}
+.top{display:flex;align-items:center;gap:14px;padding:8px 16px;flex-wrap:wrap}
+.brand{font-family:'Brush Script MT','Segoe Script',cursive;font-size:30px;color:#ffd35c;text-shadow:0 0 12px rgba(255,200,60,.45),0 2px 0 #7a4a00}
+.brand i{font-style:normal;margin-right:6px}
+.clock{margin-left:auto;text-align:right;font:700 12px ui-monospace,Consolas,monospace;color:var(--mut)}
+.clock b{color:#fff;font-size:15px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#7a7a8c;margin-right:6px}
+.dot.live{background:#25d58a;box-shadow:0 0 10px #25d58a;animation:bl 1.2s infinite}
+@keyframes bl{50%{opacity:.35}}
+.rows{padding:0 14px 10px;display:grid;gap:12px}
+.row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+@media(max-width:1100px){.row{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.t{--a:#6a3df0;--b:#2a1170;--c:#0d0630;--g:rgba(150,110,255,.5);position:relative;overflow:hidden;isolation:isolate;border-radius:18px;padding:9px 12px 10px;display:flex;flex-direction:column;gap:3px;min-width:0;
+ background:linear-gradient(150deg,var(--a) 0%,var(--b) 52%,var(--c) 100%);border:1px solid rgba(255,255,255,.34);
+ box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 -12px 20px rgba(0,0,0,.5) inset,0 7px 0 -2px var(--c),0 8px 0 -2px rgba(255,255,255,.18),0 18px 24px -10px var(--g);transition:transform .15s}
+.t:hover{transform:translateY(-3px)}
+.t::before{content:'';position:absolute;inset:-30%;z-index:-1;filter:blur(16px);background:radial-gradient(36% 32% at 14% 90%,var(--g),transparent 70%),radial-gradient(34% 30% at 92% 15%,rgba(255,255,255,.22),transparent 70%)}
+.t::after{content:'';position:absolute;left:0;right:0;top:0;height:34%;pointer-events:none;border-radius:18px 18px 60% 60%/18px 18px 20px 20px;background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.06) 65%,transparent)}
+.t>*{position:relative;z-index:1}
+.t.in{--a:#7b4dff;--b:#2c1478;--c:#0e0733;--g:rgba(150,110,255,.55)}
+.t.vx{--a:#ff4fa3;--b:#7a1052;--c:#2a0420;--g:rgba(255,80,170,.5)}
+.t.en{--a:#ffb23e;--b:#8a4a07;--c:#2b1503;--g:rgba(255,170,50,.5)}
+.t.fx{--a:#1fd1d6;--b:#0a5a6b;--c:#03222b;--g:rgba(40,210,230,.5)}
+.t.bd{--a:#3de08f;--b:#0d6a47;--c:#03271b;--g:rgba(50,225,150,.5)}
+.t.gl{--a:#4aa3ff;--b:#16478f;--c:#06193a;--g:rgba(70,160,255,.5)}
+.t.mt{--a:#ffd75e;--b:#8a6a05;--c:#2b2002;--g:rgba(255,215,90,.5)}
+.h{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.h b{font-size:11.5px;font-weight:900;letter-spacing:.09em;text-shadow:0 1px 3px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h small{font-size:9px;font-weight:800;color:#e3dcff;background:rgba(0,0,0,.35);border-radius:99px;padding:1px 7px;white-space:nowrap}
+.v{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:1px;min-height:50px}
+.v .p{font:900 21px ui-monospace,Consolas,monospace;text-shadow:0 2px 4px rgba(0,0,0,.55)}
+.v .d{font:800 12px ui-monospace,Consolas,monospace;padding:1px 7px;border-radius:8px;background:rgba(0,0,0,.35)}
+.up{color:#5cf0a8}.dn{color:#ff7d93}.fl{color:#d4cdf2}
+.tr{margin-top:2px;display:flex;align-items:center;gap:6px}
+.tg{white-space:nowrap;font:900 10.5px "Segoe UI",sans-serif;letter-spacing:.08em;border-radius:99px;padding:2px 10px;color:#fff;border:1px solid rgba(255,255,255,.4);text-shadow:0 1px 2px rgba(0,0,0,.5);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 3px 8px rgba(0,0,0,.35)}
+.tg.bu{background:linear-gradient(180deg,#38e69a,#0b8a58)}
+.tg.be{background:linear-gradient(180deg,#ff6a86,#a3122f)}
+.tg.sw{background:linear-gradient(180deg,#8d97b8,#4a5273)}
+.tg.bo{background:linear-gradient(180deg,#ffe066,#d98a00);color:#2b1a00;text-shadow:none}
+.tg.bd2{background:linear-gradient(180deg,#ff9a4d,#c2410c)}
+.sp{margin-left:auto;width:56px;height:20px;opacity:.95}
+.rg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font:700 9.5px ui-monospace,Consolas,monospace;color:#d4cdf2}
+.foot{padding:4px 18px 18px;color:var(--mut);font-size:11px;display:flex;gap:16px;flex-wrap:wrap}
+.foot b{color:#ffd35c}
+.legend{display:flex;gap:6px;flex-wrap:wrap}
+</style></head><body>
+<div class="top"><div class="brand"><i>🌳</i>Joshi's Corner</div><div style="font-weight:800;letter-spacing:.14em;color:#e9e2ff">LIVE TRADING SCREEN</div><a href="./" style="color:#b9b2d9;font-size:11px;text-decoration:none;border:1px solid rgba(255,255,255,.25);border-radius:99px;padding:3px 10px">◂ Macro dashboard</a>
+<div class="clock"><div><span class="dot" id="dot"></span><span id="mk">—</span></div><b id="clk">--:--:--</b> IST · <span id="src">loading…</span></div></div>
+<div class="rows"><div class="row" id="r1"></div><div class="row" id="r2"></div></div>
+<div class="foot"><div class="legend" id="lg"></div><div id="note"></div></div>
+<script>
+'use strict';
+/* ---- config ---- */
+const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'; // shared Joshi's Corner Apps Script (action=dash)
+const ROW1=[['^NSEI','NIFTY 50','in',2],['^NSEBANK','BANK NIFTY','in',2],['^BSESN','SENSEX','in',2],['^INDIAVIX','INDIA VIX','vx',2,1],['^CNXIT','NIFTY IT','in',2],['^NSMIDCP','NIFTY NEXT 50','in',2]];
+const ROW2=[['BZ=F','BRENT CRUDE','en',2],['CL=F','WTI CRUDE','en',2],['USDINR=X','USD / INR','fx',3,1],['DX-Y.NYB','US $ INDEX','fx',2],['^TNX','US 10Y YIELD','bd',3,1],['GC=F','GOLD US$/oz','mt',1]];
+const ALL=ROW1.concat(ROW2), DEF={}; ALL.forEach(a=>DEF[a[0]]={n:a[1],k:a[2],dp:a[3],inv:!!a[4]});
+const $=id=>document.getElementById(id);
+const fmt=(v,dp)=>Number(v).toLocaleString('en-IN',{minimumFractionDigits:dp,maximumFractionDigits:dp});
+const sg=(v,dp)=>(v>0?'+':v<0?'−':'')+fmt(Math.abs(v),dp);
+const ist=()=>new Date(Date.now()+19800000);
+const istMin=()=>{const d=ist();return d.getUTCHours()*60+d.getUTCMinutes()};
+const indiaOpen=()=>{const d=ist().getUTCDay();return d>0&&d<6&&istMin()>=555&&istMin()<=930};
+/* ---- trend engine: day change, position in the day's range, slope of the latest bars, fresh high/low ---- */
+function trend(r,inv){
+  const sp=(r.sp||[]).filter(v=>v!=null), p=r.p, pc=r.pc, chg=pc?(p/pc-1)*100:0;
+  if(sp.length<6) return chg>0.25?['BULLISH','bu']:chg<-0.25?['BEARISH','be']:['SIDEWAYS','sw'];
+  const hi=Math.max(...sp,r.hi||0), lo=Math.min(...sp.filter(v=>v>0),r.lo||1e18), rng=Math.max(hi-lo,1e-9), pos=(p-lo)/rng;
+  const prior=sp.slice(0,-3), pH=Math.max(...prior), pL=Math.min(...prior), n=Math.min(10,sp.length-1), slope=(sp[sp.length-1]/sp[sp.length-1-n]-1)*100;
+  const narrow=rng/p*100<0.18;
+  if(p>pH&&sp.length>=20&&chg>0.15) return ['BREAKOUT','bo'];
+  if(p<pL&&sp.length>=20&&chg<-0.15) return ['BREAKDOWN','bd2'];
+  if(narrow||Math.abs(chg)<0.12&&pos>0.25&&pos<0.75) return ['SIDEWAYS','sw'];
+  if(chg>0.2&&slope>=-0.03&&pos>0.5) return ['BULLISH','bu'];
+  if(chg<-0.2&&slope<=0.03&&pos<0.5) return ['BEARISH','be'];
+  if(chg>0.2&&slope<-0.05) return ['PULLBACK','sw'];
+  if(chg<-0.2&&slope>0.05) return ['RECOVERY','sw'];
+  return chg>0?['MILD BULL','bu']:chg<0?['MILD BEAR','be']:['SIDEWAYS','sw'];
+}
+function spark(sp,up){
+  sp=(sp||[]).filter(v=>v!=null).slice(-40); if(sp.length<3) return '';
+  const mn=Math.min(...sp), mx=Math.max(...sp), w=64,h=20, pts=sp.map((v,i)=>(i/(sp.length-1)*w).toFixed(1)+','+(h-1-(v-mn)/Math.max(mx-mn,1e-9)*(h-2)).toFixed(1)).join(' ');
+  return `<svg class="sp" viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="${up?'#5cf0a8':'#ff7d93'}" stroke-width="1.6" stroke-linejoin="round" points="${pts}"/></svg>`;
+}
+const Q={}; let srcLabel='loading…', snapTs='';
+function tile(a){
+  const [s]=a, d=DEF[s], r=Q[s];
+  if(!r||r.p==null) return `<div class="t ${d.k}"><div class="h"><b>${d.n}</b></div><div class="v"><span class="p">—</span></div><div class="tr"><span class="tg sw">NO DATA</span></div></div>`;
+  const pt=r.pc?r.p-r.pc:0, pc=r.pc?(r.p/r.pc-1)*100:0, good=d.inv?pt<0:pt>0, cls=pt===0?'fl':(good?'up':'dn'), tg=trend(r,d.inv);
+  let [txt,k]=tg; if(d.inv&&(k==='bu'||k==='be')){txt=k==='bu'?'RISING':'FALLING'; k=k==='bu'?'be':'bu';}  // VIX/yields/INR: up = pressure
+  if(d.inv&&k==='bo') {txt='SPIKE ▲';k='bd2';}
+  if(d.inv&&k==='bd2'){txt='DROP ▼';k='bo';}
+  const lohi=(r.sp&&r.sp.length>3)?`<span class="rg">${fmt(Math.min(...r.sp.filter(v=>v!=null)),d.dp)}–${fmt(Math.max(...r.sp.filter(v=>v!=null)),d.dp)}</span>`:'';
+  return `<div class="t ${d.k}" title="${d.n}"><div class="h"><b>${d.n}</b><small>${r.t?new Date(r.t*1000+19800000).toISOString().slice(11,16):''}</small></div>
+  <div class="v"><span class="p">${fmt(r.p,d.dp)}</span><span class="d ${cls}">${sg(pt,d.dp)} · ${sg(pc,2)}%</span>${spark(r.sp,pt>=0)}</div>
+  <div class="tr"><span class="tg ${k}">${txt}</span>${lohi}</div></div>`;
+}
+function paint(){ $('r1').innerHTML=ROW1.map(tile).join(''); $('r2').innerHTML=ROW2.map(tile).join(''); $('src').textContent=srcLabel; }
+/* ---- data: live backend first; GitHub snapshot (real Yahoo data built every 5 min) when the backend is out of quota ---- */
+async function getJ(url,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,cache:'no-store'});const tx=await r.text();return JSON.parse(tx)}finally{clearTimeout(t)}}
+let quotaUntil=0;
+async function load(){
+  const syms=ALL.map(a=>a[0]);
+  if(Date.now()>quotaUntil){
+    try{
+      const j=await getJ(BACKEND+'?action=dash&symbols='+encodeURIComponent(syms.join(',')),15000);
+      if(j&&Array.isArray(j.rows)&&j.rows.length){ j.rows.forEach(r=>{if(r&&!r.err&&r.p!=null){const o=Q[r.s]; Q[r.s]=Object.assign(o&&o.hi?{hi:o.hi,lo:o.lo}:{},r);}}); srcLabel='live · '+ist().toISOString().slice(11,19)+' IST'; return paint(); }
+      if(j&&j.error&&/too many times|quota/i.test(j.error)) quotaUntil=Date.now()+30*60000;
+    }catch(e){}
+  }
+  try{
+    let j; try{ j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/snapshot.json?x='+Math.floor(Date.now()/60000),10000); }catch(e){ j=await getJ('data/snapshot.json?x='+Math.floor(Date.now()/60000),10000); }  // raw file = always the newest 5-min build, no Pages redeploy needed
+    j.rows.forEach(r=>{Q[r.s]=r}); snapTs=j.ts; srcLabel='GitHub snapshot (delayed) · as of '+new Date(j.ts).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false})+' IST';
+  }catch(e){ srcLabel='no data source reachable'; }
+  paint();
+}
+function clock(){ const d=ist(); $('clk').textContent=d.toISOString().slice(11,19); const o=indiaOpen(); $('dot').className='dot'+(o?' live':''); $('mk').textContent=o?'NSE LIVE':'NSE CLOSED'; }
+$('lg').innerHTML=[['bu','BULLISH'],['be','BEARISH'],['sw','SIDEWAYS'],['bo','BREAKOUT'],['bd2','BREAKDOWN']].map(x=>`<span class="tg ${x[0]}">${x[1]}</span>`).join('');
+$('note').innerHTML='Trend = day change + position in the day\'s range + slope of the last bars. For VIX, yields and USD/INR a rise is shown as pressure (red). Delayed Yahoo quotes · not advice.';
+clock(); setInterval(clock,1000); paint(); load();
+(function sched(){ setTimeout(async()=>{ if(!document.hidden) await load(); sched(); }, indiaOpen()?15000:120000); })();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
+</script></body></html>

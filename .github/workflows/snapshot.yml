@@ -1,0 +1,30 @@
+name: Trading screen quote snapshot (real Yahoo data, free, no Apps Script quota)
+on:
+  schedule:
+    - cron: '*/5 3-10 * * 1-5'          # 08:30-16:30 IST every 5 min
+    - cron: '7,37 0-2,11-23 * * 1-5'    # rest of the weekday (world markets) every 30 min
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: snapshot
+  cancel-in-progress: true
+jobs:
+  snap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python pipeline/snapshot.py
+      - name: Commit if changed
+        run: |
+          git diff --quiet -- data/snapshot.json && git ls-files --error-unmatch data/snapshot.json >/dev/null 2>&1 && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/snapshot.json
+          git commit -m "data: snapshot $(date -u +%FT%TZ)"
+          for i in 1 2 3 4; do git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push origin HEAD:"${GITHUB_REF_NAME}" && exit 0; sleep $((i*5)); done
+          exit 1
