@@ -352,7 +352,7 @@ $('alF').addEventListener('change',()=>{ AL.filter=$('alF').value; alPaint(); })
 $('alt').addEventListener('click',e=>{ const r=e.target.closest('tr[data-sy]'); if(r) openTech(r.dataset.sy+'.NS',r.dataset.sy,r.dataset.sy,2); });
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) document.title="Joshi's Corner | Live Trading Screen"; });
 alLoad();
-async function heatLoad(){ await heatFeed(); await loadBarsCache(); heatPaint(); alRun(); }
+async function heatLoad(){ await heatFeed(); await loadBarsCache(); heatPaint(); alRun(); if(typeof miniRun==="function") miniRun(); }
 ['fOL','fUP','fV','fPC','fG','fN'].forEach(id=>$(id).addEventListener('change',heatPaint));
 /* ---------------- INTRADAY TECHNICALS (click a heat-map stock or an index heading) ---------------- */
 const TQ={sym:null,y:null,bars:null,src:'',ts:0};
