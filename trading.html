@@ -119,6 +119,10 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .mx{gap:5px;padding:5px 8px}.tiw{display:flex;flex-wrap:wrap;gap:5px;padding:3px 8px}
 .fgt{display:flex;align-items:center;gap:10px;margin:5px 8px 2px;padding:4px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 12px var(--gl)}.fgt span{font:800 9.5px "Segoe UI";letter-spacing:.12em;color:rgba(255,255,255,.85)}.fgt b{font:900 26px ui-monospace,Consolas,monospace;color:var(--nc);text-shadow:0 0 10px var(--nc)}.fgt em{font:900 12px "Segoe UI";font-style:normal;letter-spacing:.08em;color:var(--nc);text-shadow:0 0 8px var(--nc)}
 .fgt.z0{--nc:#ff4fa3;--gl:rgba(255,60,150,.5);background:linear-gradient(135deg,#5a0f2e,#a3125a 60%,#6a1040)}.fgt.z1{--nc:#ffa03c;--gl:rgba(255,150,40,.5);background:linear-gradient(135deg,#5a2a0f,#a8501a 60%,#703010)}.fgt.z2{--nc:#fff04d;--gl:rgba(255,235,60,.45);background:linear-gradient(135deg,#3a3a12,#6b6a1c 60%,#4a4a14)}.fgt.z3{--nc:#3dffb4;--gl:rgba(40,255,180,.5);background:linear-gradient(135deg,#0e4a3a,#12805f 60%,#0b5a45)}.fgt.z4{--nc:#1dffe6;--gl:rgba(30,255,230,.55);background:linear-gradient(135deg,#064d3f,#00a37a 60%,#0a6a60)}
+.tug{display:flex;height:16px;margin:3px 8px;border-radius:9px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 0 8px rgba(0,0,0,.4)}.tug i{background:linear-gradient(180deg,#2bffb0,#0a8f66);display:flex;align-items:center;transition:width .6s}.tug u{flex:1;background:linear-gradient(180deg,#ff5fae,#8a1a4a);display:flex;align-items:center;justify-content:flex-end}.tug s{text-decoration:none;font:900 10px ui-monospace,Consolas,monospace;color:#04130e;padding:0 7px}.tug u s{color:#2a0615}
+.mt{height:4px;margin-top:3px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}.mt em{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#6ff0ff,#2bd4ff);transition:width .6s}.ti.bad .mt em{background:linear-gradient(90deg,#ff9bd0,#ff3c96)}.ti.good .mt em{background:linear-gradient(90deg,#9dffd8,#25f0a0)}
+@keyframes pu{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 6px rgba(255,60,150,.35)}50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 16px rgba(255,60,150,.8)}}.ti.pu{animation:pu 2.4s ease-in-out infinite}
+.fgt{padding:3px 12px}.fgt b{font-size:24px}
 </style></head><body>
 <div class="top"><div class="tl"><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a><button id="wuB" class="alb" style="margin:0">📄 Write-up</button></div><div class="brand">Joshi's Corner</div>
 <div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
@@ -480,7 +484,8 @@ $('tvR').onclick=()=>{ const f=$('tvF'); if(f.dataset.man){ f.src=f.src; } else 
 newsLoad(); (function ns(){ setTimeout(async()=>{ if(!document.hidden) await newsLoad(); ns(); }, 60000); })();
 
 /* ---- Zee Business live dock: mute, hide, always-on-top pop-out (Document Picture-in-Picture) ---- */
-(function(){ const f=$('tvF'), box=$('tvB'), w=$('tvW'); let muted=true, pip=null;
+(function(){ const f=$('tvF'), box=$('tvB'), w=$('tvW'); let muted=true, pip=null; const unm=()=>{ if(!muted) return; muted=false; cmd('unMute'); cmd('setVolume',[80]); cmd('playVideo'); $('tvM').textContent='🔊'; };
+ document.addEventListener('pointerdown',unm,{once:true,capture:true}); document.addEventListener('keydown',unm,{once:true,capture:true}); f.addEventListener('load',()=>{ setTimeout(()=>{ try{ cmd('unMute'); }catch(e){} },1500); });
  const cmd=(fn,a)=>{ try{ f.contentWindow.postMessage(JSON.stringify({event:'command',func:fn,args:a||[]}),'*'); }catch(e){} };
  $('tvM').onclick=()=>{ muted=!muted; cmd(muted?'mute':'unMute'); if(!muted) cmd('playVideo'); $('tvM').textContent=muted?'🔇':'🔊'; };
  $('tvM').textContent='🔇';
@@ -500,6 +505,10 @@ newsLoad(); (function ns(){ setTimeout(async()=>{ if(!document.hidden) await new
 /* ---- market barometer, fear & greed, early trend-reversal alerts (all computed from live feed data in this page) ---- */
 const RV={}; const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)), hm5=()=>new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false});
 function miniRun(){ try{ baro(); }catch(e){ $('bgL').textContent='Barometer error'; } try{ reversal(); }catch(e){ $('rvL').textContent='Reversal scan error'; } }
+
+function dial(v){ const C=['#ff4fa3','#ffa03c','#fff04d','#3dffb4','#1dffe6'], P=(a)=>{ const r=a*Math.PI/180; return [(50-40*Math.cos(r)).toFixed(1),(50-40*Math.sin(r)).toFixed(1)]; };
+  const arcs=C.map((c,i)=>{ const a=P(i*36+1.5), b=P((i+1)*36-1.5); return `<path d="M${a[0]} ${a[1]} A40 40 0 0 1 ${b[0]} ${b[1]}" stroke="${c}" stroke-width="9" fill="none" opacity=".95"/>`; }).join(''); const ang=clamp(v,0,100)*1.8-90;
+  return `<svg viewBox="0 0 100 58" style="width:92px;height:54px;flex:none;filter:drop-shadow(0 0 4px rgba(255,255,255,.25))">${arcs}<g transform="rotate(${ang.toFixed(1)} 50 50)"><path d="M48.6 50 L50 14 L51.4 50 Z" fill="#fff"/></g><circle cx="50" cy="50" r="4.2" fill="#fff"/></svg>`; }
 function baro(){
   const today=istDay(), rows=HM.rows.filter(r=>r[9]===today&&r[3]&&r[2]);
   if(rows.length<50){ $('bgL').innerHTML='<div style="padding:8px;color:#93a1b5">Needs live heat-map data (market session).</div>'; $('bgc').textContent=''; return; }
@@ -511,7 +520,7 @@ function baro(){
   const fg=comp.reduce((a,c)=>a+c[1],0)/comp.length, lab=fg<25?'EXTREME FEAR':fg<45?'FEAR':fg<55?'NEUTRAL':fg<75?'GREED':'EXTREME GREED', lc=fg<45?'dn':fg>55?'up':'fl';
   $('bgc').textContent=n+' stocks';
   const z=fg<25?0:fg<45?1:fg<55?2:fg<75?3:4, tl=(l,v,c)=>`<div class="ti ${c||''}"><i>${l}</i><b>${v}</b></div>`;
-  $('bgL').innerHTML=`<div class="fgt z${z}"><span>FEAR &amp; GREED</span><b>${fg.toFixed(0)}</b><em>${lab}</em></div><div class="gau"><i style="left:calc(${fg.toFixed(0)}% - 1px)"></i></div>
+  $('bgL').innerHTML=`<div class="fgt z${z}">${dial(fg)}<div style="display:flex;flex-direction:column;line-height:1.05"><span>FEAR &amp; GREED</span><b>${fg.toFixed(0)}</b><em>${lab}</em></div></div><div class="tug" title="advancing vs declining"><i style="width:${ap.toFixed(1)}%"><s>▲ ${adv}</s></i><u><s>${dec} ▼</s></u></div>
   <div class="tiw">${tl('Adv / Dec',adv+' / '+dec,ap>=50?'good':'bad')}${tl('Avg move',(avg>=0?'+':'')+avg.toFixed(2)+'%',avg>=0?'good':'bad')}${tl('Day H / L',nh+' / '+nl,nh>=nl?'good':'bad')}${tl('1M H / L',h1+' / '+l1,h1>=l1?'good':'bad')}${tl('52W H / L',h52+' / '+l52,h52>=l52?'good':'bad')}</div>
   <div style="padding:2px 8px;font:600 9.5px 'Segoe UI';color:#93a1b5">Own score: ${comp.map(c=>c[0]).join(' · ')} (not an official index)</div>`;
 }
@@ -521,7 +530,7 @@ const MX=[['^INDIAVIX','VIX',3,1,2],['USDINR=X','USDINR',0.15,1,3],['BZ=F','BREN
 function spark(sp,good){ const a=sp.slice(-14); if(a.length<3) return ''; const lo=Math.min(...a), hi=Math.max(...a), r=hi-lo||1, pts=a.map((v,i)=>(i/(a.length-1)*36+1).toFixed(1)+','+(12-(v-lo)/r*11).toFixed(1)).join(' '); return `<svg viewBox="0 0 38 13"><polyline points="${pts}" fill="none" stroke="${good===null?'#93a1b5':good?'#8fc7ad':'#d39098'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`; }
 function macroWatch(add){
   const k=srcLabel==='LIVE'?2:6, out=[]; let bad=0, good=0;
-  MX.forEach(([s,n,lim,riseBad,dp])=>{ const r=Q[s]; if(!r) return; const sp=(r.sp||[]).filter(v=>v!=null); if(sp.length<=k) return; const prev=sp[sp.length-1-k], now=r.p!=null?r.p:sp[sp.length-1]; if(!prev) return; const mv=(now/prev-1)*100, hit=Math.abs(mv)>=lim, adverse=riseBad?mv>0:mv<0; let state=null; if(hit){ state=adverse?'bad':'good'; if(adverse) bad++; else good++; } out.push({n,mv,state,sp}); if(hit&&add) add('MX'+s+(adverse?'B':'G'),adverse?'d':'u',`<b>${n} ${mv>0?'▲':'▼'} sudden ${Math.abs(mv).toFixed(2)}% in ~30 min</b> · ${adverse?'pressure on Indian equities':'supportive for Indian equities'}`,adverse?'RISK-OFF':'RISK-ON'); });
+  MX.forEach(([s,n,lim,riseBad,dp])=>{ const r=Q[s]; if(!r) return; const sp=(r.sp||[]).filter(v=>v!=null); if(sp.length<=k) return; const prev=sp[sp.length-1-k], now=r.p!=null?r.p:sp[sp.length-1]; if(!prev) return; const mv=(now/prev-1)*100, hit=Math.abs(mv)>=lim, adverse=riseBad?mv>0:mv<0; let state=null; if(hit){ state=adverse?'bad':'good'; if(adverse) bad++; else good++; } out.push({n,mv,state,sp,lim}); if(hit&&add) add('MX'+s+(adverse?'B':'G'),adverse?'d':'u',`<b>${n} ${mv>0?'▲':'▼'} sudden ${Math.abs(mv).toFixed(2)}% in ~30 min</b> · ${adverse?'pressure on Indian equities':'supportive for Indian equities'}`,adverse?'RISK-OFF':'RISK-ON'); });
   return {out,bad,good};
 }
 function reversal(){
@@ -536,7 +545,7 @@ function reversal(){
   // stocks with intraday bars (top 40 by filter rank): EMA9 / EMA21 cross on 15 min within the last 3 bars, with volume rising
   Object.keys(BARS).forEach(sy=>{ try{ const D=aggr(BARS[sy],15), n=D.c.length; if(n<30||dayOf(D.t[n-1])!==today) return; const a=ema(D.c,9), b=ema(D.c,21), d0=a[n-1]-b[n-1], d3=a[n-4]-b[n-4]; if(a[n-4]==null||b[n-4]==null||d0*d3>=0) return; const vN=D.v[n-1]+D.v[n-2], vP=D.v[n-3]+D.v[n-4]; if(!(vN>vP)) return; const bull=d0>0, k=sy+(bull?'U':'D'); live.add(k+'E'); add(k,bull?'u':'d',`<b>${sy} ${bull?'▲ EMA9 crossed above EMA21':'▼ EMA9 crossed below EMA21'}</b> (15 min) · volume rising`,'EARLY'); }catch(e){} });
   Object.keys(RV).forEach(k=>{ const alive=[...live].some(x=>x.startsWith(k)); if(!alive&&Date.now()-RV[k].ts>45*60000) delete RV[k]; });
-  const list=Object.keys(RV).map(k=>RV[k]).sort((a,b)=>b.ts-a.ts).slice(0,40); const strip='<div class="mx">'+M.out.map(x=>`<div class="ti ${x.state||''}" title="30-min move"><i>${x.n}</i><b>${x.mv>0?'▲':x.mv<0?'▼':'■'} ${x.mv>=0?'+':''}${x.mv.toFixed(2)}%</b></div>`).join('')+`<div class="ti ${M.bad>M.good?'bad':M.good>M.bad?'good':''}"><i>Adverse / Supportive</i><b>${M.bad} / ${M.good}</b></div></div>`;
+  const list=Object.keys(RV).map(k=>RV[k]).sort((a,b)=>b.ts-a.ts).slice(0,40); const strip='<div class="mx">'+M.out.map(x=>`<div class="ti ${x.state||''}${x.state==='bad'?' pu':''}" title="30-min move vs alert limit"><i>${x.n}</i><b>${x.mv>0?'▲':x.mv<0?'▼':'■'} ${x.mv>=0?'+':''}${x.mv.toFixed(2)}%</b><div class="mt"><em style="width:${Math.min(100,Math.abs(x.mv)/x.lim*100).toFixed(0)}%"></em></div></div>`).join('')+`<div class="ti ${M.bad>M.good?'bad':M.good>M.bad?'good':''}"><i>Adverse / Supportive</i><b>${M.bad} / ${M.good}</b></div></div>`;
   $('rvc').textContent=list.length+' today';
   $('rvL').innerHTML=strip+(list.map(x=>`<span class="rv ${x.cls}"><span class="tm">${x.t}</span>${x.txt}<span class="tg ${x.tag==='CONFIRMED'||x.tag==='RISK-ON'?'cf':''}">${x.tag}</span></span>`).join('')||'<div style="padding:8px;color:#93a1b5">No reversal setups right now. Watches index turns, 15-min EMA9/21 crosses on the top-40 stocks, and sudden 30-min moves in VIX, USDINR, Brent, US$ index, US 10Y and Dow.</div>');
 }
