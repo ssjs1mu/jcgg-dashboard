@@ -88,14 +88,22 @@ def ytget(u):
 try:
     h = ytget('https://www.youtube.com/channel/UCkXopQ3ubd-rnXnStZqCl2w/streams')
     print('streams page bytes', len(h))
-    print('dbg counts', {k: h.count(k) for k in ['videoRenderer','lockupViewModel','gridVideoRenderer','richItemRenderer','"videoId"','BADGE_STYLE_TYPE_LIVE_NOW','LIVE','watching']})
-    for m in list(re.finditer(r'"videoId":"([\w-]{11})"', h))[:6]: print('vid', m.group(1), h[m.start():m.start()+260].replace('\n',' '))
-    for m in re.finditer(r'"videoRenderer":\{"videoId":"([\w-]{11})"', h):
-        seg = h[m.start():m.start() + 6000]
-        t = re.search(r'"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"', seg)
-        isl = bool(re.search(r'"style":"LIVE"|BADGE_STYLE_TYPE_LIVE_NOW|"iconType":"LIVE"', seg))
-        w = re.search(r'"viewCountText":\{"runs":\[\{"text":"([\d,]+)"\},\{"text":" watching', seg)
-        zcands.append((m.group(1), isl, int(w.group(1).replace(',', '')) if w else 0, (t.group(1) if t else '')[:70]))
+    pos = [m.start() for m in re.finditer(r'"lockupViewModel":\{', h)] + [len(h)]
+    for i in range(len(pos) - 1):
+        seg = h[pos[i]:min(pos[i + 1], pos[i] + 9000)]
+        cid = re.search(r'"contentId":"([\w-]{11})"', seg)
+        if not cid: continue
+        t = re.search(r'"title":\{"content":"((?:[^"\\]|\\.)*)"', seg)
+        w = re.search(r'"content":"([\d.,]+[KkMm]?) watching', seg)
+        isl = bool(w) or bool(re.search(r'"text":"LIVE"|BADGE_STYLE_TYPE_LIVE_NOW|THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE', seg))
+        n = 0
+        if w:
+            x = w.group(1).replace(',', ''); mul = 1
+            if x[-1] in 'Kk': mul, x = 1000, x[:-1]
+            elif x[-1] in 'Mm': mul, x = 1000000, x[:-1]
+            try: n = int(float(x) * mul)
+            except Exception: n = 1
+        zcands.append((cid.group(1), isl, n, (t.group(1) if t else '')[:70]))
     for c in zcands[:8]: print('cand', c)
     lv = [c for c in zcands if c[1]]
     if lv: live = sorted(lv, key=lambda c: -c[2])[0][0]
