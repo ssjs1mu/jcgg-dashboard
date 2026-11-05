@@ -2,64 +2,47 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Joshi's Corner | Live Trading Screen</title>
 <style>
-:root{--bg:#070b1c;--ink:#f4f1ff;--mut:#b9b2d9}
+:root{--bg:#070b1c;--ink:#f1eeff;--mut:#a9a3c9}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(1200px 500px at 15% -10%,#2a1b5e 0%,transparent 60%),radial-gradient(900px 500px at 100% 0,#0b3a52 0%,transparent 55%),var(--bg);color:var(--ink);font:13px "Segoe UI",system-ui,sans-serif;min-height:100vh}
-.top{display:flex;align-items:center;gap:14px;padding:8px 16px;flex-wrap:wrap}
-.brand{font-family:'Brush Script MT','Segoe Script',cursive;font-size:30px;color:#ffd35c;text-shadow:0 0 12px rgba(255,200,60,.45),0 2px 0 #7a4a00}
-.brand i{font-style:normal;margin-right:6px}
-.clock{margin-left:auto;text-align:right;font:700 12px ui-monospace,Consolas,monospace;color:var(--mut)}
-.clock b{color:#fff;font-size:15px}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#7a7a8c;margin-right:6px}
-.dot.live{background:#25d58a;box-shadow:0 0 10px #25d58a;animation:bl 1.2s infinite}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px "Segoe UI",system-ui,sans-serif}
+.top{display:flex;align-items:center;gap:12px;padding:5px 10px;flex-wrap:wrap;border-bottom:1px solid #2a3150}
+.brand{font-family:'Brush Script MT','Segoe Script',cursive;font-size:24px;color:#ffd35c;text-shadow:0 0 8px rgba(255,200,60,.35)}
+.ttl{font-weight:800;letter-spacing:.12em;color:#e9e2ff;font-size:11px}
+.top a{color:#b9b2d9;font-size:11px;text-decoration:none;border:1px solid #3a4268;border-radius:99px;padding:2px 9px}
+.clock{margin-left:auto;font:700 12px ui-monospace,Consolas,monospace;color:var(--mut);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.clock b{color:#fff;font-size:14px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#7a7a8c;margin-right:5px}
+.dot.live{background:#25d58a;box-shadow:0 0 8px #25d58a;animation:bl 1.2s infinite}
 @keyframes bl{50%{opacity:.35}}
-.rows{padding:0 14px 6px;display:grid;gap:14px;overflow-x:auto}
-.blk{display:grid;gap:7px;min-width:860px}
-.cap{font:900 10px "Segoe UI",sans-serif;letter-spacing:.2em;color:#b9b2d9;padding-left:4px}
-.strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}
-.t{--a:#7b4dff;--g:rgba(150,110,255,.55);position:relative;overflow:hidden;isolation:isolate;border-radius:15px;padding:7px 11px;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:46px;
- background:linear-gradient(160deg,color-mix(in srgb,var(--a) 55%,#0a0a1a) 0%,color-mix(in srgb,var(--a) 22%,#05050f) 60%,#03030a 100%);border:1px solid color-mix(in srgb,var(--a) 55%,transparent);
- box-shadow:0 1px 0 rgba(255,255,255,.28) inset,0 -10px 16px rgba(0,0,0,.45) inset,0 10px 22px -12px var(--g)}
-.t::before,.t::after{content:'';position:absolute;z-index:-1;border-radius:50%;filter:blur(14px);pointer-events:none}
-.t::before{width:70%;height:140%;left:-15%;bottom:-70%;background:radial-gradient(closest-side,var(--g),transparent);animation:sm1 9s ease-in-out infinite alternate}
-.t::after{width:55%;height:120%;right:-10%;top:-60%;background:radial-gradient(closest-side,rgba(255,255,255,.26),transparent);animation:sm2 11s ease-in-out infinite alternate}
-@keyframes sm1{to{transform:translate(35%,-18%) scale(1.25)}}@keyframes sm2{to{transform:translate(-45%,14%) scale(1.15)}}
-.t.in{--a:#7b4dff;--g:rgba(150,110,255,.6)}.t.vx{--a:#ff4fa3;--g:rgba(255,80,170,.55)}.t.en{--a:#ffa51f;--g:rgba(255,170,50,.55)}
-.t.fx{--a:#1fd1d6;--g:rgba(40,210,230,.55)}.t.bd{--a:#3de08f;--g:rgba(50,225,150,.55)}.t.mt{--a:#ffd75e;--g:rgba(255,215,90,.55)}
-.hd b{font-size:12px;font-weight:900;letter-spacing:.1em;text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hd{flex-direction:row;align-items:center;justify-content:space-between;gap:6px}
-.hd small{font-size:9px;font-weight:800;color:#e3dcff;background:rgba(0,0,0,.4);border-radius:99px;padding:1px 7px}
-.lv{flex-direction:row;align-items:baseline;justify-content:flex-start;gap:8px;flex-wrap:wrap}
-.lv .p{font:900 19px ui-monospace,Consolas,monospace;text-shadow:0 2px 4px rgba(0,0,0,.6)}
-.lv .d{font:800 11.5px ui-monospace,Consolas,monospace;padding:1px 7px;border-radius:8px;background:rgba(0,0,0,.4)}
+.age{border-radius:99px;padding:1px 9px;font-size:11px;border:1px solid #3a4268}.age.ok{color:#5cf0a8;border-color:#1d7a55}.age.old{color:#ffb86b;border-color:#a35c10}
+.wrap{padding:6px 8px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:1150px;table-layout:fixed;font-family:ui-monospace,Consolas,"Segoe UI",monospace}
+th,td{border:1px solid #2c3458;padding:3px 6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:25px}
+thead th{background:linear-gradient(180deg,#3a2a78,#241a52);color:#ffe9a8;font:900 12px "Segoe UI",sans-serif;letter-spacing:.07em}
+tbody tr:nth-child(odd) td{background:#0f1630}
+tbody tr:nth-child(even) td{background:#1b2547}
+td.px{font-size:14px;font-weight:900}
+td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;border-radius:4px;margin-left:4px}
+.tag.bu{background:#0b7a4f;color:#d8ffe9}.tag.be{background:#a3122f;color:#ffe1e7}.tag.sw{background:#4a5273;color:#e6e9f7}.tag.bo{background:#d98a00;color:#2b1a00}.tag.bd2{background:#c2410c;color:#fff0e6}
 .up{color:#5cf0a8}.dn{color:#ff7d93}.fl{color:#d4cdf2}
-.trd{flex-direction:row;align-items:center;justify-content:center}
-.tg{white-space:nowrap;font:900 11px "Segoe UI",sans-serif;letter-spacing:.09em;border-radius:99px;padding:2px 12px;color:#fff;border:1px solid rgba(255,255,255,.4);text-shadow:0 1px 2px rgba(0,0,0,.5);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 3px 8px rgba(0,0,0,.35)}
-.tg.bu{background:linear-gradient(180deg,#38e69a,#0b8a58)}.tg.be{background:linear-gradient(180deg,#ff6a86,#a3122f)}.tg.sw{background:linear-gradient(180deg,#8d97b8,#4a5273)}
-.tg.bo{background:linear-gradient(180deg,#ffe066,#d98a00);color:#2b1a00;text-shadow:none}.tg.bd2{background:linear-gradient(180deg,#ff9a4d,#c2410c)}
-.sr{display:grid;grid-template-columns:1fr 1fr;gap:1px 10px;font:800 11px ui-monospace,Consolas,monospace}
-.sr span{display:flex;justify-content:space-between;gap:4px}.sr i{font-style:normal;font:900 8.5px "Segoe UI",sans-serif;letter-spacing:.07em;opacity:.8;align-self:center}
-.sr .s b{color:#5cf0a8}.sr .r b{color:#ff7d93}
-.sr .near{outline:1px solid rgba(255,255,255,.55);border-radius:5px;padding:0 3px;background:rgba(255,255,255,.12)}
-.nodata{opacity:.7;font-size:11px}
-.foot{padding:4px 18px 18px;color:var(--mut);font-size:11px;display:flex;gap:16px;flex-wrap:wrap}
-.foot b{color:#ffd35c}
-.legend{display:flex;gap:6px;flex-wrap:wrap}
+.sr{font-size:12px;padding:3px 3px!important;text-overflow:clip!important}.s b{color:#5cf0a8}.r b{color:#ff7d93}.sr i{font-style:normal;font:800 10px "Segoe UI",sans-serif;opacity:.75;margin-right:3px}.sr span+span{margin-left:7px}
+.near{background:rgba(255,235,120,.22);outline:1px solid #ffe678;border-radius:3px;padding:0 2px}
+.nodata{opacity:.6}
+.foot{padding:2px 12px 10px;color:var(--mut);font-size:10.5px}
 </style></head><body>
-<div class="top"><div class="brand"><i>🌳</i>Joshi's Corner</div><div style="font-weight:800;letter-spacing:.14em;color:#e9e2ff">LIVE TRADING SCREEN</div><a href="./" style="color:#b9b2d9;font-size:11px;text-decoration:none;border:1px solid rgba(255,255,255,.25);border-radius:99px;padding:3px 10px">◂ Macro dashboard</a>
-<div class="clock"><div><span class="dot" id="dot"></span><span id="mk">—</span></div><b id="clk">--:--:--</b> IST · <span id="src">loading…</span></div></div>
-<div class="rows"><div class="blk" id="b1"></div><div class="blk" id="b2"></div></div>
-<div class="foot"><div class="legend" id="lg"></div><div id="note"></div></div>
+<div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
+<div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
+<div class="wrap"><table id="tb"></table></div>
+<div class="foot" id="note"></div>
 <script>
 'use strict';
 /* ---- config ---- */
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'; // shared Joshi's Corner Apps Script (action=dash)
-const ROW1=[['^NSEI','NIFTY 50','in',2],['^NSEBANK','BANK NIFTY','in',2],['^BSESN','SENSEX','in',2],['^INDIAVIX','INDIA VIX','vx',2,1],['^CNXIT','NIFTY IT','in',2],['^NSMIDCP','NIFTY NEXT 50','in',2]];
-const ROW2=[['BZ=F','BRENT CRUDE','en',2],['CL=F','WTI CRUDE','en',2],['USDINR=X','USD / INR','fx',3,1],['DX-Y.NYB','US $ INDEX','fx',2],['^TNX','US 10Y YIELD','bd',3,1],['GC=F','GOLD US$/oz','mt',1]];
-const ALL=ROW1.concat(ROW2), DEF={}; ALL.forEach(a=>DEF[a[0]]={n:a[1],k:a[2],dp:a[3],inv:!!a[4]});
+const COLS=[['^NSEI','NIFTY50',2],['^NSEBANK','BANKNIFTY',2],['^BSESN','SENSEX',2],['^INDIAVIX','INDVIX',2,1],['USDINR=X','USDINR',3,1],['BZ=F','BRENT CRUDE',2],['DX-Y.NYB','US $ INDEX',2],['^TNX','US 10Y',3,1]];
+const DEF={}; COLS.forEach(a=>DEF[a[0]]={n:a[1],dp:a[2],inv:!!a[3]});
 const $=id=>document.getElementById(id);
-const fmt=(v,dp)=>Number(v).toLocaleString('en-IN',{minimumFractionDigits:dp,maximumFractionDigits:dp});
-const sg=(v,dp)=>(v>0?'+':v<0?'−':'')+fmt(Math.abs(v),dp);
+const fmt=(v,dp)=>Number(v).toFixed(dp);
+const sg=(v,dp)=>(v>0?'+':v<0?'-':'')+fmt(Math.abs(v),dp);
 const ist=()=>new Date(Date.now()+19800000);
 const istMin=()=>{const d=ist();return d.getUTCHours()*60+d.getUTCMinutes()};
 const indiaOpen=()=>{const d=ist().getUTCDay();return d>0&&d<6&&istMin()>=555&&istMin()<=930};
@@ -79,50 +62,56 @@ function trend(r,inv){
   if(chg<-0.2&&slope>0.05) return ['RECOVERY','sw'];
   return chg>0?['MILD BULL','bu']:chg<0?['MILD BEAR','be']:['SIDEWAYS','sw'];
 }
-const Q={}, PV={}; let srcLabel='loading…', snapTs='';
-const GROUPS=[['INDIA · VOLATILITY',ROW1,'b1'],['CRUDE · CURRENCY · BONDS · GOLD',ROW2,'b2']];
-function cells(a){
+const Q={}, PV={}; let srcLabel='loading…', snapTs=0;
+function cell(a){
   const s=a[0], d=DEF[s], r=Q[s], pv=PV[s];
-  if(!r||r.p==null) return {h:`<div class="t hd ${d.k}"><b>${d.n}</b></div>`,l:`<div class="t lv ${d.k}"><span class="nodata">no data</span></div>`,t:`<div class="t trd ${d.k}"><span class="tg sw">NO DATA</span></div>`,s:`<div class="t ${d.k}"><span class="nodata">—</span></div>`};
+  if(!r||r.p==null) return ['<td class="nodata">no data</td>','<td></td>','<td></td>','<td></td>'];
   const pt=r.pc?r.p-r.pc:0, pc=r.pc?(r.p/r.pc-1)*100:0, good=d.inv?pt<0:pt>0, cls=pt===0?'fl':(good?'up':'dn');
   let [txt,k]=trend(r,d.inv);
   if(d.inv&&(k==='bu'||k==='be')){txt=k==='bu'?'RISING':'FALLING'; k=k==='bu'?'be':'bu';}
-  if(d.inv&&k==='bo'){txt='SPIKE ▲';k='bd2';} if(d.inv&&k==='bd2'){txt='DROP ▼';k='bo';}
-  const near=(v)=>Math.abs(r.p/v-1)<0.0035?' near':'';
-  const sr=pv?`<div class="sr"><span class="s${near(pv.S1)}"><i>S1</i><b>${fmt(pv.S1,d.dp)}</b></span><span class="r${near(pv.R1)}"><i>R1</i><b>${fmt(pv.R1,d.dp)}</b></span><span class="s${near(pv.S2)}"><i>S2</i><b>${fmt(pv.S2,d.dp)}</b></span><span class="r${near(pv.R2)}"><i>R2</i><b>${fmt(pv.R2,d.dp)}</b></span></div>`:'<span class="nodata">levels building…</span>';
-  return {
-    h:`<div class="t hd ${d.k}"><b>${d.n}</b><small>${r.t?new Date(r.t*1000+19800000).toISOString().slice(11,16):''}</small></div>`,
-    l:`<div class="t lv ${d.k}"><span class="p">${fmt(r.p,d.dp)}</span><span class="d ${cls}">${sg(pt,d.dp)} · ${sg(pc,2)}%</span></div>`,
-    t:`<div class="t trd ${d.k}"><span class="tg ${k}">${txt}</span></div>`,
-    s:`<div class="t ${d.k}">${sr}</div>`};
+  if(d.inv&&k==='bo'){txt='SPIKE';k='bd2';} if(d.inv&&k==='bd2'){txt='DROP';k='bo';}
+  const nr=(v)=>Math.abs(r.p/v-1)<0.0035?' near':'';
+  const L=(c,l,v)=>`<span class="${c}${nr(v)}"><i>${l}</i><b>${fmt(v,d.dp)}</b></span>`;
+  return [`<td class="px ${cls}">${fmt(r.p,d.dp)}<span class="tag ${k}">${txt}</span></td>`,
+    `<td class="${cls}">${sg(pt,d.dp)} (${sg(pc,2)}%)</td>`,
+    pv?`<td class="sr">${L('s','S1',pv.S1)}${L('r','R1',pv.R1)}</td>`:'<td class="nodata">levels building…</td>',
+    pv?`<td class="sr">${L('s','S2',pv.S2)}${L('r','R2',pv.R2)}</td>`:'<td></td>'];
 }
 function paint(){
-  GROUPS.forEach(([cap,row,id])=>{ const c=row.map(cells); $(id).innerHTML=`<div class="cap">${cap}</div>`+['h','l','t','s'].map(k=>`<div class="strip">${c.map(x=>x[k]).join('')}</div>`).join(''); });
-  $('src').textContent=srcLabel;
+  const c=COLS.map(cell);
+  $('tb').innerHTML='<thead><tr>'+COLS.map(a=>`<th>${a[1]}</th>`).join('')+'</tr></thead><tbody>'+[0,1,2,3].map(i=>'<tr>'+c.map(x=>x[i]).join('')+'</tr>').join('')+'</tbody>';
+  $('src').textContent=srcLabel; ageTick();
 }
+function ageTick(){ const e=$('age'); if(!snapTs){e.textContent='';return;} const m=Math.max(0,Math.round((Date.now()-snapTs)/60000)); e.textContent='data '+(m<1?'<1':m)+' min old'; e.className='age '+(m<=6?'ok':'old'); }
 /* ---- data: live backend first; GitHub snapshot (real Yahoo data built every 5 min) when the backend is out of quota ---- */
 async function getJ(url,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,cache:'no-store'});const tx=await r.text();return JSON.parse(tx)}finally{clearTimeout(t)}}
+const API='https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/snapshot.json?ref=snapshot';
+async function snap(){ // newest snapshot: GitHub API (no CDN lag) -> raw branch -> file in main
+  const c=new AbortController(), t=setTimeout(()=>c.abort(),10000);
+  try{ const r=await fetch(API,{headers:{Accept:'application/vnd.github.raw'},signal:c.signal}); if(r.ok) return JSON.parse(await r.text()); }catch(e){} finally{clearTimeout(t)}
+  try{ return await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/snapshot/snapshot.json?x='+Math.floor(Date.now()/60000),10000); }catch(e){}
+  return await getJ('data/snapshot.json?x='+Math.floor(Date.now()/60000),10000);
+}
 let quotaUntil=0, lvAt=0;
-async function loadLevels(){ if(Date.now()-lvAt<1800000) return; lvAt=Date.now(); try{ let j; try{ j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/snapshot.json?x='+Math.floor(Date.now()/600000),10000);}catch(e){ j=await getJ('data/snapshot.json',10000);} j.rows.forEach(r=>{ if(r.pv) PV[r.s]=r.pv; }); paint(); }catch(e){} }
+async function loadLevels(){ if(Date.now()-lvAt<1800000) return; lvAt=Date.now(); try{ const j=await snap(); j.rows.forEach(r=>{ if(r.pv) PV[r.s]=r.pv; }); paint(); }catch(e){} }
 async function load(){
-  const syms=ALL.map(a=>a[0]);
+  const syms=COLS.map(a=>a[0]);
   if(Date.now()>quotaUntil){
     try{
-      const j=await getJ(BACKEND+'?action=dash&symbols='+encodeURIComponent(syms.join(',')),15000);
-      if(j&&Array.isArray(j.rows)&&j.rows.length){ j.rows.forEach(r=>{if(r&&!r.err&&r.p!=null){const o=Q[r.s]; Q[r.s]=Object.assign(o&&o.hi?{hi:o.hi,lo:o.lo}:{},r);}}); srcLabel='live · '+ist().toISOString().slice(11,19)+' IST'; loadLevels(); return paint(); }
+      const j=await getJ(BACKEND+'?action=dash&symbols='+encodeURIComponent(syms.join(',')),12000);
+      if(j&&Array.isArray(j.rows)&&j.rows.length){ j.rows.forEach(r=>{if(r&&!r.err&&r.p!=null){const o=Q[r.s]; Q[r.s]=Object.assign(o&&o.hi?{hi:o.hi,lo:o.lo}:{},r);}}); srcLabel='LIVE'; snapTs=Date.now(); loadLevels(); return paint(); }
       if(j&&j.error&&/too many times|quota/i.test(j.error)) quotaUntil=Date.now()+30*60000;
-    }catch(e){}
+    }catch(e){ quotaUntil=Date.now()+180000; } // quota page / timeout: retry the live feed in 3 min, meanwhile use the snapshot
   }
   try{
-    let j; try{ j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/snapshot.json?x='+Math.floor(Date.now()/60000),10000); }catch(e){ j=await getJ('data/snapshot.json?x='+Math.floor(Date.now()/60000),10000); }  // raw file = always the newest 5-min build, no Pages redeploy needed
-    j.rows.forEach(r=>{Q[r.s]=r; if(r.pv) PV[r.s]=r.pv;}); snapTs=j.ts; srcLabel='GitHub snapshot (delayed) · as of '+new Date(j.ts).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false})+' IST';
+    const j=await snap();
+    j.rows.forEach(r=>{Q[r.s]=r; if(r.pv) PV[r.s]=r.pv;}); snapTs=Date.parse(j.ts); srcLabel='SNAPSHOT (live feed busy)';
   }catch(e){ srcLabel='no data source reachable'; }
   paint();
 }
 function clock(){ const d=ist(); $('clk').textContent=d.toISOString().slice(11,19); const o=indiaOpen(); $('dot').className='dot'+(o?' live':''); $('mk').textContent=o?'NSE LIVE':'NSE CLOSED'; }
-$('lg').innerHTML=[['bu','BULLISH'],['be','BEARISH'],['sw','SIDEWAYS'],['bo','BREAKOUT'],['bd2','BREAKDOWN']].map(x=>`<span class="tg ${x[0]}">${x[1]}</span>`).join('');
-$('note').innerHTML='Trend = day change + position in the day\'s range + slope of the last bars. S/R = classic pivots from the previous session (outlined = within 0.35% of price). For VIX, yields and USD/INR a rise is shown as pressure (red). Delayed Yahoo quotes · not advice.';
-clock(); setInterval(clock,1000); paint(); load();
-(function sched(){ setTimeout(async()=>{ if(!document.hidden) await load(); sched(); }, indiaOpen()?15000:120000); })();
+$('note').innerHTML='Row 1 = last price + trend · Row 2 = points (% change) · Rows 3-4 = classic pivot support/resistance from the previous session (highlighted when price is within 0.35%). VIX, USDINR and yields: a rise is pressure (red). Delayed Yahoo quotes · not advice.';
+clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load();
+(function sched(){ setTimeout(async()=>{ if(!document.hidden) await load(); sched(); }, indiaOpen()?20000:120000); })();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 </script></body></html>

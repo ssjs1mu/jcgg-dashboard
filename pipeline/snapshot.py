@@ -1,6 +1,6 @@
 """Builds data/snapshot.json: real Yahoo quotes for every tile on the trading screen, fetched on the GitHub runner
 (no Apps Script quota). The screen uses it whenever the live backend is unavailable and labels it delayed."""
-import json, sys, time, urllib.request, urllib.parse
+import os, json, sys, time, urllib.request, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 SYMS = ['^NSEI','^NSEBANK','^BSESN','^INDIAVIX','^CNXIT','^NSMIDCP','BZ=F','CL=F','USDINR=X','DX-Y.NYB','^TNX','GC=F','^DJI','^GSPC','^IXIC','^N225']
@@ -34,4 +34,4 @@ def get(s):
 with ThreadPoolExecutor(8) as ex: rows = [r for r in ex.map(get, SYMS) if r]
 print('symbols', len(SYMS), 'got', len(rows))
 if len(rows) < len(SYMS) * 0.5: sys.exit('too few rows - keeping the previous snapshot')
-json.dump({'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'rows': rows}, open('data/snapshot.json', 'w'), separators=(',', ':'))
+json.dump({'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'rows': rows}, open(os.environ.get('OUT', 'data/snapshot.json'), 'w'), separators=(',', ':'))

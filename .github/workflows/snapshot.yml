@@ -1,30 +1,34 @@
 name: Trading screen quote snapshot (real Yahoo data, free, no Apps Script quota)
+# Each run refreshes about every minute for ~4.5 minutes and force-pushes ONE commit to the `snapshot` branch
+# (no history growth, no Pages redeploy). The screen reads that branch through the GitHub API.
 on:
   schedule:
-    - cron: '*/5 3-10 * * 1-5'          # 08:30-16:30 IST every 5 min
-    - cron: '7,37 0-2,11-23 * * 1-5'    # rest of the weekday (world markets) every 30 min
+    - cron: '*/5 3-10 * * 1-5'          # 08:30-16:30 IST
+    - cron: '7,37 0-2,11-23 * * 1-5'    # rest of the weekday (world markets)
   workflow_dispatch:
 permissions:
   contents: write
 concurrency:
   group: snapshot
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   snap:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - run: python pipeline/snapshot.py
-      - name: Commit if changed
+      - name: Refresh loop
         run: |
-          git diff --quiet -- data/snapshot.json && git ls-files --error-unmatch data/snapshot.json >/dev/null 2>&1 && exit 0
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/snapshot.json
-          git commit -m "data: snapshot $(date -u +%FT%TZ)"
-          for i in 1 2 3 4; do git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push origin HEAD:"${GITHUB_REF_NAME}" && exit 0; sleep $((i*5)); done
-          exit 1
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          N=1; [ "${{ github.event.schedule }}" = "" ] && N=2 || { case "${{ github.event.schedule }}" in '*/5 3-10 * * 1-5') N=5;; *) N=1;; esac; }
+          for i in $(seq 1 $N); do
+            OUT=/tmp/snapshot.json python pipeline/snapshot.py || { sleep 20; continue; }
+            blob=$(git hash-object -w /tmp/snapshot.json)
+            tree=$(printf '100644 blob %s\tsnapshot.json\n' "$blob" | git mktree)
+            commit=$(git commit-tree "$tree" -m "snapshot $(date -u +%FT%TZ)")
+            git push -q -f origin "$commit":refs/heads/snapshot || true
+            [ $i -lt $N ] && sleep 45
+          done
