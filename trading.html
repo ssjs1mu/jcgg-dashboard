@@ -102,13 +102,13 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .nw .ch{display:inline-block;min-width:78px;font:900 10.5px "Segoe UI";color:#1a1030;background:#d2c08a;border-radius:3px;padding:0 5px;margin-right:6px;text-align:center}.nw .an{color:#8cf3c0;font-weight:800;margin-right:6px}
 .nw .ac{font:900 10.5px "Segoe UI";border-radius:3px;padding:0 5px;margin-right:6px;color:#fff}.nw .ac.B{background:#3f7d66}.nw .ac.S{background:#8c3f4d}.nw .ac.H{background:#4a5273}.nw .lv{color:#d2c08a;font-weight:800;margin-left:6px}
 .tvw{height:44vh;background:#000}.tvw iframe{width:100%;height:100%;border:0;display:block}
-.dockrow{display:flex;gap:8px;align-items:flex-start;padding-right:8px}.dockrow .wrap{flex:1;min-width:0}.tvd{width:300px;flex:none;margin-top:6px;border:1px solid #2c3458;border-radius:6px;background:#0a0f16;overflow:hidden}
+.dockrow{display:flex;gap:8px;align-items:flex-start;padding-right:8px}.dockrow .lcol{flex:1;min-width:0;display:flex;flex-direction:column;align-self:stretch}.lcol .wrap{flex:none}.nwg{margin:2px 8px 4px;flex:1;min-height:110px;display:flex;flex-direction:column}.nwg .nw{flex:1;min-height:0;height:auto!important;max-height:none!important;overflow:auto}.nwg .hmh{padding:2px 10px}.tvd{width:300px;flex:none;margin-top:6px;border:1px solid #2c3458;border-radius:6px;background:#0a0f16;overflow:hidden}
 .tvh{display:flex;gap:4px;align-items:center;padding:2px 6px;background:#26364a;color:#d9cfae;font:800 10.5px "Segoe UI",sans-serif;letter-spacing:.06em}.tvh button{background:#1a2634;color:#dde4ee;border:1px solid #3a4268;border-radius:4px;font:700 10px "Segoe UI";cursor:pointer;padding:1px 6px}
-.tvd .tvw{height:auto;aspect-ratio:16/9}.tvd.min .tvw,.tvd.min input{display:none}@media(max-width:1100px){.dockrow{flex-direction:column}.tvd{width:auto;margin:0 8px}}
+.tvd .tvw{height:auto;aspect-ratio:16/9}.tvd.min .tvw,.tvd.min input{display:none}@media(max-width:1100px){.nwg{min-height:170px}.dockrow{flex-direction:column}.tvd{width:auto;margin:0 8px}}
 </style></head><body>
 <div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
 <div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
-<div class="dockrow"><div class="wrap"><table id="tb"></table></div>
+<div class="dockrow"><div class="lcol"><div class="wrap"><table id="tb"></table></div><div class="hm nwg" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div></div>
 <div class="tvd" id="tvB"><div class="tvh"><b>ZEE BUSINESS LIVE</b><span style="flex:1"></span><button id="tvR" title="Reload the TV only (page is not reloaded)">↻ TV</button><button id="tvM" title="unmute / mute">🔊</button><button id="tvP" title="Pop out - stays on top of other windows (Chrome/Edge)">⧉ Pop-out</button><button id="tvH" title="hide / show">▾</button></div>
 <div class="tvw" id="tvW"><iframe id="tvF" src="about:blank" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
 <div id="tvS" style="font:600 10.5px Segoe UI;color:#93a1b5;padding:2px 6px"></div><input id="tvU" placeholder="stream stopped? paste new YouTube live link" style="width:100%;box-sizing:border-box;font-size:10.5px"></div></div>
@@ -124,8 +124,6 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
  <button id="alS" class="alb">⚙ Triggers</button><span id="als" class="hmc" style="margin-left:auto"></span></div>
  <div id="alCfg" class="alcfg" style="display:none"></div>
  <div class="alt" id="alt"></div></div></div>
-<div class="split" style="grid-template-columns:1fr"><div class="hm" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div>
-</div>
 <div class="foot" id="note"></div>
 <div class="mo" id="mo"><div class="md"><div class="mdh"><h2 id="mSym">—</h2><span class="cm" id="mCmp"></span><span id="mChg"></span>
  <label style="font:700 12px 'Segoe UI';color:#dde4ee">Timeframe <select id="mTf"><option value="5">5 min</option><option value="15" selected>15 min</option></select></label><small id="mSrc"></small><button class="x" id="mX">✕ Close</button></div>
