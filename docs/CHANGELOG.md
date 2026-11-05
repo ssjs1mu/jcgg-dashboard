@@ -27,3 +27,4 @@
 | 2026-11-05 | **[Claude]** BIG FISH trigger: pipeline/heatmap.py adds RSI14 (row[14]) and a 'bf' map (first minute each stock met all conditions, replayed on 5-min bars); trading.html marks Big Fish in heat-map (violet glow, fish) and Live alerts (BF type) with today's results and times. |
 | 2026-11-05 | **[Claude]** Big Fish found after the close is stamped 15:30 instead of the page-open time. |
 | 2026-11-05 | **[Claude]** Bear side: heat-map bear tiles (Open=High, below prev close, volume multiple) and BIG FISH SHORT trigger (rel vol <1.2, range >=1.5%, <= -1.5% from open, RSI14 <40, new 1M low) in heat-map and Live alerts, separate colours; pipeline writes 'bs' map. |
+| 2026-11-05 | **[Claude]** Heat-map always shows bear and short-fish tiles even beyond the Show limit. |
