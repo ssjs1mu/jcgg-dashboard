@@ -30,3 +30,4 @@
 | 2026-11-05 | **[Claude]** Heat-map always shows bear and short-fish tiles even beyond the Show limit. |
 | 2026-11-05 | **[Claude]** trading.html: Market barometer and Early reversal tiles stretch to fill their boxes; heat-map ranks bull and bear tiles together by (day range + move) x volume pace so bear tiles are no longer forced to the bottom. |
 | 2026-11-05 | **[Claude]** Heat-map: Big Fish boosts strength x1.6 instead of a separate tier, so strong bear tiles rank among bull tiles; reversal tiles in one row. |
+| 2026-11-05 | **[Claude]** Heat-map colour legend (Big Fish violet, Big Fish Short orange-red, bear rose, bull match gold). |
