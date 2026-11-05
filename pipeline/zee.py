@@ -20,8 +20,6 @@ ok = []
 for vid, title in cands[:12]:
     w = get('https://www.youtube.com/watch?v=' + vid); m = re.search(r'"dateText":\{"simpleText":"Started streaming (\d+) (minute|hour|day)s? ago"\}', w)
     if not m: print('reject (no fresh start)', vid, title[:50]); continue
-    emb = bool(re.search(r'"playableInEmbed":true', w))
-    if not emb: print('reject (embedding disabled)', vid, title[:50]); continue
     age = int(m.group(1)) * {'minute': 1, 'hour': 60, 'day': 1440}[m.group(2)]
     if age > 14 * 60: print('reject (too old)', vid, age, title[:50]); continue
     ok.append({'id': vid, 'title': title[:90], 'started_min_ago': age, 'prog': bool(PROG.search(title))}); print('LIVE', vid, age, 'min', title[:60])
