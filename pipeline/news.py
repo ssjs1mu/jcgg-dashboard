@@ -78,12 +78,30 @@ for (kind, name, u), raw in res:
             tg, sl = levels(it['title'])
             calls.setdefault(k, dict(it, ch=name, analyst=analyst(it['title']), act=a, tg=tg, sl=sl))
 news = sorted(news.values(), key=lambda x: -x['t'])[:80]; calls = sorted(calls.values(), key=lambda x: -x['t'])[:60]
-live = ''
+live = ''; zcands = []
+def ytget(u):
+    try:
+        rq = urllib.request.Request(u, headers=dict(UA, **{'Cookie': 'SOCS=CAI; CONSENT=YES+cb', 'Accept-Language': 'en-IN,en;q=0.9'}))
+        return urllib.request.urlopen(rq, timeout=20).read().decode('utf8', 'ignore')
+    except Exception as e:
+        print('yt fetch fail', u, e); return ''
 try:
-    h = (fetch('https://www.youtube.com/@ZeeBusiness/live') or b'').decode('utf8', 'ignore')
-    m = re.search(r'<link rel="canonical" href="https://www\.youtube\.com/watch\?v=([\w-]{11})"', h)
-    if m and re.search(r'"isLiveNow":true|"isLive":true', h): live = m.group(1)
-except Exception: pass
+    h = ytget('https://www.youtube.com/channel/UCkXopQ3ubd-rnXnStZqCl2w/streams')
+    print('streams page bytes', len(h))
+    for m in re.finditer(r'"videoRenderer":\{"videoId":"([\w-]{11})"', h):
+        seg = h[m.start():m.start() + 6000]
+        t = re.search(r'"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"', seg)
+        isl = bool(re.search(r'"style":"LIVE"|BADGE_STYLE_TYPE_LIVE_NOW|"iconType":"LIVE"', seg))
+        w = re.search(r'"viewCountText":\{"runs":\[\{"text":"([\d,]+)"\},\{"text":" watching', seg)
+        zcands.append((m.group(1), isl, int(w.group(1).replace(',', '')) if w else 0, (t.group(1) if t else '')[:70]))
+    for c in zcands[:8]: print('cand', c)
+    lv = [c for c in zcands if c[1]]
+    if lv: live = sorted(lv, key=lambda c: -c[2])[0][0]
+    if not live:
+        h2 = ytget('https://www.youtube.com/@ZeeBusiness/live')
+        m = re.search(r'<link rel="canonical" href="https://www\.youtube\.com/watch\?v=([\w-]{11})"', h2)
+        if m and re.search(r'"isLiveNow":true', h2): live = m.group(1)
+except Exception as e: print('zee resolve error', e)
 print('zee live id', live or 'not resolved')
 print('feeds', len(jobs), 'news', len(news), 'calls', len(calls), 'with analyst', sum(1 for c in calls if c['analyst']))
 if not news and not calls: raise SystemExit('nothing fetched - keeping the previous file')
