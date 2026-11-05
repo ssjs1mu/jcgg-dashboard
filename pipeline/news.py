@@ -88,6 +88,8 @@ def ytget(u):
 try:
     h = ytget('https://www.youtube.com/channel/UCkXopQ3ubd-rnXnStZqCl2w/streams')
     print('streams page bytes', len(h))
+    print('dbg counts', {k: h.count(k) for k in ['videoRenderer','lockupViewModel','gridVideoRenderer','richItemRenderer','"videoId"','BADGE_STYLE_TYPE_LIVE_NOW','LIVE','watching']})
+    for m in list(re.finditer(r'"videoId":"([\w-]{11})"', h))[:6]: print('vid', m.group(1), h[m.start():m.start()+260].replace('\n',' '))
     for m in re.finditer(r'"videoRenderer":\{"videoId":"([\w-]{11})"', h):
         seg = h[m.start():m.start() + 6000]
         t = re.search(r'"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"', seg)
