@@ -28,12 +28,13 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .sr{font-size:12px;padding:3px 3px!important;text-overflow:clip!important}.s b{color:#5cf0a8}.r b{color:#ff7d93}.sr i{font-style:normal;font:800 10px "Segoe UI",sans-serif;opacity:.75;margin-right:3px}.sr span+span{margin-left:7px}
 .near{background:rgba(255,235,120,.22);outline:1px solid #ffe678;border-radius:3px;padding:0 2px}
 .nodata{opacity:.6}
-.hm{margin:4px 8px 6px;border:1px solid #2c3458;border-radius:6px;background:#0b1126}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 8px 6px;align-items:start}@media(max-width:1000px){.split{grid-template-columns:1fr}}
+.hm{margin:0;border:1px solid #2c3458;border-radius:6px;background:#0b1126}
 .hmh{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:6px 10px;background:linear-gradient(180deg,#3a2a78,#241a52);border-radius:6px 6px 0 0;font:700 12.5px "Segoe UI",sans-serif;color:#e7e1ff}
 .hmh b{color:#ffe9a8;letter-spacing:.1em;font-weight:900}.hmh label{display:flex;gap:4px;align-items:center;white-space:nowrap}.hmh select,.hmh input{accent-color:#ffd35c;background:#141b3a;color:#fff;border:1px solid #3a4268;border-radius:4px;font:700 11px "Segoe UI",sans-serif}
 .hmc{color:#ffd35c}
-.hmg{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:5px;padding:7px;max-height:44vh;overflow:auto}
-.hc{position:relative;border-radius:6px;padding:3px 8px;height:50px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;border:1px solid rgba(255,255,255,.06);cursor:default;min-width:0}
+.hmg{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:5px;padding:7px;max-height:44vh;overflow:auto}
+.hc{position:relative;border-radius:6px;padding:3px 8px;height:64px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;border:1px solid rgba(255,255,255,.06);cursor:default;min-width:0}
 .hc b{padding-right:24px;font:900 14px "Segoe UI",sans-serif;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.7)}
 .hc span{font:800 12px ui-monospace,Consolas,monospace;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.7)}.hc:hover{outline:2px solid #fff}
 .hc.full{border:1px solid #ffe678;box-shadow:0 0 8px rgba(255,230,120,.55),0 0 0 1px rgba(255,230,120,.5) inset}
@@ -63,18 +64,55 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .lad td:first-child{width:62px;opacity:.85;font-size:10.5px}.lad tr.cmp td:first-child{opacity:1}
 .lad td.pc{text-align:right;opacity:.85}
 .mdn{padding:0 12px 10px;color:#a9a3c9;font-size:10.5px}
+
+@keyframes bk{0%,100%{opacity:1}50%{opacity:.15}}
+@keyframes gl{0%,100%{box-shadow:0 0 4px rgba(255,230,120,.4)}50%{box-shadow:0 0 16px 3px rgba(255,230,120,.95)}}
+.hc.pri{animation:gl 1s infinite;border:2px solid #ffe678;z-index:1}
+.hc .cl{font:800 10.5px ui-monospace,Consolas,monospace;white-space:nowrap}
+.hc .cl .p{color:#7dffb8}.hc .cl .l{color:#ffb3c1}.hc.pri .cl{animation:bk 1s infinite}
+.hc.sell .cl .p{color:#7dffb8}
+.cb{margin:0 10px 8px;border:1px solid #3a4268;border-radius:6px;overflow:hidden}
+.cb.pri{border-color:#ffe678;animation:gl 1s infinite}
+.cb .hh{display:flex;gap:10px;align-items:center;padding:5px 10px;background:#1b2150;font:900 13px "Segoe UI",sans-serif}
+.cb .hh .sd{padding:1px 10px;border-radius:4px;color:#fff}.cb .hh .sd.b{background:#0b7a4f}.cb .hh .sd.s{background:#a3122f}.cb .hh .sd.w{background:#4a5273}
+.cb.pri .hh .pr{color:#ffe678;animation:bk 1s infinite}
+.cb table{min-width:0;width:100%;table-layout:auto}.cb td,.cb th{text-align:center;padding:4px 8px;white-space:nowrap}
+.cb th{font:800 10.5px "Segoe UI",sans-serif;color:#ffe9a8;background:#141a3c}
+.cb td.pf{color:#7dffb8;font-weight:900}.cb td.ls{color:#ff9fb2;font-weight:900}
+.cb.pri td.pf,.cb.pri td.ls{animation:bk 1s infinite}
+
+.alb{background:#141b3a;color:#fff;border:1px solid #3a4268;border-radius:5px;font:700 11.5px "Segoe UI",sans-serif;padding:2px 9px;cursor:pointer}
+.alt{max-height:44vh;overflow:auto}
+.alt table{min-width:0;width:100%;table-layout:auto}
+.alt th{background:#1b2150;color:#ffe9a8;font:800 10.5px "Segoe UI",sans-serif;padding:3px 6px;position:sticky;top:0;z-index:1;letter-spacing:.05em}
+.alt td{padding:3px 6px;text-align:left;height:auto;font:600 11.5px ui-monospace,Consolas,"Segoe UI",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.alt tbody tr:nth-child(odd) td{background:#0f1630}.alt tbody tr:nth-child(even) td{background:#1b2547}
+.alt tr.new td{animation:nw 3s ease-out}
+@keyframes nw{0%,30%{background:#6b5200}100%{}}
+.alt td.sy{font-weight:900;color:#fff}.alt td.dt{color:#cfc8ee;font-size:10.5px}
+.at{font:900 10px "Segoe UI",sans-serif;letter-spacing:.05em;border-radius:4px;padding:1px 6px;color:#fff;white-space:nowrap}
+.at.g{background:#0b7a4f}.at.g2{background:#0e9a63}.at.r{background:#a3122f}.at.r2{background:#d1264a}.at.y{background:#b07a00}.at.b{background:#3b5bdb}
+.alcfg{padding:6px 10px;border-bottom:1px solid #2c3458;background:#0e1433;display:flex;flex-wrap:wrap;gap:6px 14px;font:700 11.5px "Segoe UI",sans-serif;color:#e7e1ff}
+.alcfg label{display:flex;gap:4px;align-items:center;white-space:nowrap}.alcfg select,.alcfg input[type=text],.alcfg input[type=number]{background:#141b3a;color:#fff;border:1px solid #3a4268;border-radius:4px;font:700 11.5px "Segoe UI",sans-serif;padding:1px 5px}
+.alcfg input[type=text]{width:90px}.alcfg input[type=number]{width:84px}.alcfg .grp{width:100%;color:#ffe9a8;font-weight:900;letter-spacing:.06em;font-size:10.5px}
+.alcfg .px{background:#1b2150;border-radius:4px;padding:1px 7px}.alcfg .px u{cursor:pointer;text-decoration:none;color:#ff7d93;margin-left:5px}
 .foot{padding:2px 12px 10px;color:var(--mut);font-size:10.5px}
 </style></head><body>
 <div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
 <div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
 <div class="wrap"><table id="tb"></table></div>
-<div class="hm" id="hm"><div class="hmh"><b>HEAT-MAP</b><span id="hmc" class="hmc"></span>
+<div class="split"><div class="hm" id="hm"><div class="hmh"><b>HEAT-MAP</b><span id="hmc" class="hmc"></span>
  <label>Open=Low<input type="checkbox" id="fOL" checked></label><label>Above prev close<input type="checkbox" id="fUP" checked></label>
  <label>Volume ≥<select id="fV"><option>1</option><option selected>1.5</option><option>2</option><option>3</option></select>× avg</label>
  <label title="Compare volume with the share of the session already elapsed, so the filter works from the first hour">Pace-adjusted<input type="checkbox" id="fPC" checked></label>
  <label>Group<select id="fG"><option value="">All 499</option><option value="L">Large 100</option><option value="M">Mid+Small 399</option></select></label>
  <label>Show<select id="fN"><option>36</option><option selected>60</option><option>120</option><option value="9999">All</option></select></label>
- <span id="hms" class="hmc"></span><span class="hmc" style="margin-left:auto;font-weight:600;opacity:.8">click a stock for intraday technicals</span></div><div class="hmg" id="hmg"></div></div>
+ <span id="hms" class="hmc"></span><span class="hmc" style="margin-left:auto;font-weight:600;opacity:.8">▲ profit to target 1 · ▼ loss to stop-loss · blinking ★ = best reward:risk · click a stock for technicals</span></div><div class="hmg" id="hmg"></div></div>
+<div class="hm al" id="al"><div class="hmh"><b>LIVE ALERTS</b><span id="alc" class="hmc"></span>
+ <select id="alF" title="filter"><option value="">All types</option></select>
+ <button id="alS" class="alb">⚙ Triggers</button><span id="als" class="hmc" style="margin-left:auto"></span></div>
+ <div id="alCfg" class="alcfg" style="display:none"></div>
+ <div class="alt" id="alt"></div></div></div>
 <div class="foot" id="note"></div>
 <div class="mo" id="mo"><div class="md"><div class="mdh"><h2 id="mSym">—</h2><span class="cm" id="mCmp"></span><span id="mChg"></span>
  <label style="font:700 12px 'Segoe UI';color:#e7e1ff">Timeframe <select id="mTf"><option value="5">5 min</option><option value="15" selected>15 min</option></select></label><small id="mSrc"></small><button class="x" id="mX">✕ Close</button></div>
@@ -87,6 +125,7 @@ const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGo
 const COLS=[['^NSEI','NIFTY50',2],['^NSEBANK','BANKNIFTY',2],['^BSESN','SENSEX',2],['^INDIAVIX','INDVIX',2,1],['USDINR=X','USDINR',3,1],['BZ=F','BRENT CRUDE',2],['DX-Y.NYB','US $ INDEX',2],['^TNX','US 10Y',3,1]];
 const DEF={}; COLS.forEach(a=>DEF[a[0]]={n:a[1],dp:a[2],inv:!!a[3]});
 const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(v,dp)=>Number(v).toFixed(dp);
 const sg=(v,dp)=>(v>0?'+':v<0?'-':'')+fmt(Math.abs(v),dp);
 const ist=()=>new Date(Date.now()+19800000);
@@ -161,7 +200,7 @@ async function load(){
   paint();
 }
 /* ---------------- HEAT-MAP: Open=Low · above previous close · volume ≥ N× average ---------------- */
-const HM={rows:[],ts:0,src:'',uni:null,at:0,busyUntil:0};
+const HM={rows:[],ts:0,src:'',uni:null,at:0,busyUntil:0,stat:{},statAt:0};
 const frac=()=>{const m=istMin(); return m>=555&&m<=930?Math.max((m-555)/375,0.04):1;};
 const istDay=()=>ist().toISOString().slice(0,10);
 async function heatFeed(){
@@ -173,34 +212,132 @@ async function heatFeed(){
       const all=HM.uni.large.map(x=>[x,'L']).concat(HM.uni.midsmall.map(x=>[x,'M'])), g={}; all.forEach(a=>g[a[0]]=a[1]);
       const parts=[all.slice(0,250),all.slice(250)], rows=[];
       const rs=await Promise.all(parts.map(p=>getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.map(a=>a[0]+'.NS').join(',')),30000)));
-      rs.forEach(j=>{ if(j&&j.ok) Object.keys(j.q).forEach(k=>{const q=j.q[k],sy=k.replace(/\.NS$/,''); if(q&&q[1]) rows.push([sy,g[sy]||'M',q[0],q[1],q[2],q[3],q[4],q[5],q[6],istDay()]);}); });
-      if(rows.length>all.length*0.5){ HM.rows=rows; HM.ts=Date.now(); HM.src='LIVE'; return; }
+      rs.forEach(j=>{ if(j&&j.ok) Object.keys(j.q).forEach(k=>{const q=j.q[k],sy=k.replace(/\.NS$/,''); if(q&&q[1]){ const st=HM.stat[sy]||[]; rows.push([sy,g[sy]||'M',q[0],q[1],q[2],q[3],q[4],q[5],q[6],istDay(),st[0],st[1],Math.max(st[2]||0,q[8]||0)||null,(st[3]&&q[9])?Math.min(st[3],q[9]):(st[3]||q[9]||null)]); }}); });
+      if(rows.length>all.length*0.5){ HM.rows=rows; HM.ts=Date.now(); HM.src='LIVE'; if(Date.now()-HM.statAt>240000) await snapFetch(true); return; }
     }catch(e){ quotaUntil=Math.max(quotaUntil,Date.now()+180000); }
   }
+  await snapFetch(false);
+}
+async function snapFetch(statOnly){
   try{
     let j; const c=new AbortController(), t=setTimeout(()=>c.abort(),12000);
     try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/heat.json?ref=heat',{headers:{Accept:'application/vnd.github.raw'},signal:c.signal}); if(r.ok) j=JSON.parse(await r.text()); }catch(e){} finally{clearTimeout(t)}
     if(!j) j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Math.floor(Date.now()/60000),12000);
-    HM.rows=j.rows; HM.ts=Date.parse(j.ts); HM.src='SNAPSHOT';
-  }catch(e){ if(!HM.rows.length) HM.src='no feed'; }
+    j.rows.forEach(r=>{ HM.stat[r[0]]=[r[10],r[11],r[12],r[13]]; }); HM.statAt=Date.now();
+    if(!statOnly){ HM.rows=j.rows; HM.ts=Date.parse(j.ts); HM.src='SNAPSHOT'; }
+  }catch(e){ if(!statOnly&&!HM.rows.length) HM.src='no feed'; }
 }
+/* ---------------- TRADING CALL: entry = LTP, stop-loss, first/second target, profit vs loss ---------------- */
+const CALLS={}, BARS={}; let barsAt=0, barsTs=0;
+function buildCall(c,lv,e50,side){ // lv = [[name,price],...]
+  const minD=c*0.0025, ab=lv.map(x=>x[1]).filter(v=>v>c+minD).sort((a,b)=>a-b), be=lv.map(x=>x[1]).filter(v=>v<c-minD).sort((a,b)=>b-a);
+  let sl,t1,t2;
+  if(side==='BUY'){ sl=(e50!=null&&e50<c&&(c-e50)/c<=0.03)?e50:(be[0]!=null?be[0]:c*0.99); t1=ab[0]!=null?ab[0]:c*1.01; t2=ab.find(v=>v>t1+minD); if(t2==null) t2=t1+(t1-c); }
+  else { sl=(e50!=null&&e50>c&&(e50-c)/c<=0.03)?e50:(ab[0]!=null?ab[0]:c*1.01); t1=be[0]!=null?be[0]:c*0.99; t2=be.find(v=>v<t1-minD); if(t2==null) t2=t1-(c-t1); }
+  const prof=Math.abs(t1-c), loss=Math.max(Math.abs(c-sl),c*0.0005);
+  return {side,entry:c,sl,t1,t2,prof,loss,pp:prof/c*100,lp:loss/c*100,rr:prof/loss};
+}
+function levelsOf(A){ const L=[]; const add=(n,v)=>{ if(v!=null&&isFinite(v)) L.push([n,v]); };
+  [9,21,10,20].forEach(k=>add('EMA'+k,A.e[k])); add('VWAP',A.vwap); add('Day high',A.dh); add('Day low',A.dl);
+  if(A.std){ ['R3','R2','R1','P','S1','S2','S3'].forEach(k=>add('Std '+k,A.std[k])); } ['R2','R1','P','S1','S2'].forEach(k=>add('Live '+k,A.live[k])); A.fib.forEach(f=>add('Fib '+f[0],f[1])); add('EMA50',A.e[50]); return L; }
+function sideOf(A){ let b=0,t=0; const c=A.cmp; [[9,21],[10,20]].forEach(([x,y])=>{ if(A.e[x]!=null){t++; if(c>A.e[x]&&c>A.e[y]) b++;} }); if(A.e[50]!=null){t++; if(c>A.e[50]) b++;} if(A.hasVol&&A.vwap!=null){t++; if(c>A.vwap) b++;} if(A.std){t++; if(c>A.std.P) b++;} t++; if(c>A.live.P) b++; const r=t?b/t:.5; return {ratio:r,side:r>=0.5?'BUY':'SELL',strong:r>=0.7||r<=0.3}; }
+function rowCall(x,r){ // fallback for stocks without intraday bars: day high/low, live pivot, previous close
+  const [sy,g,p,pc,o,h,l]=r, P=(h+l+p)/3, lv=[['Day high',h],['Day low',l],['Live R1',2*P-l],['Live S1',2*P-h],['Live R2',P+(h-l)],['Live S2',P-(h-l)],['Prev close',pc],['Open',o]];
+  return buildCall(p,lv,null,x.pct>=0?'BUY':'SELL'); }
+async function loadBarsCache(){
+  if(Date.now()-barsAt<240000) return; barsAt=Date.now();
+  try{ let j; const c=new AbortController(), t=setTimeout(()=>c.abort(),15000);
+    try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/bars.json?ref=heat',{headers:{Accept:'application/vnd.github.raw'},signal:c.signal}); if(r.ok) j=JSON.parse(await r.text()); }catch(e){} finally{clearTimeout(t)}
+    if(!j) j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/bars.json?x='+Math.floor(Date.now()/60000),15000);
+    Object.assign(BARS,j.bars); barsTs=Date.parse(j.ts); }catch(e){} }
+function callFor(x,r){ const b=BARS[x.sy]; if(b){ try{ const A=analyse(b,15); if(A){ const sd=sideOf(A); const cl=buildCall(x.p,levelsOf(A),A.e[50],sd.side); cl.src='bars'; cl.strong=sd.strong; return cl; } }catch(e){} } const cl=rowCall(x,r); cl.src='day range'; return cl; }
 function heatPaint(){
   const ol=$('fOL').checked, up=$('fUP').checked, vm=+$('fV').value, pace=$('fPC').checked, grp=$('fG').value, lim=+$('fN').value, today=istDay(), f=frac();
   const out=[]; HM.rows.forEach(r=>{
     const [sy,g,p,pc,o,h,l,v,av,d]=r; if(grp&&g!==grp) return; if(!pc||!o) return;
     const live=(d===today), pct=(p/pc-1)*100, cOL=live&&(o-l)/o*100<=0.05, cUP=live&&p>pc, vx=av?v/av:0, vpace=av?v/(av*f):0, cV=live&&(pace?vpace:vx)>=vm;
     const need=(ol?1:0)+(up?1:0)+1, got=(ol&&cOL?1:0)+(up&&cUP?1:0)+(cV?1:0);
-    out.push({sy,g,p,pct,vx,vpace,cOL,cUP,cV,live,full:live&&got===need,got,need});
+    out.push({sy,g,p,pct,vx,vpace,cOL,cUP,cV,live,full:live&&got===need,got,need,r});
   });
   out.sort((a,b)=>(b.full-a.full)||(b.got-a.got)||(b.pct-a.pct));
+  out.forEach(x=>{ x.cl=callFor(x,x.r); CALLS[x.sy]=x.cl; x.cl.pri=0; });
+  // priority = full-filter stocks with the best profit-to-loss (small stop-loss, big first target), top 3
+  out.filter(x=>x.full&&x.cl.side==='BUY'&&x.cl.pp>=0.5&&x.cl.lp<=3).sort((a,b)=>b.cl.rr-a.cl.rr||a.cl.lp-b.cl.lp).slice(0,3).forEach((x,i)=>{ x.cl.pri=i+1; });
+  out.sort((a,b)=>(b.full-a.full)||((a.cl.pri||9)-(b.cl.pri||9))||(b.got-a.got)||(b.pct-a.pct));
   const nf=out.filter(x=>x.full).length, tot=out.length, shown=out.slice(0,lim);
   const col=(x)=>{const a=Math.min(Math.abs(x.pct)/4,1); return x.pct>=0?`hsl(150 ${55+Math.round(a*30)}% ${19+Math.round(a*13)}%)`:`hsl(350 ${55+Math.round(a*30)}% ${22+Math.round(a*12)}%)`;};
-  $('hmg').innerHTML=shown.map(x=>`<div data-sy="${x.sy}" class="hc ${x.full?'full':x.got?'part':'none'}" style="background:${col(x)}" title="${x.sy}  ${fmt(x.p,2)}  ${sg(x.pct,2)}%  | Open=Low ${x.cOL?'yes':'no'} | above prev close ${x.cUP?'yes':'no'} | vol ${x.vx.toFixed(2)}x avg, pace ${x.vpace.toFixed(2)}x"><i><u class="${x.cOL?'on':''}"></u><u class="${x.cUP?'on':''}"></u><u class="${x.cV?'on':''}"></u></i><b>${x.sy}</b><span>${sg(x.pct,1)}% · ${(pace?x.vpace:x.vx).toFixed(1)}x</span></div>`).join('')||'<div class="nodata" style="padding:8px">no data yet</div>';
+  $('hmg').innerHTML=shown.map(x=>{ const c=x.cl; return `<div data-sy="${x.sy}" class="hc ${x.full?'full':x.got?'part':'none'}${c.pri?' pri':''}" style="background:${col(x)}" title="${x.sy}  ${fmt(x.p,2)}  ${sg(x.pct,2)}%  | Open=Low ${x.cOL?'yes':'no'} | above prev close ${x.cUP?'yes':'no'} | vol ${x.vx.toFixed(2)}x avg, pace ${x.vpace.toFixed(2)}x\n${c.side}: entry ${fmt(c.entry,2)} · SL ${fmt(c.sl,2)} · T1 ${fmt(c.t1,2)} · T2 ${fmt(c.t2,2)} · reward:risk ${c.rr.toFixed(2)} (levels from ${c.src})"><i><u class="${x.cOL?'on':''}"></u><u class="${x.cUP?'on':''}"></u><u class="${x.cV?'on':''}"></u></i><b>${c.pri?'★'+c.pri+' ':''}${x.sy}</b><span>${sg(x.pct,1)}% · ${(pace?x.vpace:x.vx).toFixed(1)}x</span><span class="cl"><span class="p">▲+${c.pp.toFixed(1)}%</span> <span class="l">▼−${c.lp.toFixed(1)}%</span></span></div>`; }).join('')||'<div class="nodata" style="padding:8px">no data yet</div>';
   $('hmc').textContent=`MATCH ${nf} / ${tot}`;
   const m=HM.ts?Math.max(0,Math.round((Date.now()-HM.ts)/60000)):null;
   $('hms').textContent=(HM.src||'loading…')+(m==null?'':' · '+(m<1?'<1':m)+' min old')+(out.length&&!out[0].live?' · last session (market not open yet)':'');
 }
-async function heatLoad(){ await heatFeed(); heatPaint(); }
+
+/* ---------------- LIVE ALERTS & TRIGGERS ---------------- */
+const AT={DH:['DAY HIGH','g'],DL:['DAY LOW','r'],MH:['1M HIGH','g2'],ML:['1M LOW','r2'],WH:['52W HIGH','y'],WL:['52W LOW','r2'],VB:['VOLUME BLAST','b'],PV:['PRICE+VOL BREAKOUT','y'],OL:['OPEN=LOW SETUP','g'],OH:['OPEN=HIGH WEAK','r'],GP:['GAP ±2%','b'],PX:['PRICE TRIGGER','y']};
+const ldj=(k,d)=>{ try{ return JSON.parse(localStorage.getItem(k)||'null')||d; }catch(e){ return d; } }, svj=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+const CFG=Object.assign({types:{},pace:3,minchg:0.5,sound:0,px:[]},ldj('jcal_cfg',{})); Object.keys(AT).forEach(k=>{ if(CFG.types[k]==null) CFG.types[k]=1; });
+const AL={list:[],done:{},st:{},first:true,seen:0,filter:'',day:''};
+function alLoad(){ const d=istDay(); AL.day=d; const j=ldj('jcal_'+d,null); if(j){ AL.list=j.list||[]; AL.done=j.done||{}; AL.seen=AL.list.length; AL.first=false; } }
+function alSave(){ svj('jcal_'+AL.day,{list:AL.list.slice(0,300),done:AL.done}); }
+function beep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; g.gain.value=.08; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.18); }catch(e){} }
+function alRun(){
+  if(istDay()!==AL.day){ AL.list=[]; AL.done={}; AL.st={}; AL.first=true; AL.seen=0; alLoad(); }
+  const f=frac(), today=istDay(), now=Date.now(), cand=[], open=indiaOpen();
+  if(!open&&AL.first===true&&!AL.list.length){ alPaint(); return; }
+  HM.rows.forEach(r=>{
+    const [sy,g,p,pc,o,h,l,v,av,d]=r; if(d!==today||!pc||!o) return;
+    const stt=HM.stat[sy]||[], mh=r[10]??stt[0], ml=r[11]??stt[1], wh=r[12]??stt[2], wl=r[13]??stt[3];
+    const pct=(p/pc-1)*100, pace=av?v/(av*f):0, st=AL.st[sy]||(AL.st[sy]={dh:h,dl:l,t:{},init:true}), mc=CFG.minchg;
+    const once=(ty,k)=>{ const key=sy+'|'+ty+(k||''); if(AL.done[key]) return false; return key; };
+    const push=(ty,note,key,pcx)=>{ if(!CFG.types[ty]) return; cand.push({t:now,sy,ty,p,pct,pace,note,key,adv:Math.abs(pct)}); };
+    if(p>=h*0.9995&&pct>=mc&&(st.init||h>st.dh)&&(!st.t.DH||now-st.t.DH>600000)){ st.t.DH=now; push('DH',`new day high ${fmt(h,2)}`); }
+    if(p<=l*1.0005&&pct<=-mc&&(st.init||l<st.dl)&&(!st.t.DL||now-st.t.DL>600000)){ st.t.DL=now; push('DL',`new day low ${fmt(l,2)}`); }
+    st.dh=Math.max(st.dh,h); st.dl=Math.min(st.dl,l); st.init=false;
+    let k;
+    if(mh&&p>mh&&pct>0&&(k=once('MH'))) push('MH',`above 1-month high ${fmt(mh,2)} (+${((p/mh-1)*100).toFixed(1)}%)`,k);
+    if(ml&&p<ml&&pct<0&&(k=once('ML'))) push('ML',`below 1-month low ${fmt(ml,2)} (${((p/ml-1)*100).toFixed(1)}%)`,k);
+    if(wh&&p>=wh&&(k=once('WH'))) push('WH',`52-week high ${fmt(wh,2)} broken`,k);
+    if(wl&&p<=wl&&(k=once('WL'))) push('WL',`52-week low ${fmt(wl,2)} broken`,k);
+    if(pace>=CFG.pace&&Math.abs(pct)>=mc&&(k=once('VB',pct>=0?'u':'d'))) push('VB',`${pct>=0?'▲':'▼'} vol pace ${pace.toFixed(1)}x avg · day vol ${(v/av).toFixed(2)}x`,k);
+    if(pace>=2&&pct>=1&&((mh&&p>mh)||(wh&&p>=wh)||(p>=h*0.999&&pct>=2))&&(k=once('PV'))) push('PV',`price ▲ ${sg(pct,1)}% with volume pace ${pace.toFixed(1)}x`,k);
+    if((o-l)/o*100<=0.05&&p>pc&&pace>=1.5&&(k=once('OL'))) push('OL',`open=low, above prev close, vol pace ${pace.toFixed(1)}x`,k);
+    if((h-o)/o*100<=0.05&&p<pc&&pace>=1.5&&(k=once('OH'))) push('OH',`open=high, below prev close, vol pace ${pace.toFixed(1)}x`,k);
+    if(Math.abs(o/pc-1)*100>=2&&(k=once('GP'))) push('GP',`opened ${sg((o/pc-1)*100,1)}% vs prev close ${fmt(pc,2)}`,k);
+  });
+  // custom price triggers
+  CFG.px.forEach(t=>{ if(t.done) return; const r=HM.rows.find(x=>x[0]===t.sy); if(!r||r[9]!==today) return; const p=r[2]; if((t.dir==='A'&&p>=t.px)||(t.dir==='B'&&p<=t.px)){ t.done=1; svj('jcal_cfg',CFG); if(CFG.types.PX) cand.push({t:now,sy:t.sy,ty:'PX',p,pct:(p/r[3]-1)*100,pace:r[8]?r[7]/(r[8]*f):0,note:`crossed ${t.dir==='A'?'above':'below'} your level ${fmt(t.px,2)}`,adv:99}); } });
+  let list=cand; if(AL.first&&list.length>60){ list=list.sort((a,b)=>b.adv-a.adv); list.slice(60).forEach(x=>{ if(x.key) AL.done[x.key]=1; }); list=list.slice(0,60); }
+  list.sort((a,b)=>a.adv-b.adv).forEach(x=>{ if(x.key) AL.done[x.key]=1; AL.list.unshift(x); });
+  if(list.length){ if(!AL.first&&CFG.sound) beep(); if(document.hidden) document.title='('+list.length+') Live Trading Screen'; alSave(); }
+  AL.first=false; alPaint();
+}
+function alPaint(){
+  const fl=AL.filter, rows=AL.list.filter(x=>!fl||x.ty===fl), isNew=(i)=>i<AL.list.length-AL.seen&&AL.seen>0&&Date.now()-AL.list[i].t<8000;
+  const counts={}; AL.list.forEach(x=>counts[x.ty]=(counts[x.ty]||0)+1);
+  $('alc').textContent=`${AL.list.length} today`+(Object.keys(counts).length?' · '+Object.keys(counts).map(k=>AT[k][0].split(' ')[0]+' '+counts[k]).join(' · '):'');
+  $('als').textContent=indiaOpen()?'watching '+HM.rows.length+' stocks':'market closed — alerts fire 09:15–15:30 IST';
+  const sel=$('alF'); if(sel.options.length<2) Object.keys(AT).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=AT[k][0]; sel.appendChild(o); });
+  $('alt').innerHTML=rows.length?`<table><thead><tr><th>Time</th><th>Stock</th><th>Alert</th><th>CMP</th><th>Chg%</th><th>Vol×</th><th>Detail</th></tr></thead><tbody>${rows.slice(0,150).map((x,i)=>`<tr data-sy="${esc(x.sy)}" class="${isNew(i)?'new':''}"><td>${new Date(x.t+19800000).toISOString().slice(11,19)}</td><td class="sy">${esc(x.sy)}</td><td><span class="at ${AT[x.ty][1]}">${AT[x.ty][0]}</span></td><td>${fmt(x.p,2)}</td><td class="${x.pct>=0?'up':'dn'}">${sg(x.pct,1)}%</td><td>${x.pace?x.pace.toFixed(1)+'x':'—'}</td><td class="dt">${esc(x.note)}</td></tr>`).join('')}</tbody></table>`:`<div class="nodata" style="padding:10px">${indiaOpen()?'No alert yet — triggers are armed (day high/low, 1-month, 52-week, volume blast, price+volume breakout, open=low/high, gaps, your price levels).':'Alerts are generated while the market is open.'}</div>`;
+  AL.seen=AL.list.length;
+}
+function alCfgPaint(){
+  const T=Object.keys(AT).map(k=>`<label><input type="checkbox" data-t="${k}" ${CFG.types[k]?'checked':''}>${AT[k][0]}</label>`).join('');
+  $('alCfg').innerHTML=`<div class="grp">TRIGGERS ON / OFF</div>${T}<div class="grp">THRESHOLDS</div>
+  <label>Volume pace ≥ <select id="cPace">${[1.5,2,3,5].map(v=>`<option ${v===CFG.pace?'selected':''}>${v}</option>`).join('')}</select>× avg</label>
+  <label>Min move <select id="cMin">${[0.3,0.5,1,2].map(v=>`<option ${v===CFG.minchg?'selected':''}>${v}</option>`).join('')}</select>%</label>
+  <label>Sound <input type="checkbox" id="cSnd" ${CFG.sound?'checked':''}></label>
+  <div class="grp">YOUR PRICE TRIGGERS</div>
+  <label>Stock <input type="text" id="pxS" placeholder="e.g. TATASTEEL"></label><label><select id="pxD"><option value="A">goes above</option><option value="B">falls below</option></select></label><label><input type="number" id="pxP" step="0.05" placeholder="price"></label><button class="alb" id="pxAdd">Add trigger</button>
+  <span id="pxL">${CFG.px.map((t,i)=>`<span class="px">${esc(t.sy)} ${t.dir==='A'?'≥':'≤'} ${t.px}${t.done?' ✓ fired':''}<u data-i="${i}">✕</u></span>`).join(' ')}</span>`;
+}
+$('alS').onclick=()=>{ const c=$('alCfg'); if(c.style.display==='none'){ alCfgPaint(); c.style.display='flex'; } else c.style.display='none'; };
+$('alCfg').addEventListener('change',e=>{ const t=e.target; if(t.dataset.t) CFG.types[t.dataset.t]=t.checked?1:0; else if(t.id==='cPace') CFG.pace=+t.value; else if(t.id==='cMin') CFG.minchg=+t.value; else if(t.id==='cSnd'){ CFG.sound=t.checked?1:0; if(t.checked) beep(); } svj('jcal_cfg',CFG); });
+$('alCfg').addEventListener('click',e=>{ const t=e.target; if(t.id==='pxAdd'){ const sy=$('pxS').value.trim().toUpperCase(), px=+$('pxP').value; if(sy&&px>0){ CFG.px.push({sy,dir:$('pxD').value,px}); svj('jcal_cfg',CFG); alCfgPaint(); alRun(); } } else if(t.tagName==='U'){ CFG.px.splice(+t.dataset.i,1); svj('jcal_cfg',CFG); alCfgPaint(); } });
+$('alF').addEventListener('change',()=>{ AL.filter=$('alF').value; alPaint(); });
+$('alt').addEventListener('click',e=>{ const r=e.target.closest('tr[data-sy]'); if(r) openTech(r.dataset.sy+'.NS',r.dataset.sy,r.dataset.sy,2); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) document.title="Joshi's Corner | Live Trading Screen"; });
+alLoad();
+async function heatLoad(){ await heatFeed(); await loadBarsCache(); heatPaint(); alRun(); }
 ['fOL','fUP','fV','fPC','fG','fN'].forEach(id=>$(id).addEventListener('change',heatPaint));
 /* ---------------- INTRADAY TECHNICALS (click a heat-map stock or an index heading) ---------------- */
 const TQ={sym:null,y:null,bars:null,src:'',ts:0};
@@ -258,7 +395,11 @@ function renderTech(A,dp,name){
   ['R2','R1','P','S1','S2'].forEach(k=>add('LIVE','Live '+k,A.live[k])); A.fib.forEach(f=>add('FIB','Fib '+(f[0]*100).toFixed(1)+'%',f[1]));
   L.push(['CMP','▶ CMP',c]); L.sort((a,b)=>b[2]-a[2]);
   const lad=`<div class="lad"><table><thead><tr><th>Type</th><th>Level</th><th>Price</th><th>vs CMP</th></tr></thead><tbody>${L.map(x=>`<tr class="${x[0]==='CMP'?'cmp':x[2]>c?'rs':'sp'}"><td>${x[0]}</td><td>${x[1]}</td><td>${fx(x[2],d)}</td><td class="pc">${x[0]==='CMP'?'◀ price now':pc(x[2])}</td></tr>`).join('')}</tbody></table></div>`;
-  $('mVer').innerHTML=ver; $('mCond').innerHTML=cond; $('mLad').innerHTML='<div class="cap" style="padding:0 0 3px">LEVEL LADDER — red rows resist above CMP, green rows support below</div>'+lad;
+  const L0=levelsOf(A), sd=sideOf(A), cl=buildCall(c,L0,A.e[50],sd.side), pri=(CALLS[TQ.sym]||{}).pri||0; CALLS[TQ.sym]=Object.assign(cl,{pri});
+  const sdc=sd.strong?(sd.side==='BUY'?'b':'s'):'w', sdt=(sd.strong?'':'WEAK ')+sd.side, e50=A.e[50];
+  const callBox=`<div class="cb${pri?' pri':''}"><div class="hh"><span>TRADING CALL</span><span class="sd ${sdc}">${sdt}</span><span style="font-weight:600;font-size:11px;color:#cfc8ee">${sd.side==='BUY'?'stop-loss below, targets above':'stop-loss above, targets below'} · SL = ${e50!=null&&((sd.side==='BUY'&&e50<c)||(sd.side==='SELL'&&e50>c))&&Math.abs(c/e50-1)<=0.03?'EMA50':'nearest level'}</span>${pri?`<span class="pr">★ PRIORITY ${pri} — best profit-to-loss among filter matches</span>`:''}</div>
+   <table><thead><tr><th>ENTRY (LTP)</th><th>STOP-LOSS</th><th>TARGET 1</th><th>TARGET 2</th><th>PROFIT to T1</th><th>LOSS to SL</th><th>REWARD : RISK</th></tr></thead><tbody><tr><td>${fx(c,d)}</td><td>${fx(cl.sl,d)}</td><td>${fx(cl.t1,d)}</td><td>${fx(cl.t2,d)}</td><td class="pf">${fx(cl.prof,d)} (+${cl.pp.toFixed(2)}%)</td><td class="ls">${fx(cl.loss,d)} (−${cl.lp.toFixed(2)}%)</td><td style="font-weight:900;color:${cl.rr>=2?'#7dffb8':cl.rr>=1?'#ffe678':'#ff9fb2'}">${cl.rr.toFixed(2)} : 1</td></tr></tbody></table></div>`;
+  $('mVer').innerHTML=ver+callBox; $('mCond').innerHTML=cond; $('mLad').innerHTML='<div class="cap" style="padding:0 0 3px">LEVEL LADDER — red rows resist above CMP, green rows support below</div>'+lad;
 }
 async function openTech(y,sy,label,dp){
   TQ.y=y; TQ.sym=sy; TQ.dp=dp; TQ.label=label; $('mo').classList.add('on'); $('mSym').textContent=label; $('mCmp').textContent=''; $('mChg').textContent=''; $('mSrc').textContent='loading intraday bars…'; $('mVer').innerHTML=''; $('mCond').innerHTML=''; $('mLad').innerHTML='';

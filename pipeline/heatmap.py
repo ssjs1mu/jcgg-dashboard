@@ -8,7 +8,7 @@ syms = [(s, 'L') for s in U['large']] + [(s, 'M') for s in U['midsmall']]
 UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36', 'Accept': '*/*'}
 def get(a):
     s, g = a
-    u = 'https://query1.finance.yahoo.com/v8/finance/chart/%s.NS?range=1mo&interval=1d&includePrePost=false' % urllib.parse.quote(s)
+    u = 'https://query1.finance.yahoo.com/v8/finance/chart/%s.NS?range=1y&interval=1d&includePrePost=false' % urllib.parse.quote(s)
     for t in range(3):
         try:
             x = json.load(urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=15))['chart']['result'][0]
@@ -17,7 +17,8 @@ def get(a):
             if len(bars) < 6: return None
             t, o, h, l, c, v = bars[-1]; pc = bars[-2][4]; pv = [b[5] for b in bars[-21:-1] if b[5]]
             p = x.get('meta', {}).get('regularMarketPrice') or c
-            return [s, g, round(p, 2), round(pc, 2), round(o, 2), round(h, 2), round(l, 2), int(v), int(sum(pv) / len(pv)) if pv else 0, datetime.fromtimestamp(t + 19800, timezone.utc).strftime('%Y-%m-%d')]
+            pr = bars[:-1]; mh = max(b[2] for b in pr[-20:]); ml = min(b[3] for b in pr[-20:]); wh = max(b[2] for b in pr[-250:]); wl = min(b[3] for b in pr[-250:])
+            return [s, g, round(p, 2), round(pc, 2), round(o, 2), round(h, 2), round(l, 2), int(v), int(sum(pv) / len(pv)) if pv else 0, datetime.fromtimestamp(t + 19800, timezone.utc).strftime('%Y-%m-%d'), round(mh, 2), round(ml, 2), round(wh, 2), round(wl, 2)]
         except Exception:
             time.sleep(1 + t)
 with ThreadPoolExecutor(14) as ex: rows = [r for r in ex.map(get, syms) if r]
@@ -30,7 +31,7 @@ json.dump({'ts': ts, 'rows': rows}, open(os.environ.get('OUT', 'data/heat.json')
 ist = datetime.now(timezone.utc) + timedelta(hours=5.5); m = ist.hour * 60 + ist.minute
 frac = max((m - 555) / 375, 0.04) if 555 <= m <= 930 else 1.0; today = ist.strftime('%Y-%m-%d')
 def rank(r):
-    s, g, p, pc, o, h, l, v, av, d = r
+    s, g, p, pc, o, h, l, v, av, d = r[:10]
     live = d == today; ol = live and (o - l) / o * 100 <= 0.05; up = live and p > pc; vp = live and av and v / (av * frac) >= 1.5
     return (-(ol + up + bool(vp)), -(p / pc - 1))
 top = [r[0] for r in sorted(rows, key=rank)[:40]]
