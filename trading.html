@@ -29,16 +29,40 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .near{background:rgba(255,235,120,.22);outline:1px solid #ffe678;border-radius:3px;padding:0 2px}
 .nodata{opacity:.6}
 .hm{margin:4px 8px 6px;border:1px solid #2c3458;border-radius:6px;background:#0b1126}
-.hmh{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:4px 8px;background:linear-gradient(180deg,#3a2a78,#241a52);border-radius:6px 6px 0 0;font:700 11px "Segoe UI",sans-serif;color:#e7e1ff}
+.hmh{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:6px 10px;background:linear-gradient(180deg,#3a2a78,#241a52);border-radius:6px 6px 0 0;font:700 12.5px "Segoe UI",sans-serif;color:#e7e1ff}
 .hmh b{color:#ffe9a8;letter-spacing:.1em;font-weight:900}.hmh label{display:flex;gap:4px;align-items:center;white-space:nowrap}.hmh select,.hmh input{accent-color:#ffd35c;background:#141b3a;color:#fff;border:1px solid #3a4268;border-radius:4px;font:700 11px "Segoe UI",sans-serif}
 .hmc{color:#ffd35c}
-.hmg{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:3px;padding:4px;max-height:34vh;overflow:auto}
-.hc{position:relative;border-radius:4px;padding:2px 5px;height:35px;display:flex;flex-direction:column;justify-content:center;border:1px solid rgba(255,255,255,.06);cursor:default;min-width:0}
-.hc b{padding-right:20px;font:800 11px "Segoe UI",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
-.hc span{font:700 10px ui-monospace,Consolas,monospace;color:#e8e8f8;white-space:nowrap}
+.hmg{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:5px;padding:7px;max-height:44vh;overflow:auto}
+.hc{position:relative;border-radius:6px;padding:3px 8px;height:50px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;border:1px solid rgba(255,255,255,.06);cursor:default;min-width:0}
+.hc b{padding-right:24px;font:900 14px "Segoe UI",sans-serif;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+.hc span{font:800 12px ui-monospace,Consolas,monospace;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.7)}.hc:hover{outline:2px solid #fff}
 .hc.full{border:1px solid #ffe678;box-shadow:0 0 8px rgba(255,230,120,.55),0 0 0 1px rgba(255,230,120,.5) inset}
-.hc.part{opacity:.62}.hc.none{opacity:.34}
-.hc i{position:absolute;right:3px;top:3px;display:flex;gap:2px}.hc i u{width:5px;height:5px;border-radius:50%;background:#3a4268;text-decoration:none}.hc i u.on{background:#ffe678}
+.hc.part{opacity:.85}.hc.none{opacity:.55}
+.hc i{position:absolute;right:3px;top:3px;display:flex;gap:2px}.hc i u{width:7px;height:7px;border-radius:50%;background:#3a4268;text-decoration:none}.hc i u.on{background:#ffe678}
+
+.mo{position:fixed;inset:0;background:rgba(2,4,14,.72);z-index:50;display:none;align-items:flex-start;justify-content:center;padding:18px 10px;overflow:auto}
+.mo.on{display:flex}
+.md{width:min(1040px,100%);background:#0b1126;border:1px solid #3a4268;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.mdh{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:linear-gradient(180deg,#3a2a78,#241a52);border-radius:10px 10px 0 0}
+.mdh h2{margin:0;font:900 18px "Segoe UI",sans-serif;color:#ffe9a8;letter-spacing:.05em}
+.mdh .cm{font:900 18px ui-monospace,Consolas,monospace}.mdh small{color:#cfc8ee;font:600 11px "Segoe UI",sans-serif}
+.mdh select,.mdh button{background:#141b3a;color:#fff;border:1px solid #3a4268;border-radius:6px;font:700 12px "Segoe UI",sans-serif;padding:3px 8px;cursor:pointer}
+.mdh .x{margin-left:auto;font-size:15px}
+.mdb{display:grid;grid-template-columns:1.1fr .9fr;gap:10px;padding:10px}
+@media(max-width:820px){.mdb{grid-template-columns:1fr}}
+.mdb table{width:100%;min-width:0;table-layout:auto}
+.mdb th{background:#1b2150;color:#ffe9a8;font:800 11px "Segoe UI",sans-serif;text-align:left;padding:3px 7px;letter-spacing:.06em}
+.mdb td{padding:3px 7px;text-align:left;height:auto;white-space:normal;font:600 12px ui-monospace,Consolas,"Segoe UI",monospace}
+.ck{display:inline-block;min-width:62px;text-align:center;font:900 10.5px "Segoe UI",sans-serif;letter-spacing:.05em;border-radius:4px;padding:1px 6px;color:#fff}
+.ck.g{background:#0b7a4f}.ck.r{background:#a3122f}.ck.n{background:#4a5273}.ck.y{background:#b07a00}
+.ver{margin:0 10px 8px;padding:7px 10px;border-radius:6px;font:800 13px "Segoe UI",sans-serif}
+.ver.g{background:rgba(11,122,79,.35);border:1px solid #1d9a68}.ver.r{background:rgba(163,18,47,.35);border:1px solid #d23a58}.ver.n{background:rgba(74,82,115,.4);border:1px solid #6a7396}
+.lad{max-height:62vh;overflow:auto;border:1px solid #2c3458;border-radius:6px}
+.lad tr.rs td{background:rgba(163,18,47,.17)}.lad tr.sp td{background:rgba(11,122,79,.17)}
+.lad tr.cmp td{background:#e8b923!important;color:#1b1300;font-weight:900}
+.lad td:first-child{width:62px;opacity:.85;font-size:10.5px}.lad tr.cmp td:first-child{opacity:1}
+.lad td.pc{text-align:right;opacity:.85}
+.mdn{padding:0 12px 10px;color:#a9a3c9;font-size:10.5px}
 .foot{padding:2px 12px 10px;color:var(--mut);font-size:10.5px}
 </style></head><body>
 <div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
@@ -50,8 +74,12 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
  <label title="Compare volume with the share of the session already elapsed, so the filter works from the first hour">Pace-adjusted<input type="checkbox" id="fPC" checked></label>
  <label>Group<select id="fG"><option value="">All 499</option><option value="L">Large 100</option><option value="M">Mid+Small 399</option></select></label>
  <label>Show<select id="fN"><option>36</option><option selected>60</option><option>120</option><option value="9999">All</option></select></label>
- <span id="hms" class="hmc"></span></div><div class="hmg" id="hmg"></div></div>
+ <span id="hms" class="hmc"></span><span class="hmc" style="margin-left:auto;font-weight:600;opacity:.8">click a stock for intraday technicals</span></div><div class="hmg" id="hmg"></div></div>
 <div class="foot" id="note"></div>
+<div class="mo" id="mo"><div class="md"><div class="mdh"><h2 id="mSym">—</h2><span class="cm" id="mCmp"></span><span id="mChg"></span>
+ <label style="font:700 12px 'Segoe UI';color:#e7e1ff">Timeframe <select id="mTf"><option value="5">5 min</option><option value="15" selected>15 min</option></select></label><small id="mSrc"></small><button class="x" id="mX">✕ Close</button></div>
+ <div id="mVer"></div><div class="mdb"><div id="mCond"></div><div id="mLad"></div></div>
+ <div class="mdn">EMA = exponential moving average on closing prices of the chosen timeframe (warmed up over the last 5 sessions) · VWAP = volume-weighted average price of today's session · Standard pivot from the previous session · Live pivot and Fibonacci retracement from today's high/low · EMA50 used as the day's stop-loss reference. Delayed Yahoo data · study aid, not advice.</div></div></div>
 <script>
 'use strict';
 /* ---- config ---- */
@@ -103,7 +131,7 @@ function cell(a){
 }
 function paint(){
   const c=COLS.map(cell);
-  $('tb').innerHTML='<thead><tr>'+COLS.map(a=>`<th>${a[1]}</th>`).join('')+'</tr></thead><tbody>'+[0,1,2,3].map(i=>'<tr>'+c.map(x=>x[i]).join('')+'</tr>').join('')+'</tbody>';
+  $('tb').innerHTML='<thead><tr>'+COLS.map(a=>`<th data-y="${a[0]}" style="cursor:pointer" title="click for intraday technicals">${a[1]}</th>`).join('')+'</tr></thead><tbody>'+[0,1,2,3].map(i=>'<tr>'+c.map(x=>x[i]).join('')+'</tr>').join('')+'</tbody>';
   $('src').textContent=srcLabel; ageTick();
 }
 function ageTick(){ const e=$('age'); if(!snapTs){e.textContent='';return;} const m=Math.max(0,Math.round((Date.now()-snapTs)/60000)); e.textContent='data '+(m<1?'<1':m)+' min old'; e.className='age '+(m<=6?'ok':'old'); }
@@ -166,14 +194,88 @@ function heatPaint(){
   });
   out.sort((a,b)=>(b.full-a.full)||(b.got-a.got)||(b.pct-a.pct));
   const nf=out.filter(x=>x.full).length, tot=out.length, shown=out.slice(0,lim);
-  const col=(x)=>{const a=Math.min(Math.abs(x.pct)/4,1); return x.pct>=0?`rgba(18,${110+Math.round(a*80)},${70+Math.round(a*20)},${.45+a*.5})`:`rgba(${150+Math.round(a*70)},25,50,${.45+a*.45})`;};
-  $('hmg').innerHTML=shown.map(x=>`<div class="hc ${x.full?'full':x.got?'part':'none'}" style="background:${col(x)}" title="${x.sy}  ${fmt(x.p,2)}  ${sg(x.pct,2)}%  | Open=Low ${x.cOL?'yes':'no'} | above prev close ${x.cUP?'yes':'no'} | vol ${x.vx.toFixed(2)}x avg, pace ${x.vpace.toFixed(2)}x"><i><u class="${x.cOL?'on':''}"></u><u class="${x.cUP?'on':''}"></u><u class="${x.cV?'on':''}"></u></i><b>${x.sy}</b><span>${sg(x.pct,1)}% · ${(pace?x.vpace:x.vx).toFixed(1)}x</span></div>`).join('')||'<div class="nodata" style="padding:8px">no data yet</div>';
+  const col=(x)=>{const a=Math.min(Math.abs(x.pct)/4,1); return x.pct>=0?`hsl(150 ${55+Math.round(a*30)}% ${19+Math.round(a*13)}%)`:`hsl(350 ${55+Math.round(a*30)}% ${22+Math.round(a*12)}%)`;};
+  $('hmg').innerHTML=shown.map(x=>`<div data-sy="${x.sy}" class="hc ${x.full?'full':x.got?'part':'none'}" style="background:${col(x)}" title="${x.sy}  ${fmt(x.p,2)}  ${sg(x.pct,2)}%  | Open=Low ${x.cOL?'yes':'no'} | above prev close ${x.cUP?'yes':'no'} | vol ${x.vx.toFixed(2)}x avg, pace ${x.vpace.toFixed(2)}x"><i><u class="${x.cOL?'on':''}"></u><u class="${x.cUP?'on':''}"></u><u class="${x.cV?'on':''}"></u></i><b>${x.sy}</b><span>${sg(x.pct,1)}% · ${(pace?x.vpace:x.vx).toFixed(1)}x</span></div>`).join('')||'<div class="nodata" style="padding:8px">no data yet</div>';
   $('hmc').textContent=`MATCH ${nf} / ${tot}`;
   const m=HM.ts?Math.max(0,Math.round((Date.now()-HM.ts)/60000)):null;
   $('hms').textContent=(HM.src||'loading…')+(m==null?'':' · '+(m<1?'<1':m)+' min old')+(out.length&&!out[0].live?' · last session (market not open yet)':'');
 }
 async function heatLoad(){ await heatFeed(); heatPaint(); }
 ['fOL','fUP','fV','fPC','fG','fN'].forEach(id=>$(id).addEventListener('change',heatPaint));
+/* ---------------- INTRADAY TECHNICALS (click a heat-map stock or an index heading) ---------------- */
+const TQ={sym:null,y:null,bars:null,src:'',ts:0};
+const dayOf=t=>new Date((t+19800)*1000).toISOString().slice(0,10);
+const ema=(a,n)=>{ if(a.length<n) return a.map(()=>null); const k=2/(n+1); let e=a.slice(0,n).reduce((x,y)=>x+y,0)/n; const out=Array(n-1).fill(null); out.push(e); for(let i=n;i<a.length;i++){ e=a[i]*k+e*(1-k); out.push(e);} return out; };
+function aggr(b,m){ if(m===5) return b; const f=m/5, o=[]; for(let i=0;i<b.t.length;){ const d=dayOf(b.t[i]); let j=i, n=0, h=-1e18,l=1e18,v=0; while(j<b.t.length&&n<f&&dayOf(b.t[j])===d){ h=Math.max(h,b.h[j]); l=Math.min(l,b.l[j]); v+=b.v[j]; j++; n++; } o.push({t:b.t[i],h,l,c:b.c[j-1],v}); i=j; } return {t:o.map(x=>x.t),h:o.map(x=>x.h),l:o.map(x=>x.l),c:o.map(x=>x.c),v:o.map(x=>x.v)}; }
+function parseYahoo(j){ const x=j.chart.result[0], q=x.indicators.quote[0], t=[],h=[],l=[],c=[],v=[]; x.timestamp.forEach((ts,i)=>{ if(q.close[i]==null||q.high[i]==null||q.low[i]==null) return; t.push(ts);h.push(q.high[i]);l.push(q.low[i]);c.push(q.close[i]);v.push(q.volume[i]||0); }); return {t,h,l,c,v}; }
+async function getBars(y,sy){
+  const yurl='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(y)+'?range=5d&interval=5m&includePrePost=false';
+  if(Date.now()>quotaUntil){ try{ const j=await getJ(BACKEND+'?action=fetch&url='+encodeURIComponent(yurl),20000); return {b:parseYahoo(j),src:'LIVE'}; }catch(e){ quotaUntil=Math.max(quotaUntil,Date.now()+180000); } }
+  try{ let j; const c=new AbortController(), t=setTimeout(()=>c.abort(),15000);
+    try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/bars.json?ref=heat',{headers:{Accept:'application/vnd.github.raw'},signal:c.signal}); if(r.ok) j=JSON.parse(await r.text()); }catch(e){} finally{clearTimeout(t)}
+    if(!j) j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/bars.json?x='+Math.floor(Date.now()/60000),15000);
+    const b=j.bars[sy]; if(b) return {b,src:'SNAPSHOT · '+Math.max(0,Math.round((Date.now()-Date.parse(j.ts))/60000))+' min old'};
+  }catch(e){}
+  return null;
+}
+function analyse(B,tf){
+  const D=aggr(B,tf), n=D.c.length; if(n<30) return null;
+  const days=[...new Set(D.t.map(dayOf))], today=days[days.length-1], prev=days[days.length-2];
+  const idx=(d)=>D.t.map((t,i)=>dayOf(t)===d?i:-1).filter(i=>i>=0), it=idx(today), ip=prev?idx(prev):[];
+  const cmp=D.c[n-1], dh=Math.max(...it.map(i=>D.h[i])), dl=Math.min(...it.map(i=>D.l[i]));
+  const E={9:ema(D.c,9),21:ema(D.c,21),10:ema(D.c,10),20:ema(D.c,20),50:ema(D.c,50)}, e={}; Object.keys(E).forEach(k=>e[k]=E[k][n-1]);
+  let pv=0,vv=0; it.forEach(i=>{pv+=(D.h[i]+D.l[i]+D.c[i])/3*D.v[i]; vv+=D.v[i];}); const vwap=vv?pv/vv:null;
+  let std=null; if(ip.length){ const H=Math.max(...ip.map(i=>D.h[i])), L=Math.min(...ip.map(i=>D.l[i])), C=D.c[ip[ip.length-1]], P=(H+L+C)/3; std={P,R1:2*P-L,S1:2*P-H,R2:P+(H-L),S2:P-(H-L),R3:H+2*(P-L),S3:L-2*(H-P),H,L,C}; }
+  const LP=(dh+dl+cmp)/3, live={P:LP,R1:2*LP-dl,S1:2*LP-dh,R2:LP+(dh-dl),S2:LP-(dh-dl)};
+  const rg=dh-dl, fib=[.236,.382,.5,.618,.786].map(r=>[r,dh-r*rg]);
+  const k=Math.min(4,Math.floor(it.length/2)), vNow=it.slice(-k).reduce((a,i)=>a+D.v[i],0), vPrev=it.slice(-2*k,-k).reduce((a,i)=>a+D.v[i],0);
+  const vchg=k>=2&&vPrev>0?(vNow/vPrev-1)*100:null;
+  const yv=ip.slice(0,it.length).reduce((a,i)=>a+D.v[i],0), vsY=yv>0?vv/yv:null;
+  return {cmp,dh,dl,e,vwap,std,live,fib,vchg,vsY,k,tf,today,last:D.t[n-1],hasVol:vv>0,prevDay:prev};
+}
+const fx=(v,d)=>v==null?'—':Number(v).toFixed(d);
+function renderTech(A,dp,name){
+  const c=A.cmp, d=dp, pc=(v)=>`${v>=c?'+':'-'}${(Math.abs(v/c-1)*100).toFixed(2)}%`;
+  const ck=(cls,t)=>`<span class="ck ${cls}">${t}</span>`;
+  const pos=(lv)=>c>lv?['g','ABOVE']:['r','BELOW'];
+  const rows=[]; let bull=0,tot=0;
+  const pair=(a,b,lab)=>{ const ea=A.e[a], eb=A.e[b]; if(ea==null||eb==null) return; tot++; const ab=c>ea&&c>eb, be=c<ea&&c<eb; if(ab) bull++; rows.push([lab,`EMA${a} ${fx(ea,d)} · EMA${b} ${fx(eb,d)}`,ab?ck('g','ABOVE BOTH'):be?ck('r','BELOW BOTH'):ck('y','BETWEEN'), `${ea>eb?'EMA'+a+' > EMA'+b+' (bullish alignment)':'EMA'+a+' < EMA'+b+' (bearish alignment)'}`]); };
+  pair(9,21,'Price vs EMA 9/21'); pair(10,20,'Price vs EMA 10/20');
+  if(A.e[50]!=null){ tot++; const up=c>A.e[50]; if(up) bull++; const risk=Math.abs(c/A.e[50]-1)*100; rows.push(['EMA 50 = day stop-loss',`EMA50 ${fx(A.e[50],d)}`,up?ck('g','ABOVE'):ck('r','BELOW'),up?`Long stop-loss ${fx(A.e[50],d)} · risk ${risk.toFixed(2)}% from CMP`:`CMP is below EMA50 — it is overhead resistance ${fx(A.e[50],d)} (${risk.toFixed(2)}% away); short-side stop above it`]); }
+  if(A.hasVol&&A.vwap!=null){ tot++; const up=c>A.vwap; if(up) bull++; rows.push(['Avg trading price (VWAP)',`VWAP ${fx(A.vwap,d)}`,up?ck('g','ABOVE'):ck('r','BELOW'),`CMP ${((c/A.vwap-1)*100>=0?'+':'')}${((c/A.vwap-1)*100).toFixed(2)}% vs VWAP — ${up?'buyers in control':'sellers in control'}`]); }
+  if(A.std){ tot++; const up=c>A.std.P; if(up) bull++; rows.push(['Standard pivot (prev day)',`P ${fx(A.std.P,d)}`,up?ck('g','ABOVE P'):ck('r','BELOW P'),`prev H ${fx(A.std.H,d)} · L ${fx(A.std.L,d)} · C ${fx(A.std.C,d)}`]); }
+  { tot++; const up=c>A.live.P; if(up) bull++; rows.push(['Live pivot (today)',`P ${fx(A.live.P,d)}`,up?ck('g','ABOVE P'):ck('r','BELOW P'),`day H ${fx(A.dh,d)} · L ${fx(A.dl,d)}`]); }
+  if(A.vchg!=null){ const inc=A.vchg>0; rows.push(['Volume trend',`last ${A.k} bars vs prior ${A.k}: ${A.vchg>=0?'+':''}${Math.round(A.vchg)}%`,inc?ck('g','INCREASING'):ck('r','DECREASING'),A.vsY?`today vs yesterday at same time: ${A.vsY.toFixed(2)}x`:'']); }
+  const fh=A.fib.find(f=>c>=f[1]); const fz=A.fib.filter(f=>f[1]>c).pop();
+  rows.push(['Fibonacci (day range)',fz&&fh?`between ${(fh[0]*100).toFixed(1)}% ${fx(fh[1],d)} and ${(fz[0]*100).toFixed(1)}% ${fx(fz[1],d)}`:(c>=A.fib[0][1]?`above 23.6% ${fx(A.fib[0][1],d)}`:`below 78.6% ${fx(A.fib[4][1],d)}`),ck('n','ZONE'),`retracement from day high ${fx(A.dh,d)} to low ${fx(A.dl,d)}`]);
+  const ratio=tot?bull/tot:0.5, vcls=ratio>=0.7?'g':ratio<=0.3?'r':'n', vt=ratio>=0.7?'BULLISH':ratio<=0.3?'BEARISH':'MIXED / SIDEWAYS';
+  const ver=`<div class="ver ${vcls}">${vt} — ${bull} of ${tot} conditions bullish · CMP ${fx(c,d)} · stop-loss reference EMA50 ${fx(A.e[50],d)}</div>`;
+  const cond=`<table><thead><tr><th>Condition</th><th>Levels</th><th>Status</th><th>Justification</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody></table>`;
+  // ladder
+  const L=[]; const add=(g,n,v)=>{ if(v!=null&&isFinite(v)) L.push([g,n,v]); };
+  [9,21,10,20,50].forEach(k=>add('EMA','EMA '+k,A.e[k])); add('VWAP','VWAP',A.vwap); add('DAY','Day high',A.dh); add('DAY','Day low',A.dl);
+  if(A.std){ ['R3','R2','R1','P','S1','S2','S3'].forEach(k=>add('STD','Std '+k,A.std[k])); add('PREV','Prev high',A.std.H); add('PREV','Prev low',A.std.L); }
+  ['R2','R1','P','S1','S2'].forEach(k=>add('LIVE','Live '+k,A.live[k])); A.fib.forEach(f=>add('FIB','Fib '+(f[0]*100).toFixed(1)+'%',f[1]));
+  L.push(['CMP','▶ CMP',c]); L.sort((a,b)=>b[2]-a[2]);
+  const lad=`<div class="lad"><table><thead><tr><th>Type</th><th>Level</th><th>Price</th><th>vs CMP</th></tr></thead><tbody>${L.map(x=>`<tr class="${x[0]==='CMP'?'cmp':x[2]>c?'rs':'sp'}"><td>${x[0]}</td><td>${x[1]}</td><td>${fx(x[2],d)}</td><td class="pc">${x[0]==='CMP'?'◀ price now':pc(x[2])}</td></tr>`).join('')}</tbody></table></div>`;
+  $('mVer').innerHTML=ver; $('mCond').innerHTML=cond; $('mLad').innerHTML='<div class="cap" style="padding:0 0 3px">LEVEL LADDER — red rows resist above CMP, green rows support below</div>'+lad;
+}
+async function openTech(y,sy,label,dp){
+  TQ.y=y; TQ.sym=sy; TQ.dp=dp; TQ.label=label; $('mo').classList.add('on'); $('mSym').textContent=label; $('mCmp').textContent=''; $('mChg').textContent=''; $('mSrc').textContent='loading intraday bars…'; $('mVer').innerHTML=''; $('mCond').innerHTML=''; $('mLad').innerHTML='';
+  const r=await getBars(y,sy); if(TQ.sym!==sy) return;
+  if(!r){ $('mSrc').textContent='intraday bars not available right now (live feed busy, no snapshot for this symbol) — try again shortly'; return; }
+  TQ.bars=r.b; $('mSrc').textContent=r.src; techPaint();
+}
+function techPaint(){
+  const A=analyse(TQ.bars,+$('mTf').value); if(!A){ $('mSrc').textContent+=' · not enough bars'; return; }
+  $('mCmp').textContent=fx(A.cmp,TQ.dp); const hm=HM.rows.find(r=>r[0]===TQ.sym); const q=Q[TQ.y];
+  const pcl=hm?hm[3]:(q&&q.pc); if(pcl){ const ch=(A.cmp/pcl-1)*100; $('mChg').innerHTML=`<span class="${ch>=0?'up':'dn'}" style="font:800 14px ui-monospace,Consolas,monospace">${sg(ch,2)}%</span>`; }
+  renderTech(A,TQ.dp,TQ.label);
+}
+$('mX').onclick=()=>{$('mo').classList.remove('on');TQ.sym=null}; $('mo').addEventListener('click',e=>{if(e.target.id==='mo'){$('mo').classList.remove('on');TQ.sym=null}}); document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('mo').classList.remove('on');TQ.sym=null}});
+$('mTf').addEventListener('change',()=>{ if(TQ.bars) techPaint(); });
+$('hmg').addEventListener('click',e=>{ const c=e.target.closest('.hc'); if(c) openTech(c.dataset.sy+'.NS',c.dataset.sy,c.dataset.sy,2); });
+$('tb').addEventListener('click',e=>{ const th=e.target.closest('th[data-y]'); if(th){ const d=DEF[th.dataset.y]; openTech(th.dataset.y,th.dataset.y,d.n,d.dp); } });
 function clock(){ const d=ist(); $('clk').textContent=d.toISOString().slice(11,19); const o=indiaOpen(); $('dot').className='dot'+(o?' live':''); $('mk').textContent=o?'NSE LIVE':'NSE CLOSED'; }
 $('note').innerHTML='Row 1 = last price + trend · Row 2 = points (% change) · Rows 3-4 = LIVE floating pivots from the day high, day low and last price (P=(H+L+C)/3; highlighted when price is within 0.35% of a level; narrow early in the session). VIX, USDINR and yields: a rise is pressure (red). Delayed Yahoo quotes · not advice.';
 clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load(); heatLoad();

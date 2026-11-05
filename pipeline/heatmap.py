@@ -23,4 +23,27 @@ def get(a):
 with ThreadPoolExecutor(14) as ex: rows = [r for r in ex.map(get, syms) if r]
 print('symbols', len(syms), 'got', len(rows))
 if len(rows) < len(syms) * 0.6: sys.exit('too few rows - keeping the previous heat-map')
-json.dump({'ts': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'), 'rows': rows}, open(os.environ.get('OUT', 'data/heat.json'), 'w'), separators=(',', ':'))
+ts = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+json.dump({'ts': ts, 'rows': rows}, open(os.environ.get('OUT', 'data/heat.json'), 'w'), separators=(',', ':'))
+
+# ---- intraday bars (5d x 5m) for the 40 best-ranked stocks: the technicals panel falls back to these when the live feed is busy
+ist = datetime.now(timezone.utc) + timedelta(hours=5.5); m = ist.hour * 60 + ist.minute
+frac = max((m - 555) / 375, 0.04) if 555 <= m <= 930 else 1.0; today = ist.strftime('%Y-%m-%d')
+def rank(r):
+    s, g, p, pc, o, h, l, v, av, d = r
+    live = d == today; ol = live and (o - l) / o * 100 <= 0.05; up = live and p > pc; vp = live and av and v / (av * frac) >= 1.5
+    return (-(ol + up + bool(vp)), -(p / pc - 1))
+top = [r[0] for r in sorted(rows, key=rank)[:40]]
+def bars(sy):
+    u = 'https://query1.finance.yahoo.com/v8/finance/chart/%s.NS?range=5d&interval=5m&includePrePost=false' % urllib.parse.quote(sy)
+    for t in range(3):
+        try:
+            x = json.load(urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=15))['chart']['result'][0]; q = x['indicators']['quote'][0]
+            ok = [i for i in range(len(x['timestamp'])) if None not in (q['high'][i], q['low'][i], q['close'][i])]
+            return sy, {'t': [x['timestamp'][i] for i in ok], 'h': [round(q['high'][i], 2) for i in ok], 'l': [round(q['low'][i], 2) for i in ok], 'c': [round(q['close'][i], 2) for i in ok], 'v': [int(q['volume'][i] or 0) for i in ok]}
+        except Exception:
+            time.sleep(1 + t)
+    return sy, None
+with ThreadPoolExecutor(8) as ex: B = {k: v for k, v in ex.map(bars, top) if v}
+print('bars', len(B), 'of', len(top))
+json.dump({'ts': ts, 'bars': B}, open(os.environ.get('OUT_BARS', 'data/bars.json'), 'w'), separators=(',', ':'))
