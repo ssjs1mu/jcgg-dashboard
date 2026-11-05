@@ -334,7 +334,7 @@ function alRun(){
     const stt=HM.stat[sy]||[], mh=r[10]??stt[0], ml=r[11]??stt[1], wh=r[12]??stt[2], wl=r[13]??stt[3];
     const pct=(p/pc-1)*100, pace=av?v/(av*f):0, st=AL.st[sy]||(AL.st[sy]={dh:h,dl:l,t:{},init:true}), mc=CFG.minchg;
     const once=(ty,k)=>{ const key=sy+'|'+ty+(k||''); if(AL.done[key]) return false; return key; };
-    const push=(ty,note,key,pcx)=>{ if(!CFG.types[ty]) return; cand.push({t:now,sy,ty,p,pct,pace,note,key,adv:Math.abs(pct)}); };
+    const push=(ty,note,key,pcx)=>{ if(!CFG.types[ty]) return; cand.push({t:(ty==='BF'&&!open)?Date.parse(today+'T15:30:00+05:30'):now,sy,ty,p,pct,pace,note,key,adv:Math.abs(pct)}); };
     if(p>=h*0.9995&&pct>=mc&&(st.init||h>st.dh)&&(!st.t.DH||now-st.t.DH>600000)){ st.t.DH=now; push('DH',`new day high ${fmt(h,2)}`); }
     if(p<=l*1.0005&&pct<=-mc&&(st.init||l<st.dl)&&(!st.t.DL||now-st.t.DL>600000)){ st.t.DL=now; push('DL',`new day low ${fmt(l,2)}`); }
     st.dh=Math.max(st.dh,h); st.dl=Math.min(st.dl,l); st.init=false;
