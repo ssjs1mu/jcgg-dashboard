@@ -11,6 +11,7 @@ h = get('https://www.youtube.com/channel/UCkXopQ3ubd-rnXnStZqCl2w/streams')
 pos = [m.start() for m in re.finditer(r'"lockupViewModel":\{', h)] + [len(h)]
 cands = []
 for i in range(len(pos) - 1):
+    seg0 = h[pos[i]:min(pos[i + 1], pos[i] + 9000)]; print('LK', re.findall(r'[\d.,KkMm]+ watching|[\d.,KkMm]+ views|Streamed [^"]{0,25}|Started [^"]{0,25}|Scheduled [^"]{0,25}', seg0)[:3], (re.search(r'i\.ytimg\.com/vi/([\w-]{11})/', seg0) or [0,''])[1])
     seg = h[pos[i]:min(pos[i + 1], pos[i] + 9000)]; cid = re.search(r'i\.ytimg\.com/vi/([\w-]{11})/', seg)
     if cid and 'THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE' in seg[:3000]:
         t = re.search(r'"title":\{"content":"((?:[^"\\]|\\.)*)"', seg); cands.append((cid.group(1), (t.group(1) if t else '')))
@@ -18,6 +19,7 @@ PROG = re.compile(r'zee business (24x7 )?live|share market live|first trade|mark
 ok = []
 for vid, title in cands[:12]:
     w = get('https://www.youtube.com/watch?v=' + vid)
+    print('DBG2', vid, 'lbd' , 'liveBroadcastDetails' in w, 'watching' in w, re.findall(r'[\d.,KkMm]+ watching now|Started streaming [^"]{0,30}|Streamed live [^"]{0,30}|Scheduled for [^"]{0,30}', w)[:3])
     print('DBG', vid, len(w), re.findall(r'"(?:isLiveNow|isLive|isUpcoming|startTimestamp|endTimestamp|isLiveContent)":(?:"[^"]*"|\w+)', w)[:8])
     live = re.search(r'"isLiveNow":true', w); st = re.search(r'"startTimestamp":"([^"]+)"', w); en = re.search(r'"endTimestamp":"', w)
     if not live or en or not st: print('skip', vid, 'live' if live else 'not live', title[:50]); continue
