@@ -28,3 +28,4 @@
 | 2026-11-05 | **[Claude]** Big Fish found after the close is stamped 15:30 instead of the page-open time. |
 | 2026-11-05 | **[Claude]** Bear side: heat-map bear tiles (Open=High, below prev close, volume multiple) and BIG FISH SHORT trigger (rel vol <1.2, range >=1.5%, <= -1.5% from open, RSI14 <40, new 1M low) in heat-map and Live alerts, separate colours; pipeline writes 'bs' map. |
 | 2026-11-05 | **[Claude]** Heat-map always shows bear and short-fish tiles even beyond the Show limit. |
+| 2026-11-05 | **[Claude]** trading.html: Market barometer and Early reversal tiles stretch to fill their boxes; heat-map ranks bull and bear tiles together by (day range + move) x volume pace so bear tiles are no longer forced to the bottom. |
