@@ -5,8 +5,8 @@
 :root{--bg:#0e1620;--ink:#e6ecf3;--mut:#93a1b5}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:13px "Segoe UI",system-ui,sans-serif}
-.top{display:flex;align-items:center;gap:12px;padding:5px 10px;flex-wrap:wrap;border-bottom:1px solid #2a3150}
-.brand{font-family:'Brush Script MT','Segoe Script',cursive;font-size:24px;color:#d2c08a;text-shadow:0 0 8px rgba(200,180,120,.2)}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:3px 10px;border-bottom:1px solid #2a3150;background:linear-gradient(180deg,#16212d,#0e1620)}.top .tl{display:flex;gap:10px;align-items:center}.top .clock{margin-left:0;justify-self:end}@media(max-width:900px){.top{grid-template-columns:1fr;justify-items:center}.top .clock{justify-self:center}}
+.brand{font-family:'Brush Script MT','Segoe Script',cursive;font-size:36px;line-height:1.1;color:#d2c08a;text-shadow:0 0 10px rgba(200,180,120,.25);text-align:center;letter-spacing:.02em}
 .ttl{font-weight:800;letter-spacing:.12em;color:#dde4ee;font-size:11px}
 .top a{color:#a2b0c4;font-size:11px;text-decoration:none;border:1px solid #3a4268;border-radius:99px;padding:2px 9px}
 .clock{margin-left:auto;font:700 12px ui-monospace,Consolas,monospace;color:var(--mut);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -110,8 +110,9 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .bgt{width:100%;border-collapse:collapse}.bgt td{padding:2px 8px;font:700 11.5px ui-monospace,Consolas,monospace;border-bottom:1px solid #1d2a38}.bgt td:last-child{text-align:right}
 .chp{display:flex;flex-wrap:wrap;gap:3px 10px;padding:2px 8px;font:700 11px ui-monospace,Consolas,monospace;color:#b9c4d4}.chp b{font-weight:900}.gau{height:7px;border-radius:5px;margin:4px 8px 2px;background:linear-gradient(90deg,#8c3f4d,#a98a4a 50%,#3f7d66);position:relative}.gau i{position:absolute;top:-3px;width:3px;height:15px;background:#fff;border-radius:2px}
 .rv{display:block;padding:3px 8px;border-bottom:1px solid #1d2a38;font:600 11.5px "Segoe UI",sans-serif;color:#dde4ee;cursor:default}.rv b{font-weight:900}.rv.u b{color:#8fc7ad}.rv.d b{color:#d39098}.rv .tm{color:#d2c08a;font:700 10.5px ui-monospace,Consolas,monospace;margin-right:6px}.rv .tg{font:900 9.5px "Segoe UI";border-radius:3px;padding:0 4px;margin-left:4px;color:#fff;background:#4a5a70}.rv .tg.cf{background:#3f7d66}
+.mx{display:flex;flex-wrap:wrap;gap:3px 8px;padding:3px 8px;border-bottom:1px solid #1d2a38}.mx span{display:inline-flex;align-items:center;gap:4px;font:700 10.5px ui-monospace,Consolas,monospace;color:#b9c4d4}.mx svg{width:38px;height:13px}.mx b{font-weight:900}
 </style></head><body>
-<div class="top"><div class="brand">🌳 Joshi's Corner</div><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a>
+<div class="top"><div class="tl"><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a></div><div class="brand">🌳 Joshi's Corner</div>
 <div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
 <div class="dockrow"><div class="lcol"><div class="wrap"><table id="tb"></table></div><div class="mini"><div class="hm nwg bx" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div><div class="hm nwg bx" id="bgB"><div class="hmh"><b>MARKET BAROMETER</b><span id="bgc" class="hmc"></span></div><div class="nw" id="bgL">loading…</div></div><div class="hm nwg bx" id="rvB"><div class="hmh"><b>EARLY REVERSAL ALERTS</b><span id="rvc" class="hmc"></span></div><div class="nw" id="rvL">scanning…</div></div></div></div><div class="tvd" id="tvB"><div class="tvh"><b>ZEE BUSINESS LIVE</b><span style="flex:1"></span><button id="tvR" title="Reload the TV only (page is not reloaded)">↻ TV</button><button id="tvM" title="unmute / mute">🔊</button><button id="tvP" title="Pop out - stays on top of other windows (Chrome/Edge)">⧉ Pop-out</button><button id="tvH" title="hide / show">▾</button></div>
 <div class="tvw" id="tvW"><iframe id="tvF" src="about:blank" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
@@ -200,7 +201,7 @@ async function snap(){ // newest snapshot: GitHub API (no CDN lag) -> raw branch
 }
 let quotaUntil=0, lvAt=0;
 async function load(){
-  const syms=COLS.map(a=>a[0]);
+  const syms=COLS.map(a=>a[0]).concat(['YM=F']);
   if(Date.now()>quotaUntil){
     try{
       const j=await getJ(BACKEND+'?action=dash&symbols='+encodeURIComponent(syms.join(',')),12000);
@@ -492,6 +493,15 @@ function baro(){
   <div class="chp"><span>Adv/Dec <b class="up">${adv}</b>/<b class="dn">${dec}</b></span><span>Avg <b class="${avg>=0?'up':'dn'}">${avg>=0?'+':''}${avg.toFixed(2)}%</b></span><span>Day H/L <b class="up">${nh}</b>/<b class="dn">${nl}</b></span><span>1M H/L <b class="up">${h1}</b>/<b class="dn">${l1}</b></span><span>52W H/L <b class="up">${h52}</b>/<b class="dn">${l52}</b></span></div>
   <div style="padding:3px 8px;font:600 9.5px 'Segoe UI';color:#93a1b5">Own score: ${comp.map(c=>c[0]).join(' · ')} (not an official index)</div>`;
 }
+
+/* ---- cross-asset sudden-move watch: VIX, USDINR, Brent, US$ index, US 10Y, Dow futures (my default limits, editable in MX) ---- */
+const MX=[['^INDIAVIX','VIX',3,1,2],['USDINR=X','USDINR',0.15,1,3],['BZ=F','BRENT',1.2,1,2],['DX-Y.NYB','US$IDX',0.25,1,3],['^TNX','US10Y',2,1,3],['YM=F','DOW',0.4,0,2]]; // [symbol,label,30-min move limit %,rise-is-bad(1)/fall-is-bad(0),dp]
+function spark(sp,good){ const a=sp.slice(-14); if(a.length<3) return ''; const lo=Math.min(...a), hi=Math.max(...a), r=hi-lo||1, pts=a.map((v,i)=>(i/(a.length-1)*36+1).toFixed(1)+','+(12-(v-lo)/r*11).toFixed(1)).join(' '); return `<svg viewBox="0 0 38 13"><polyline points="${pts}" fill="none" stroke="${good===null?'#93a1b5':good?'#8fc7ad':'#d39098'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`; }
+function macroWatch(add){
+  const k=srcLabel==='LIVE'?2:6, out=[]; let bad=0, good=0;
+  MX.forEach(([s,n,lim,riseBad,dp])=>{ const r=Q[s]; if(!r) return; const sp=(r.sp||[]).filter(v=>v!=null); if(sp.length<=k) return; const prev=sp[sp.length-1-k], now=r.p!=null?r.p:sp[sp.length-1]; if(!prev) return; const mv=(now/prev-1)*100, hit=Math.abs(mv)>=lim, adverse=riseBad?mv>0:mv<0; let state=null; if(hit){ state=adverse?'bad':'good'; if(adverse) bad++; else good++; } out.push({n,mv,state,sp}); if(hit&&add) add('MX'+s+(adverse?'B':'G'),adverse?'d':'u',`<b>${n} ${mv>0?'▲':'▼'} sudden ${Math.abs(mv).toFixed(2)}% in ~30 min</b> · ${adverse?'pressure on Indian equities':'supportive for Indian equities'}`,adverse?'RISK-OFF':'RISK-ON'); });
+  return {out,bad,good};
+}
 function reversal(){
   const today=istDay(), t0=hm5();
   const add=(k,cls,txt,tag)=>{ if(!RV[k]||RV[k].tag!==tag){ RV[k]={t:t0,cls,txt,tag,ts:Date.now()}; } else { RV[k].txt=txt; RV[k].cls=cls; } };
@@ -500,12 +510,13 @@ function reversal(){
     const sl=(a,b)=>(a/b-1)*100, s4=sl(sp[n-1],sp[n-5]), pre=sl(sp[Math.max(iL,0)],sp[Math.max(iL-8,0)]), pre2=sl(sp[Math.max(iH,0)],sp[Math.max(iH-8,0)]), nm=DEF[s].n, up=(p-lo)/p*100, dn=(hi-p)/p*100;
     if(up>=0.25&&iL>=n-20&&s4>0&&pre<0){ const k=s+'U'; live.add(k+(up>=0.6?'C':'E')); add(k,'u',`<b>${nm} ▲ turning UP</b> · ${up.toFixed(2)}% off day low ${fx(lo,DEF[s].dp)} · last 4 bars rising`,up>=0.6?'CONFIRMED':'EARLY'); }
     if(dn>=0.25&&iH>=n-20&&s4<0&&pre2>0){ const k=s+'D'; live.add(k+(dn>=0.6?'C':'E')); add(k,'d',`<b>${nm} ▼ turning DOWN</b> · ${dn.toFixed(2)}% off day high ${fx(hi,DEF[s].dp)} · last 4 bars falling`,dn>=0.6?'CONFIRMED':'EARLY'); } });
+  const M=macroWatch(add); Object.keys(RV).forEach(k=>{ if(k.startsWith('MX')) live.add(k+'E'); });
   // stocks with intraday bars (top 40 by filter rank): EMA9 / EMA21 cross on 15 min within the last 3 bars, with volume rising
   Object.keys(BARS).forEach(sy=>{ try{ const D=aggr(BARS[sy],15), n=D.c.length; if(n<30||dayOf(D.t[n-1])!==today) return; const a=ema(D.c,9), b=ema(D.c,21), d0=a[n-1]-b[n-1], d3=a[n-4]-b[n-4]; if(a[n-4]==null||b[n-4]==null||d0*d3>=0) return; const vN=D.v[n-1]+D.v[n-2], vP=D.v[n-3]+D.v[n-4]; if(!(vN>vP)) return; const bull=d0>0, k=sy+(bull?'U':'D'); live.add(k+'E'); add(k,bull?'u':'d',`<b>${sy} ${bull?'▲ EMA9 crossed above EMA21':'▼ EMA9 crossed below EMA21'}</b> (15 min) · volume rising`,'EARLY'); }catch(e){} });
   Object.keys(RV).forEach(k=>{ const alive=[...live].some(x=>x.startsWith(k)); if(!alive&&Date.now()-RV[k].ts>45*60000) delete RV[k]; });
-  const list=Object.keys(RV).map(k=>RV[k]).sort((a,b)=>b.ts-a.ts).slice(0,40);
+  const list=Object.keys(RV).map(k=>RV[k]).sort((a,b)=>b.ts-a.ts).slice(0,40); const strip='<div class="mx">'+M.out.map(x=>`<span>${x.n} ${spark(x.sp,x.state===null?null:x.state==='good')}<b class="${x.state==='bad'?'dn':x.state==='good'?'up':'fl'}">${x.mv>=0?'+':''}${x.mv.toFixed(2)}%</b></span>`).join('')+`<span style="margin-left:auto">30-min move · <b class="${M.bad>M.good?'dn':M.good>M.bad?'up':'fl'}">${M.bad} adverse / ${M.good} supportive</b></span></div>`;
   $('rvc').textContent=list.length+' today';
-  $('rvL').innerHTML=list.map(x=>`<span class="rv ${x.cls}"><span class="tm">${x.t}</span>${x.txt}<span class="tg ${x.tag==='CONFIRMED'?'cf':''}">${x.tag}</span></span>`).join('')||'<div style="padding:8px;color:#93a1b5">No reversal setups right now. Watches Nifty, Bank Nifty, Sensex (bounce / pullback of 0.25%+ from the day extreme with direction change) and 15-min EMA9/21 crosses with rising volume on the top-40 stocks.</div>';
+  $('rvL').innerHTML=strip+(list.map(x=>`<span class="rv ${x.cls}"><span class="tm">${x.t}</span>${x.txt}<span class="tg ${x.tag==='CONFIRMED'||x.tag==='RISK-ON'?'cf':''}">${x.tag}</span></span>`).join('')||'<div style="padding:8px;color:#93a1b5">No reversal setups right now. Watches index turns, 15-min EMA9/21 crosses on the top-40 stocks, and sudden 30-min moves in VIX, USDINR, Brent, US$ index, US 10Y and Dow.</div>');
 }
 setTimeout(miniRun,4000); setInterval(miniRun,15000);
 clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load(); heatLoad();
