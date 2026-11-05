@@ -73,6 +73,7 @@ for (kind, name, u), raw in res:
             if not (re.search(KEY[name], blob, re.I) or re.search(KEY[name], it['src'], re.I)): continue
             a = action(it['title'])
             if re.search(r'\bQ[1-4]\b.*(review|results)|review:', it['title'], re.I) and not analyst(it['title']): continue
+            if re.search(r'sell-?offs?|plans? to sell|\bIPO\b|dividend|record date|\bdeal\b|inks|acquir|stake sale|OFS|should investors', it['title'], re.I) and not analyst(it['title']): continue
             if not (a and (re.search(r'stocks? to (buy|sell)|\bbuy\b|\bsell\b|picks?|top calls|trading (idea|call)|intraday|breakout', it['title'], re.I) or analyst(it['title']))): continue
             tg, sl = levels(it['title'])
             calls.setdefault(k, dict(it, ch=name, analyst=analyst(it['title']), act=a, tg=tg, sl=sl))

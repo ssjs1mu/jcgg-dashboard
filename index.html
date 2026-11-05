@@ -287,582 +287,70 @@
     <header>
         <div class="header-left">
             <div class="macro-trend-indicator" id="global-trend-badge">
-                <span>▼ FUTURES DESK: INTRADAY PRESSURE</span>
+                <span id="trendTxt">… GLOBAL TREND</span>
             </div>
         </div>
         <div class="header-title">
-            <h1>Joshi's Corner</h1>
-            <div class="subtitle">Macro Intelligence Dashboard (Futures & Derivatives Complex)</div>
+            <h1>Joshi's Corner</h1><a href="trading.html" style="display:inline-block;margin-top:6px;padding:4px 12px;border-radius:6px;background:linear-gradient(180deg,#ffd35c,#d9a21c);color:#1a1030;font:800 12px 'Segoe UI',sans-serif;text-decoration:none;letter-spacing:.04em">◂ TRADING TERMINAL</a>
+            <div class="subtitle">Macro Intelligence Dashboard (live)</div>
         </div>
         <div class="system-status">
-            <div class="badge-live" id="live-indicator">LIVE FEED ACTIVE</div>
+            <div class="badge-live" id="live-indicator">CONNECTING…</div>
             <div class="time-box" id="ist-clock">IST: --:--:--</div>
             <div class="timer-box" id="market-timer">CLOSING IN: --:--:--</div>
         </div>
     </header>
 
-    <div class="dashboard-grid">
-
-        <!-- 1. INDIAN MARKET TERMINAL -->
-        <div class="card">
-            <div class="card-header">
-                <h2>🇮🇳 Indian Market, Derivatives & Bonds</h2>
-                <span class="status-open" id="indian-status">MARKET OPEN</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 32%;">
-                        <col style="width: 18%;">
-                        <col style="width: 20%;">
-                        <col style="width: 30%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Index / Instrument</th>
-                            <th>Currency</th>
-                            <th>Last Price</th>
-                            <th>Change (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>NIFTY FUT (Near)</strong></td>
-                            <td>INR (₹)</td>
-                            <td>24,215.50</td>
-                            <td class="positive">+12.50 (+0.05%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>BANK NIFTY FUT</strong></td>
-                            <td>INR (₹)</td>
-                            <td>52,140.00</td>
-                            <td class="positive">+95.00 (+0.18%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>INDIA VIX</strong></td>
-                            <td>Points</td>
-                            <td>12.92</td>
-                            <td class="positive">+0.38 (+3.03%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>NIFTY PCR</strong></td>
-                            <td>Ratio</td>
-                            <td>0.97</td>
-                            <td class="negative">Cautionary</td>
-                        </tr>
-                        <tr>
-                            <td><strong>USD/INR FUT</strong></td>
-                            <td>INR / USD</td>
-                            <td>83.98</td>
-                            <td class="positive">+0.04 (+0.05%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>India 10Y Bond Yield</strong></td>
-                            <td>Yield %</td>
-                            <td>6.85%</td>
-                            <td class="negative">-0.01%</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 2. US FUTURES & TREASURY BENCHMARKS -->
-        <div class="card">
-            <div class="card-header">
-                <h2>🇺🇸 US Index Futures & Treasuries</h2>
-                <span class="status-open">GLOBEX ACTIVE</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 32%;">
-                        <col style="width: 18%;">
-                        <col style="width: 20%;">
-                        <col style="width: 30%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Futures Contract</th>
-                            <th>Currency</th>
-                            <th>Last Price</th>
-                            <th>Change (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>E-mini Dow (YM)</strong></td>
-                            <td>USD ($)</td>
-                            <td>41,312.00</td>
-                            <td class="positive">+124.00 (+0.30%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>E-mini S&P 500 (ES)</strong></td>
-                            <td>USD ($)</td>
-                            <td>5,697.50</td>
-                            <td class="positive">+18.50 (+0.33%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>E-mini Nasdaq 100 (NQ)</strong></td>
-                            <td>USD ($)</td>
-                            <td>19,925.00</td>
-                            <td class="positive">+65.00 (+0.33%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>US Dollar Index Fut (DX)</strong></td>
-                            <td>Index</td>
-                            <td>100.58</td>
-                            <td class="negative">-0.12 (-0.12%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>US 10Y T-Note Fut (ZN)</strong></td>
-                            <td>Points</td>
-                            <td>108-135</td>
-                            <td class="positive">+0.05 (+0.14%)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 3. ASIAN FUTURES & INDICES TERMINAL -->
-        <div class="card">
-            <div class="card-header">
-                <h2>🌏 Asian Index Futures & Benchmarks</h2>
-                <span class="status-open">SESSION ACTIVE</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 32%;">
-                        <col style="width: 18%;">
-                        <col style="width: 20%;">
-                        <col style="width: 30%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Futures / Index</th>
-                            <th>Currency</th>
-                            <th>Last Price</th>
-                            <th>Change (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Nikkei 225 Fut (OSE)</strong></td>
-                            <td>JPY (¥)</td>
-                            <td>38,240.00</td>
-                            <td class="positive">+180.00 (+0.47%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>SGX Nifty / Gift Nifty</strong></td>
-                            <td>USD ($)</td>
-                            <td>24,230.00</td>
-                            <td class="positive">+18.00 (+0.07%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Hang Seng China Ent. Fut</strong></td>
-                            <td>HKD ($)</td>
-                            <td>6,210.00</td>
-                            <td class="negative">-25.00 (-0.40%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>FTSE China A50 Fut</strong></td>
-                            <td>USD ($)</td>
-                            <td>12,185.00</td>
-                            <td class="negative">-45.00 (-0.37%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Taiwan Index Fut (SGX)</strong></td>
-                            <td>TWD ($)</td>
-                            <td>22,280.00</td>
-                            <td class="positive">+90.00 (+0.41%)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 4. EUROPEAN FUTURES & BUNDS TERMINAL -->
-        <div class="card">
-            <div class="card-header">
-                <h2>🇪🇺 European Futures & Bunds</h2>
-                <span class="status-open">EUREX / ICE ACTIVE</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 32%;">
-                        <col style="width: 18%;">
-                        <col style="width: 20%;">
-                        <col style="width: 30%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Futures Contract</th>
-                            <th>Currency</th>
-                            <th>Last Price</th>
-                            <th>Change (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>DAX Index Futures (FDAX)</strong></td>
-                            <td>EUR (€)</td>
-                            <td>18,485.00</td>
-                            <td class="positive">+65.00 (+0.35%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>FTSE 100 Index Fut (IFLL)</strong></td>
-                            <td>GBP (£)</td>
-                            <td>8,335.00</td>
-                            <td class="positive">+18.00 (+0.22%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Euro Stoxx 50 Fut (FESX)</strong></td>
-                            <td>EUR (€)</td>
-                            <td>4,935.00</td>
-                            <td class="positive">+15.00 (+0.30%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Euro-Bund Futures (FGBL)</strong></td>
-                            <td>Points</td>
-                            <td>132.45</td>
-                            <td class="positive">+0.22 (+0.17%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Long Gilt Futures (FLG)</strong></td>
-                            <td>Points</td>
-                            <td>98.10</td>
-                            <td class="positive">+0.15 (+0.15%)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 5. COMMODITIES FUTURES TERMINAL -->
-        <div class="card">
-            <div class="card-header">
-                <h2>🛢️ Major Global Commodities Futures Complex</h2>
-                <span class="status-open">LIVE TRADING</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 30%;">
-                        <col style="width: 24%;">
-                        <col style="width: 16%;">
-                        <col style="width: 30%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Commodity Futures</th>
-                            <th>Exchange</th>
-                            <th>Curr</th>
-                            <th>Last Price</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Crude Oil Brent Fut</strong></td>
-                            <td>ICE / Barrel</td>
-                            <td>USD</td>
-                            <td>76.90 (-1.45%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Crude Oil WTI Fut</strong></td>
-                            <td>NYMEX / Barrel</td>
-                            <td>USD</td>
-                            <td>73.45 (-1.38%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Gold Futures (GC)</strong></td>
-                            <td>COMEX / Oz</td>
-                            <td>USD</td>
-                            <td>2,524.10 (+0.75%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Silver Futures (SI)</strong></td>
-                            <td>COMEX / Oz</td>
-                            <td>USD</td>
-                            <td>30.12 (+1.25%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Copper Futures (HG)</strong></td>
-                            <td>COMEX / Pound</td>
-                            <td>USD</td>
-                            <td>4.28 (-0.46%)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Natural Gas Fut (NG)</strong></td>
-                            <td>NYMEX / MMBtu</td>
-                            <td>USD</td>
-                            <td>2.31 (+2.21%)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 6. REAL-TIME EXCHANGE NEWS FEED TERMINAL -->
-        <div class="card">
-            <div class="card-header">
-                <h2>📰 Live Exchange & Agency News Feeds</h2>
-                <span class="status-open">REAL-TIME FEED</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 22%;">
-                        <col style="width: 50%;">
-                        <col style="width: 28%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Source</th>
-                            <th>Headline / Announcement Subject</th>
-                            <th>Time (IST)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>NSE India</strong></td>
-                            <td>Derivatives Segment: Futures open interest concentration update</td>
-                            <td>12:55 PM</td>
-                        </tr>
-                        <tr>
-                            <td><strong>CME Group</strong></td>
-                            <td>Globex electronic session volumes remain steady across equity indices</td>
-                            <td>12:40 PM</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Bloomberg</strong></td>
-                            <td>Treasury futures tick higher as institutional hedging accelerates</td>
-                            <td>12:22 PM</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Reuters</strong></td>
-                            <td>Energy futures face light selling pressure ahead of inventory reports</td>
-                            <td>12:05 PM</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 7. MARKET SENTIMENT & GAUGE TABLE -->
-        <div class="card">
-            <div class="card-header">
-                <h2>📊 Market Sentiment & Fear/Greed Meter</h2>
-                <span class="status-open">LIVE COMPOSITE</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 35%;">
-                        <col style="width: 35%;">
-                        <col style="width: 30%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Sentiment Index</th>
-                            <th>Visual Gauge / Scale</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Nifty Fear & Greed</strong></td>
-                            <td>
-                                <span style="font-size:11px; font-weight:600;">50.2 / 100</span>
-                                <div class="gauge-bar-container">
-                                    <div class="gauge-bar-fill" style="width: 50.2%;"></div>
-                                </div>
-                            </td>
-                            <td class="negative">Equilibrium</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Volatility Index (VIX)</strong></td>
-                            <td>
-                                <span style="font-size:11px; font-weight:600;">12.92 pts</span>
-                                <div class="gauge-bar-container">
-                                    <div class="gauge-bar-fill" style="width: 28%; background: #f23645;"></div>
-                                </div>
-                            </td>
-                            <td class="negative">Tick Up</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Put-Call Ratio (PCR)</strong></td>
-                            <td>
-                                <span style="font-size:11px; font-weight:600;">0.97 Ratio</span>
-                                <div class="gauge-bar-container">
-                                    <div class="gauge-bar-fill" style="width: 47%; background: #f23645;"></div>
-                                </div>
-                            </td>
-                            <td class="negative">Bearish Pressure</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 8. INSTITUTIONAL FLOWS FII / DII TABLE -->
-        <div class="card">
-            <div class="card-header">
-                <h2>🏛️ Institutional Flows (FII & DII Activity)</h2>
-                <span class="status-open">CASH & YTD METRICS</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 32%;">
-                        <col style="width: 22%;">
-                        <col style="width: 26%;">
-                        <col style="width: 20%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Segment</th>
-                            <th>Daily Flow</th>
-                            <th>YTD Flow</th>
-                            <th>Trend</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>FII / FPI Cash</strong></td>
-                            <td class="negative">₹ -385.2 Cr</td>
-                            <td class="negative">₹ -3.40L Cr</td>
-                            <td class="negative">Net Seller</td>
-                        </tr>
-                        <tr>
-                            <td><strong>DII Cash</strong></td>
-                            <td class="positive">₹ +720.5 Cr</td>
-                            <td class="positive">₹ +5.17L Cr</td>
-                            <td class="positive">Net Buyer</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Net Institutional</strong></td>
-                            <td class="positive">₹ +335.3 Cr</td>
-                            <td class="positive">₹ +1.77L Cr</td>
-                            <td class="positive">Buffer Active</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 9. ASTRO DAY PREDICTIONS (TIMING PRECISION) -->
-        <div class="card">
-            <div class="card-header">
-                <h2>✨ Financial Astrology & Time-Window Cycles</h2>
-                <span class="status-open">TIMING DESK</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 30%;">
-                        <col style="width: 35%;">
-                        <col style="width: 35%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Time Window (IST)</th>
-                            <th>Planetary Aspect / Nakshatra</th>
-                            <th>Intraday Trend Prediction</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>09:15 AM - 10:30 AM</strong></td>
-                            <td>Opening Moora / Jyeshtha Shift</td>
-                            <td class="negative trend-down">Initial Volatility & Supply Test</td>
-                        </tr>
-                        <tr>
-                            <td><strong>11:15 AM - 12:15 PM</strong></td>
-                            <td>Midday Intermarket Friction</td>
-                            <td class="negative trend-down">Intraday Slide / Consolidation</td>
-                        </tr>
-                        <tr>
-                            <td><strong>12:30 PM - 01:15 PM</strong></td>
-                            <td>Critical Muhurta / Bhava Shift</td>
-                            <td class="positive trend-up">Reversal / Bottoming Window</td>
-                        </tr>
-                        <tr>
-                            <td><strong>02:15 PM - 03:30 PM</strong></td>
-                            <td>Closing Settlement Vector</td>
-                            <td class="positive trend-up">Short Covering / Final Bias</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- 10. F&O MOST TRADED CONTRACTS & LEVELS -->
-        <div class="card" style="grid-column: 1 / -1;">
-            <div class="card-header">
-                <h2>🎯 Derivatives Desk: Most Active Contracts & OI (Bank Nifty & Nifty)</h2>
-                <span class="status-open">LIVE EXPIRY DESK</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    <colgroup>
-                        <col style="width: 25%;">
-                        <col style="width: 18%;">
-                        <col style="width: 15%;">
-                        <col style="width: 22%;">
-                        <col style="width: 20%;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Instrument & Spot</th>
-                            <th>Active Strike</th>
-                            <th>Type</th>
-                            <th>Open Interest (OI)</th>
-                            <th>OI Change</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>BANK NIFTY FUT</strong> (Spot: 52,095)</td>
-                            <td>52,100 Strike</td>
-                            <td>CALL (CE)</td>
-                            <td>29,410,200</td>
-                            <td class="negative">+6.2% (Resistance Build)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>BANK NIFTY FUT</strong> (Spot: 52,095)</td>
-                            <td>52,000 Strike</td>
-                            <td>PUT (PE)</td>
-                            <td>35,120,500</td>
-                            <td class="positive">+9.8% (Support Hold)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>NIFTY 50 FUT</strong> (Spot: 24,195)</td>
-                            <td>24,200 Strike</td>
-                            <td>CALL (CE)</td>
-                            <td>51,210,300</td>
-                            <td class="negative">+8.4% (Call Writing)</td>
-                        </tr>
-                        <tr>
-                            <td><strong>NIFTY 50 FUT</strong> (Spot: 24,195)</td>
-                            <td>24,100 Strike</td>
-                            <td>PUT (PE)</td>
-                            <td>58,920,100</td>
-                            <td class="positive">+12.1% (Put Support)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
+    <div class="dashboard-grid" id="grid"><div class="card"><div class="card-header"><h2>Loading live data…</h2></div></div></div>
 
     <footer>
         <p>Joshi's Corner Wealth Desk Terminal &bull; Calibrated with global futures and derivatives pricing &bull; All rights reserved.</p>
     </footer>
 
+
+    <script>
+    const API='https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/', RAW='https://raw.githubusercontent.com/';
+    const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const fm=(v,d)=>v==null||isNaN(v)?'n/a':Number(v).toLocaleString('en-IN',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d});
+    async function getJ(urls){ for(const u of urls){ try{ const r=await fetch(u,u.includes('api.github')?{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}:{cache:'no-store'}); if(r.ok) return await r.json(); }catch(e){} } return null; }
+    const SEC=[
+     ['🇮🇳 Indian Market (spot indices)','indian-status',[['NIFTY 50','^NSEI','INR (₹)',2],['BANK NIFTY','^NSEBANK','INR (₹)',2],['SENSEX','^BSESN','INR (₹)',2],['NIFTY IT','^CNXIT','INR (₹)',2],['NIFTY MIDCAP','^NSMIDCP','INR (₹)',2],['INDIA VIX','^INDIAVIX','Points',2],['USD/INR','USDINR=X','INR / USD',4],['India 10Y yield',null,'Yield %'],['Nifty PCR',null,'Ratio']]],
+     ['🇺🇸 US Index Futures & Treasuries',null,[['Dow futures','YM=F','USD',2],['S&P 500 futures','ES=F','USD',2],['Nasdaq 100 futures','NQ=F','USD',2],['US 10Y yield','^TNX','Yield %',3],['10Y T-Note futures','ZN=F','USD',3],['US Dollar Index','DX-Y.NYB','Index',3]]],
+     ['🌏 Asian Indices',null,[['Nikkei 225','^N225','JPY',2],['Hang Seng','^HSI','HKD',2],['Taiwan Weighted','^TWII','TWD',2],['China A50','XIN9.FGI','USD',2],['Gift Nifty',null,'—']]],
+     ['🇪🇺 European Indices',null,[['DAX','^GDAXI','EUR',2],['FTSE 100','^FTSE','GBP',2],['Euro Stoxx 50','^STOXX50E','EUR',2],['Euro-Bund / Long Gilt',null,'—']]],
+     ['🛢️ Commodities (futures)',null,[['Brent crude','BZ=F','USD',2],['WTI crude','CL=F','USD',2],['Gold','GC=F','USD',2],['Silver','SI=F','USD',3],['Copper','HG=F','USD',3],['Natural gas','NG=F','USD',3]]]];
+    let SNAP=null, last=0;
+    function tbl(sec){ const [t,st,rows]=sec; let up=0,n=0;
+      const body=rows.map(r=>{ const q=r[1]&&SNAP&&SNAP.m[r[1]]; if(!q) return `<tr><td><strong>${esc(r[0])}</strong></td><td>${esc(r[2])}</td><td>n/a</td><td>no free feed</td></tr>`;
+        const ch=q.p-q.pc, pc=q.pc?ch/q.pc*100:0, inv=/VIX|USD\/INR|yield/i.test(r[0]), cls=(inv?ch<0:ch>0)?'positive':(ch===0?'':'negative'); if(!/VIX|yield|USD\/INR|Dollar/i.test(r[0])){n++;if(ch>0)up++;}
+        return `<tr><td><strong>${esc(r[0])}</strong></td><td>${esc(r[2])}</td><td>${fm(q.p,r[3])}</td><td class="${cls}">${ch>=0?'+':''}${fm(ch,r[3]>3?3:2)} (${pc>=0?'+':''}${fm(pc,2)}%)</td></tr>`; }).join('');
+      return `<div class="card"><div class="card-header"><h2>${t}</h2>${st?`<span class="status-open" id="${st}">…</span>`:''}</div><div class="table-container"><table><colgroup><col style="width:32%"><col style="width:18%"><col style="width:20%"><col style="width:30%"></colgroup><thead><tr><th>Instrument</th><th>Currency</th><th>Last</th><th>Change (%)</th></tr></thead><tbody>${body}</tbody></table></div></div>`; }
+    function render(){
+      let h=SEC.map(tbl).join('');
+      if(NEWS) h+=`<div class="card"><div class="card-header"><h2>📰 Live Market News</h2><span class="status-open">${NEWS.news.length} headlines</span></div><div class="table-container"><table><thead><tr><th style="width:22%">Source</th><th>Headline</th><th style="width:16%">Time IST</th></tr></thead><tbody>${NEWS.news.slice(0,12).map(n=>`<tr><td>${esc(n.src)}</td><td><a href="${esc(n.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(n.title)}</a></td><td>${new Date(n.t*1000).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</td></tr>`).join('')}</tbody></table></div></div>`;
+      const v=SNAP&&SNAP.m['^INDIAVIX']; if(v){ const lv=v.p<13?'Low - complacent':v.p<18?'Normal':v.p<24?'Elevated':'High fear'; h+=`<div class="card"><div class="card-header"><h2>📊 Market Sentiment (India VIX)</h2></div><div class="table-container"><table><thead><tr><th>Measure</th><th>Value</th><th>Reading</th></tr></thead><tbody><tr><td><strong>India VIX</strong></td><td>${fm(v.p)}</td><td>${lv}</td></tr></tbody></table></div></div>`; }
+      if(FD){ const d=Object.keys(FD.daily).sort().slice(-6).reverse(); const m=FD.fpi_equity_monthly||{}, yr=new Date().getFullYear(), ytd=Object.keys(m).filter(k=>k.startsWith(yr)).reduce((a,k)=>a+m[k],0), c=x=>x>=0?'positive':'negative';
+        h+=`<div class="card"><div class="card-header"><h2>🏛️ Institutional Flows (₹ crore, NSE cash)</h2><span class="status-open">${esc(d[0]||'')}</span></div><div class="table-container"><table><thead><tr><th>Date</th><th>FII net</th><th>DII net</th></tr></thead><tbody>${d.map(k=>`<tr><td>${k}</td><td class="${c(FD.daily[k].fii_net)}">${fm(FD.daily[k].fii_net,0)}</td><td class="${c(FD.daily[k].dii_net)}">${fm(FD.daily[k].dii_net,0)}</td></tr>`).join('')}<tr><td><strong>FPI equity ${yr} YTD (NSDL, to ${esc(FD.fpi_equity_upto)})</strong></td><td class="${c(ytd)}">${fm(ytd,0)}</td><td>DII YTD n/a</td></tr></tbody></table></div></div>`; }
+      if(OI){ const rows=Object.entries(OI.stocks).map(([k,x])=>[k,x,(x.ce||0)+(x.pe||0)]).sort((a,b)=>b[2]-a[2]).slice(0,12);
+        h+=`<div class="card" style="grid-column:1/-1"><div class="card-header"><h2>🎯 Stock Option OI (last close, nearest expiry)</h2><span class="status-open">${esc((OI.asof||'').slice(0,10))}</span></div><div class="table-container"><table><thead><tr><th>Stock</th><th>Spot</th><th>Expiry</th><th>PCR</th><th>Call wall</th><th>Put wall</th><th>Total OI</th></tr></thead><tbody>${rows.map(([k,x,t])=>`<tr><td><strong>${esc(k)}</strong></td><td>${fm(x.spot)}</td><td>${esc(x.expiry)}</td><td class="${x.pcr>=1?'positive':'negative'}">${fm(x.pcr)}</td><td>${fm(x.callWall,0)}</td><td>${fm(x.putWall,0)}</td><td>${fm(t,0)}</td></tr>`).join('')}</tbody></table></div></div>`; }
+      document.getElementById('grid').innerHTML=h;
+      // badges
+      const ks=['^NSEI','^N225','^HSI','^GDAXI','^FTSE','ES=F','NQ=F','YM=F'], ch=ks.map(k=>SNAP&&SNAP.m[k]).filter(Boolean).map(q=>q.pc?(q.p/q.pc-1)*100:0), av=ch.length?ch.reduce((a,b)=>a+b,0)/ch.length:null;
+      const tb=document.getElementById('trendTxt'), li=document.getElementById('live-indicator');
+      if(av==null){ tb.textContent='GLOBAL TREND: no data'; } else tb.textContent=(av>0.3?'▲ GLOBAL TREND: RISK-ON':av<-0.3?'▼ GLOBAL TREND: RISK-OFF':'◆ GLOBAL TREND: MIXED')+' ('+(av>=0?'+':'')+av.toFixed(2)+'% avg)';
+      if(SNAP){ const age=Math.round((Date.now()-SNAP.ts)/60000); li.textContent=age<=15?'LIVE FEED (GitHub snapshot, '+age+' min old)':'SNAPSHOT '+(age>1440?Math.round(age/1440)+' d':age>=60?Math.round(age/60)+' h':age+' min')+' old'; li.style.opacity=age<=15?1:.7; } else li.textContent='FEED UNAVAILABLE';
+      updateTerminalClock();
+    }
+    let NEWS=null,FD=null,OI=null;
+    async function loadAll(){
+      const j=await getJ([API+'snapshot.json?ref=snapshot',RAW+'ssjs1mu/jcgg-dashboard/snapshot/snapshot.json?x='+Date.now(),'data/snapshot.json']);
+      if(j&&j.rows){ const m={}; j.rows.forEach(r=>{ if(r.p!=null&&r.pc!=null) m[r.s]={p:r.p,pc:r.pc,t:r.t}; }); SNAP={m,ts:j.ts?Date.parse(j.ts):Date.now()}; }
+      NEWS=await getJ([API+'news.json?ref=news',RAW+'ssjs1mu/jcgg-dashboard/news/news.json?x='+Date.now()])||NEWS;
+      FD=FD||await getJ([RAW+'ssjs1mu/jc-stock-analyst/main/data/fiidii.json']); OI=OI||await getJ([RAW+'ssjs1mu/jc-stock-analyst/main/data/fno_oi.json']);
+      render();
+    }
+    loadAll(); setInterval(()=>{ if(!document.hidden) loadAll(); },60000);
+    </script>
     <script>
         function updateTerminalClock() {
             const now = new Date();
