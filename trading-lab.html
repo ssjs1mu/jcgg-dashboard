@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://dwby15d04agvq.cloudfront.net"><link rel="preconnect" href="https://03nwj0csy5.execute-api.ap-south-1.amazonaws.com"><link rel="preconnect" href="https://cdnjs.cloudflare.com"><link rel="preconnect" href="https://unpkg.com"><title>LAB · Tradeable Heat-map (test) | Joshi's Corner</title>
+<style>
+:root{--bg:#0e1620;--ink:#e6ecf3;--mut:#93a1b5}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px "Segoe UI",system-ui,sans-serif}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:3px 10px;border-bottom:1px solid #2a3150;background:linear-gradient(180deg,#16212d,#0e1620)}.top .tl{display:flex;gap:10px;align-items:center}.top .clock{margin-left:0;justify-self:end}@media(max-width:900px){.top{grid-template-columns:1fr;justify-items:center}.top .clock{justify-self:center}}
+.brand{font-family:'Brush Script MT','Segoe Script',cursive;font-size:36px;line-height:1.1;color:#d2c08a;text-shadow:0 0 10px rgba(200,180,120,.25);text-align:center;letter-spacing:.02em}
+.ttl{font-weight:800;letter-spacing:.12em;color:#dde4ee;font-size:11px}
+.top a{color:#a2b0c4;font-size:11px;text-decoration:none;border:1px solid #3a4268;border-radius:99px;padding:2px 9px}
+.clock{margin-left:auto;font:700 12px ui-monospace,Consolas,monospace;color:var(--mut);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.clock b{color:#fff;font-size:14px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#7a7a8c;margin-right:5px}
+.dot.live{background:#5fa88a;box-shadow:0 0 8px #5fa88a;animation:bl 1.2s infinite}
+@keyframes bl{50%{opacity:.35}}
+.age{border-radius:99px;padding:1px 9px;font-size:11px;border:1px solid #3a4268}.age.ok{color:#8fc7ad;border-color:#1d7a55}.age.old{color:#c9a273;border-color:#a35c10}
+.wrap{padding:6px 8px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:1150px;table-layout:fixed;font-family:ui-monospace,Consolas,"Segoe UI",monospace}
+th,td{border:1px solid #2c3458;padding:3px 6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:25px}
+thead th{background:linear-gradient(180deg,#34495e,#26364a);color:#d9cfae;font:900 12px "Segoe UI",sans-serif;letter-spacing:.07em}
+tbody tr:nth-child(odd) td{background:#141e2b}
+tbody tr:nth-child(even) td{background:#1a2735}
+td.px{font-size:14px;font-weight:900}
+td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;border-radius:4px;margin-left:4px}
+.tag.bu{background:#3f7d66;color:#d8ffe9}.tag.be{background:#8c3f4d;color:#ffe1e7}.tag.sw{background:#4a5273;color:#e6e9f7}.tag.bo{background:#a98a4a;color:#2b1a00}.tag.bd2{background:#9c6a4a;color:#fff0e6}
+.up{color:#8fc7ad}.dn{color:#d39098}.fl{color:#bfc9d8}
+.sr{font-size:12px;padding:3px 3px!important;text-overflow:clip!important}.s b{color:#8fc7ad}.r b{color:#d39098}.sr i{font-style:normal;font:800 10px "Segoe UI",sans-serif;opacity:.75;margin-right:3px}.sr span+span{margin-left:7px}
+.near{background:rgba(255,235,120,.22);outline:1px solid #c9bd94;border-radius:3px;padding:0 2px}
+.nodata{opacity:.6}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 8px 6px;align-items:stretch}.split>.hm{display:flex;flex-direction:column;min-width:0}.split>.hm>.hmg,.split>.hm>.alt,.split>.hm>.nw{height:44vh;max-height:44vh;overflow:auto}@media(max-width:1000px){.split{grid-template-columns:1fr}}
+.hm{margin:0;border:1px solid #2c3458;border-radius:6px;background:#121c28}
+.hmh{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:6px 10px;background:linear-gradient(180deg,#34495e,#26364a);border-radius:6px 6px 0 0;font:700 12.5px "Segoe UI",sans-serif;color:#dde4ee}
+.hmh b{color:#d9cfae;letter-spacing:.1em;font-weight:900}.hmh label{display:flex;gap:4px;align-items:center;white-space:nowrap}.hmh select,.hmh input{accent-color:#d2c08a;background:#1a2634;color:#fff;border:1px solid #3a4268;border-radius:4px;font:700 11px "Segoe UI",sans-serif}
+.hmc{color:#d2c08a}
+.hmg{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:5px;padding:7px;max-height:44vh;overflow:auto}
+.hc{position:relative;border-radius:6px;padding:3px 8px;height:64px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;border:1px solid rgba(255,255,255,.06);cursor:default;min-width:0}
+.hc b{padding-right:24px;font:900 14px "Segoe UI",sans-serif;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+.hc span{font:800 12px ui-monospace,Consolas,monospace;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.7)}.hc:hover{outline:2px solid #fff}
+.hc.full{border:1px solid #c9bd94;box-shadow:0 0 8px rgba(200,190,150,.55),0 0 0 1px rgba(200,190,150,.5) inset}
+.hc.part{opacity:.85}.hc.none{opacity:.55}
+.hc i{position:absolute;right:3px;top:3px;display:flex;gap:2px}.hc i u{width:7px;height:7px;border-radius:50%;background:#3a4268;text-decoration:none}.hc i u.on{background:#c9bd94}
+
+.mo{position:fixed;inset:0;background:rgba(2,4,14,.72);z-index:50;display:none;align-items:flex-start;justify-content:center;padding:18px 10px;overflow:auto}
+.mo.on{display:flex}
+.md{width:min(1040px,100%);background:#121c28;border:1px solid #3a4268;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.mdh{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 12px;background:linear-gradient(180deg,#34495e,#26364a);border-radius:10px 10px 0 0}
+.mdh h2{margin:0;font:900 18px "Segoe UI",sans-serif;color:#d9cfae;letter-spacing:.05em}
+.mdh .cm{font:900 18px ui-monospace,Consolas,monospace}.mdh small{color:#b9c4d4;font:600 11px "Segoe UI",sans-serif}
+.mdh select,.mdh button{background:#1a2634;color:#fff;border:1px solid #3a4268;border-radius:6px;font:700 12px "Segoe UI",sans-serif;padding:3px 8px;cursor:pointer}
+.mdh .x{margin-left:auto;font-size:15px}
+.mdb{display:grid;grid-template-columns:1.1fr .9fr;gap:10px;padding:10px}
+@media(max-width:820px){.mdb{grid-template-columns:1fr}}
+.mdb table{width:100%;min-width:0;table-layout:auto}
+.mdb th{background:#23324a;color:#d9cfae;font:800 11px "Segoe UI",sans-serif;text-align:left;padding:3px 7px;letter-spacing:.06em}
+.mdb td{padding:3px 7px;text-align:left;height:auto;white-space:normal;font:600 12px ui-monospace,Consolas,"Segoe UI",monospace}
+.ck{display:inline-block;min-width:62px;text-align:center;font:900 10.5px "Segoe UI",sans-serif;letter-spacing:.05em;border-radius:4px;padding:1px 6px;color:#fff}
+.ck.g{background:#3f7d66}.ck.r{background:#8c3f4d}.ck.n{background:#4a5273}.ck.y{background:#8c7440}
+.ver{margin:0 10px 8px;padding:7px 10px;border-radius:6px;font:800 13px "Segoe UI",sans-serif}
+.ver.g{background:rgba(11,122,79,.35);border:1px solid #1d9a68}.ver.r{background:rgba(163,18,47,.35);border:1px solid #a85463}.ver.n{background:rgba(74,82,115,.4);border:1px solid #6a7396}
+.lad{max-height:62vh;overflow:auto;border:1px solid #2c3458;border-radius:6px}
+.lad tr.rs td{background:rgba(163,18,47,.17)}.lad tr.sp td{background:rgba(11,122,79,.17)}
+.lad tr.cmp td{background:#b89c55!important;color:#1b1300;font-weight:900}
+.lad td:first-child{width:62px;opacity:.85;font-size:10.5px}.lad tr.cmp td:first-child{opacity:1}
+.lad td.pc{text-align:right;opacity:.85}
+.oib{margin-top:10px;border:1px solid #3a4268;border-radius:8px;overflow:hidden}.oib .oh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:5px 8px;background:#23324a;color:#d9cfae;font:800 11px "Segoe UI",sans-serif;letter-spacing:.06em}.oib .oh small{margin-left:auto;font-weight:600;color:#b9c4d4;letter-spacing:0}
+.oib td.r{text-align:right}.oib tr.rs td:first-child{color:#ff8f9a}.oib tr.sp td:first-child{color:#4ff0a8}.oib tr.ac td:first-child{color:#e8c76a}.oib .bk{font-weight:800}.oib .sl{padding:5px 8px;font:700 11.5px "Segoe UI",sans-serif;color:#dfe7f2;border-top:1px solid #33425a;background:#162231}
+.chb{margin:0 10px 6px;border:1px solid #3a4268;border-radius:8px;background:#0f1722;overflow:hidden}.chh{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:5px 8px;background:#23324a;font:800 11px "Segoe UI",sans-serif;color:#d9cfae;letter-spacing:.06em}.chh label{font-weight:600;color:#dfe7f2;letter-spacing:0;display:flex;gap:3px;align-items:center}.chbtn{background:#0d5a73;color:#fff;border:1px solid #2fd0ff;border-radius:6px;padding:3px 9px;font:800 11px "Segoe UI",sans-serif;text-decoration:none;cursor:pointer;letter-spacing:0}.chbtn:hover{background:#127a9a}#mChC{height:330px;overflow:hidden}#mChC table{min-width:0;width:auto;table-layout:auto;border-collapse:separate}#mChC td,#mChC th{border:0;padding:0;height:auto;overflow:visible;white-space:normal;text-align:left;text-overflow:clip}.chl{display:flex;gap:5px;flex-wrap:wrap;letter-spacing:0}.chl i{font:800 10px "Segoe UI",sans-serif;font-style:normal;padding:1px 7px;border-radius:999px;border:1px solid currentColor;background:#0a1018}
+.evbtn{background:#0d5a73;color:#fff;border:1px solid #2fd0ff;border-radius:6px;padding:2px 9px;font:800 11px "Segoe UI",sans-serif;cursor:pointer}.evb{margin:4px 8px;padding:8px 10px;border:1px solid #3a4268;border-radius:8px;background:#121c28;font:600 11.5px "Segoe UI",sans-serif;color:#dfe7f2}.evb table{min-width:0;table-layout:auto;width:100%;font:600 11.5px ui-monospace,Consolas,monospace}.evb th{background:#23324a;color:#d9cfae;font:800 11px "Segoe UI",sans-serif;text-align:left;padding:3px 7px}.evb td{padding:3px 7px;text-align:left;white-space:normal;height:auto}.evb td.r,.evb th.r{text-align:right}.evb .neg{color:#ff8f9a}.evb .pos{color:#4ff0a8}.evb h4{margin:6px 0 3px;font:800 12px "Segoe UI",sans-serif;color:#d9cfae;letter-spacing:.05em}.hc.late{opacity:.55}
+.mdn{padding:0 12px 10px;color:#93a1b5;font-size:10.5px}
+
+@keyframes bk{0%,100%{opacity:1}50%{opacity:.7}}
+@keyframes gl{0%,100%{box-shadow:0 0 3px rgba(200,190,150,.25)}50%{box-shadow:0 0 9px 1px rgba(200,190,150,.6)}}
+.hc.pri{animation:gl 2.6s ease-in-out infinite;border:2px solid #c9bd94;z-index:1}
+.hc .cl{font:800 10.5px ui-monospace,Consolas,monospace;white-space:nowrap}
+.hc .cl .p{color:#8fc7ad}.hc .cl .l{color:#d6a3aa}.hc.pri .cl{animation:bk 2.6s ease-in-out infinite}
+.hc.sell .cl .p{color:#8fc7ad}
+.cb{margin:0 10px 8px;border:1px solid #3a4268;border-radius:6px;overflow:hidden}
+.cb.pri{border-color:#c9bd94;animation:gl 2.6s ease-in-out infinite}
+.cb .hh{display:flex;gap:10px;align-items:center;padding:5px 10px;background:#23324a;font:900 13px "Segoe UI",sans-serif}
+.cb .hh .sd{padding:1px 10px;border-radius:4px;color:#fff}.cb .hh .sd.b{background:#3f7d66}.cb .hh .sd.s{background:#8c3f4d}.cb .hh .sd.w{background:#4a5273}
+.cb.pri .hh .pr{color:#c9bd94;animation:bk 2.6s ease-in-out infinite}
+.cb table{min-width:0;width:100%;table-layout:auto}.cb td,.cb th{text-align:center;padding:4px 8px;white-space:nowrap}
+.cb th{font:800 10.5px "Segoe UI",sans-serif;color:#d9cfae;background:#141a3c}
+.cb td.pf{color:#8fc7ad;font-weight:900}.cb td.ls{color:#d39098;font-weight:900}
+.cb.pri td.pf,.cb.pri td.ls{animation:bk 2.6s ease-in-out infinite}
+
+.alb{background:#1a2634;color:#fff;border:1px solid #3a4268;border-radius:5px;font:700 11.5px "Segoe UI",sans-serif;padding:2px 9px;cursor:pointer}
+.alt{max-height:44vh;overflow:auto}
+.alt table{min-width:0;width:100%;table-layout:auto}
+.alt th{background:#23324a;color:#d9cfae;font:800 10.5px "Segoe UI",sans-serif;padding:3px 6px;position:sticky;top:0;z-index:1;letter-spacing:.05em}
+.alt td{padding:3px 6px;text-align:left;height:auto;font:600 11.5px ui-monospace,Consolas,"Segoe UI",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.alt tbody tr:nth-child(odd) td{background:#141e2b}.alt tbody tr:nth-child(even) td{background:#1a2735}
+.alt tr.new td{animation:nw 3s ease-out}
+@keyframes nw{0%,30%{background:#3d4a3f}100%{}}
+.alt td.sy{font-weight:900;color:#fff}.alt td.dt{color:#b9c4d4;font-size:10.5px}
+.at{font:900 10px "Segoe UI",sans-serif;letter-spacing:.05em;border-radius:4px;padding:1px 6px;color:#fff;white-space:nowrap}
+.at.bf{background:linear-gradient(90deg,#7b2cff,#c04bff);box-shadow:0 0 8px #b466ff;color:#fff}.alt tr.bfr td{background:#241638!important;border-top:1px solid #7b3fd0}.alt tr.bfr td.sy{color:#e3c4ff}
+.hc.bf{border:2px solid #b466ff;box-shadow:0 0 10px rgba(180,102,255,.75),0 0 0 1px rgba(224,190,255,.5) inset;z-index:1}
+.at.bs{background:linear-gradient(90deg,#ff5a1f,#ff2e63);box-shadow:0 0 8px #ff6a3d;color:#fff}.alt tr.bsr td{background:#2a1713!important;border-top:1px solid #a8442a}.alt tr.bsr td.sy{color:#ffb59b}
+.hc.bs{border:2px solid #ff6a3d;box-shadow:0 0 10px rgba(255,106,61,.75),0 0 0 1px rgba(255,200,170,.5) inset;z-index:1}.hc.bear{border:1px solid #d6667a;box-shadow:0 0 7px rgba(214,102,122,.55)}
+.at.g{background:#3f7d66}.at.g2{background:#0e9a63}.at.r{background:#8c3f4d}.at.r2{background:#a85463}.at.y{background:#8c7440}.at.b{background:#3b5bdb}
+.alcfg{padding:6px 10px;border-bottom:1px solid #2c3458;background:#0e1433;display:flex;flex-wrap:wrap;gap:6px 14px;font:700 11.5px "Segoe UI",sans-serif;color:#dde4ee}
+.alcfg label{display:flex;gap:4px;align-items:center;white-space:nowrap}.alcfg select,.alcfg input[type=text],.alcfg input[type=number]{background:#1a2634;color:#fff;border:1px solid #3a4268;border-radius:4px;font:700 11.5px "Segoe UI",sans-serif;padding:1px 5px}
+.alcfg input[type=text]{width:90px}.alcfg input[type=number]{width:84px}.alcfg .grp{width:100%;color:#d9cfae;font-weight:900;letter-spacing:.06em;font-size:10.5px}
+.alcfg .px{background:#23324a;border-radius:4px;padding:1px 7px}.alcfg .px u{cursor:pointer;text-decoration:none;color:#d39098;margin-left:5px}
+.foot{padding:2px 12px 10px;color:var(--mut);font-size:10.5px}
+.nw{font:600 12px "Segoe UI",sans-serif}.nw a{display:block;padding:4px 10px;color:#d5dde8;text-decoration:none;border-bottom:1px solid #1d2547}.nw a:nth-child(even){background:#17222f}.nw a:hover{background:#2a2060}
+.nw .tm{color:#d2c08a;font:700 10.5px ui-monospace,Consolas,monospace;margin-right:6px}.nw .sr2{color:#9fb0ff;font-weight:800;font-size:10.5px;margin-right:6px}
+.nw .ch{display:inline-block;min-width:78px;font:900 10.5px "Segoe UI";color:#1a1030;background:#d2c08a;border-radius:3px;padding:0 5px;margin-right:6px;text-align:center}.nw .an{color:#8cf3c0;font-weight:800;margin-right:6px}
+.nw .ac{font:900 10.5px "Segoe UI";border-radius:3px;padding:0 5px;margin-right:6px;color:#fff}.nw .ac.B{background:#3f7d66}.nw .ac.S{background:#8c3f4d}.nw .ac.H{background:#4a5273}.nw .lv{color:#d2c08a;font-weight:800;margin-left:6px}
+.tvw{height:44vh;background:#000}.tvw video{width:100%;height:100%;display:none;background:#000;object-fit:contain}.tvd.hls .tvw video{display:block}.tvd.hls #tvF,.tvd.hls #tvU{display:none}.tvd.hls.min .tvw{display:none}.tvw iframe{width:100%;height:100%;border:0;display:block}
+.dockrow{display:flex;gap:8px;align-items:flex-start;padding-right:8px}.dockrow .lcol{flex:1;min-width:0;display:flex;flex-direction:column;align-self:stretch}.lcol .wrap{flex:none}.nwg{margin:2px 8px 4px;flex:1;min-height:110px;position:relative;overflow:hidden}.nwg .nw{position:absolute;left:0;right:0;bottom:0;top:26px;height:auto!important;max-height:none!important;overflow:auto}.nwg .hmh{padding:2px 10px;height:22px;box-sizing:border-box}.tvd{width:300px;flex:none;margin-top:6px;border:1px solid #2c3458;border-radius:6px;background:#0a0f16;overflow:hidden}
+.tvh{display:flex;gap:4px;align-items:center;padding:2px 6px;background:#26364a;color:#d9cfae;font:800 10.5px "Segoe UI",sans-serif;letter-spacing:.06em}.tvh button{background:#1a2634;color:#dde4ee;border:1px solid #3a4268;border-radius:4px;font:700 10px "Segoe UI";cursor:pointer;padding:1px 6px}
+.tvd .tvw{height:auto;aspect-ratio:16/9}.tvd.min .tvw,.tvd.min input{display:none}@media(max-width:1100px){.nwg{min-height:190px}.dockrow{flex-direction:column}.tvd{width:auto;margin:0 8px}}
+.mini{flex:1;min-height:110px;display:grid;grid-template-columns:1.5fr 1fr 1.3fr;gap:6px;margin:2px 8px 4px}.mini .nwg{margin:0;min-height:0}
+@media(max-width:1100px){.mini{grid-template-columns:1fr;flex:none}.mini .nwg{height:190px}}
+.bgt{width:100%;border-collapse:collapse}.bgt td{padding:2px 8px;font:700 11.5px ui-monospace,Consolas,monospace;border-bottom:1px solid #1d2a38}.bgt td:last-child{text-align:right}
+.chp{display:flex;flex-wrap:wrap;gap:3px 10px;padding:2px 8px;font:700 11px ui-monospace,Consolas,monospace;color:#b9c4d4}.chp b{font-weight:900}.gau{height:7px;border-radius:5px;margin:4px 8px 2px;background:linear-gradient(90deg,#8c3f4d,#a98a4a 50%,#3f7d66);position:relative}.gau i{position:absolute;top:-3px;width:3px;height:15px;background:#fff;border-radius:2px}
+.rv{display:block;padding:3px 8px;border-bottom:1px solid #1d2a38;font:600 11.5px "Segoe UI",sans-serif;color:#dde4ee;cursor:default}.rv b{font-weight:900}.rv.u b{color:#8fc7ad}.rv.d b{color:#d39098}.rv .tm{color:#d2c08a;font:700 10.5px ui-monospace,Consolas,monospace;margin-right:6px}.rv .tg{font:900 9.5px "Segoe UI";border-radius:3px;padding:0 4px;margin-left:4px;color:#fff;background:#4a5a70}.rv .tg.cf{background:#3f7d66}
+.mx{display:flex;flex-wrap:wrap;gap:3px 8px;padding:3px 8px;border-bottom:1px solid #1d2a38}.mx span{display:inline-flex;align-items:center;gap:4px;font:700 10.5px ui-monospace,Consolas,monospace;color:#b9c4d4}.mx svg{width:38px;height:13px}.mx b{font-weight:900}
+/* infographic tiles: smoky glass, gradient + fluorescent accents */
+.ti{min-width:60px;padding:3px 8px;border-radius:10px;text-align:center;background:linear-gradient(150deg,rgba(255,255,255,.13),rgba(0,0,0,.38)),linear-gradient(135deg,#1c2b3d,#2a4058);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 0 8px rgba(0,229,255,.22);border:1px solid rgba(120,220,255,.25)}
+.ti i{display:block;font:800 8.5px "Segoe UI",sans-serif;letter-spacing:.1em;color:#a9e6ff;font-style:normal;text-transform:uppercase}.ti b{display:block;font:900 12.5px ui-monospace,Consolas,monospace;color:#6ff0ff;text-shadow:0 0 7px currentColor}
+.ti.bad{background:linear-gradient(150deg,rgba(255,255,255,.12),rgba(0,0,0,.4)),linear-gradient(135deg,#4d0f2b,#8a1a4a);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 10px rgba(255,60,150,.45);border-color:rgba(255,90,170,.5)}.ti.bad b{color:#ff5fae}.ti.bad i{color:#ffb3d6}
+.ti.good{background:linear-gradient(150deg,rgba(255,255,255,.12),rgba(0,0,0,.4)),linear-gradient(135deg,#073d33,#0f7a5c);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 10px rgba(40,255,180,.45);border-color:rgba(70,255,190,.5)}.ti.good b{color:#3dffb4}.ti.good i{color:#b8ffe6}
+.mx{gap:5px;padding:5px 8px}.tiw{display:flex;flex-wrap:wrap;gap:5px;padding:3px 8px}
+.fgt{display:flex;align-items:center;gap:10px;margin:5px 8px 2px;padding:4px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 12px var(--gl)}.fgt span{font:800 9.5px "Segoe UI";letter-spacing:.12em;color:rgba(255,255,255,.85)}.fgt b{font:900 26px ui-monospace,Consolas,monospace;color:var(--nc);text-shadow:0 0 10px var(--nc)}.fgt em{font:900 12px "Segoe UI";font-style:normal;letter-spacing:.08em;color:var(--nc);text-shadow:0 0 8px var(--nc)}
+.fgt.z0{--nc:#ff4fa3;--gl:rgba(255,60,150,.5);background:linear-gradient(135deg,#5a0f2e,#a3125a 60%,#6a1040)}.fgt.z1{--nc:#ffa03c;--gl:rgba(255,150,40,.5);background:linear-gradient(135deg,#5a2a0f,#a8501a 60%,#703010)}.fgt.z2{--nc:#fff04d;--gl:rgba(255,235,60,.45);background:linear-gradient(135deg,#3a3a12,#6b6a1c 60%,#4a4a14)}.fgt.z3{--nc:#3dffb4;--gl:rgba(40,255,180,.5);background:linear-gradient(135deg,#0e4a3a,#12805f 60%,#0b5a45)}.fgt.z4{--nc:#1dffe6;--gl:rgba(30,255,230,.55);background:linear-gradient(135deg,#064d3f,#00a37a 60%,#0a6a60)}
+.tug{display:flex;height:16px;margin:3px 8px;border-radius:9px;overflow:hidden;border:1px solid rgba(255,255,255,.18);box-shadow:0 0 8px rgba(0,0,0,.4)}.tug i{background:linear-gradient(180deg,#2bffb0,#0a8f66);display:flex;align-items:center;transition:width .6s}.tug u{flex:1;background:linear-gradient(180deg,#ff5fae,#8a1a4a);display:flex;align-items:center;justify-content:flex-end}.tug s{text-decoration:none;font:900 10px ui-monospace,Consolas,monospace;color:#04130e;padding:0 7px}.tug u s{color:#2a0615}
+.mt{height:4px;margin-top:3px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}.mt em{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#6ff0ff,#2bd4ff);transition:width .6s}.ti.bad .mt em{background:linear-gradient(90deg,#ff9bd0,#ff3c96)}.ti.good .mt em{background:linear-gradient(90deg,#9dffd8,#25f0a0)}
+@keyframes pu{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 6px rgba(255,60,150,.35)}50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 16px rgba(255,60,150,.8)}}.ti.pu{animation:pu 2.4s ease-in-out infinite}
+.fgt{padding:3px 12px}.fgt b{font-size:24px}
+.wx{font-size:26px;line-height:1;animation:fl 4s ease-in-out infinite;filter:drop-shadow(0 0 6px rgba(255,255,255,.35))}@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}.fgt{gap:10px;padding:3px 10px;margin:4px 8px}.fgt b{font-size:22px}.fgt span{white-space:nowrap}.fgt em{font-size:11px}
+.gau{display:none}.tiw{gap:4px;padding:2px 8px}.ti{padding:2px 7px;min-width:54px}
+.wt{width:100%;min-width:0!important;table-layout:fixed;border-collapse:collapse;margin:2px 0 4px}.wt td,.wt th{text-align:left!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;height:auto!important;word-break:break-word}.wt th:first-child,.wt td:first-child{width:21%}.wt th{padding:6px 10px;background:#23324a;color:#e8dcb0;font:800 13px "Segoe UI";text-align:left;padding:3px 7px;letter-spacing:.05em}.wt td{padding:6px 10px;font:500 14.5px/1.5 "Segoe UI",system-ui,sans-serif;border-bottom:1px solid #1d2a38;vertical-align:top}.wt tr:nth-child(even) td{background:#17222f}.wt td:first-child{color:#d9cfae;font-weight:800}.wh{margin:16px 0 4px;color:#9fd8bf;font:800 17px "Segoe UI";letter-spacing:.04em}
+
+/* tiles fill their boxes */
+#bgL{display:flex;flex-direction:column;gap:6px;padding:4px 8px 6px;overflow:hidden}
+#bgL .fgt{margin:0;flex:1.25 1 0;min-height:0;padding:4px 14px}#bgL .fgt b{font-size:clamp(24px,3.2vw,40px)}#bgL .wx{font-size:clamp(26px,3vw,38px)}
+#bgL .tiw{padding:0;flex:1.6 1 0;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+#bgL .tiw .ti,#rvL .mx .ti{display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0;padding:2px 4px;border-radius:12px}
+#bgL .tiw .ti i,#rvL .mx .ti i{font-size:clamp(8px,.75vw,11px)}#bgL .tiw .ti b,#rvL .mx .ti b{font-size:clamp(11px,1.15vw,17px);white-space:nowrap}
+#rvL{display:flex;flex-direction:column;gap:6px;padding:4px 8px 6px;overflow:hidden}
+#rvL .mx{padding:0;border:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:34px;gap:6px;flex:0 0 auto}
+#rvL .mx .ti{overflow:hidden;padding:1px 3px;border-radius:9px}#rvL .mx .ti i{font-size:8.5px;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}#rvL .mx .ti b{font-size:11.5px;line-height:1.15}
+#rvL .rvl{flex:1 1 0;min-height:30px;min-height:0;overflow:auto;border-radius:8px;background:#121b27}
+.rf{display:inline-block;filter:hue-rotate(150deg) saturate(4) brightness(1.15)}
+.lgd{display:flex;flex-wrap:wrap;gap:3px 16px;padding:2px 10px 4px;font:700 10.5px "Segoe UI",sans-serif;color:#cfd8e6}.lgd span{display:inline-flex;align-items:center;gap:5px}.lgd u{display:inline-block;width:13px;height:10px;border:2px solid;border-radius:3px}
+.alt th,.alt td{text-align:left}.alt th:nth-child(n+4):nth-child(-n+6),.alt td:nth-child(n+4):nth-child(-n+6){text-align:right}
+</style></head><body><div style="background:#5a2d00;color:#ffd9a0;font:800 12px Segoe UI,sans-serif;padding:4px 10px;text-align:center">🧪 LAB COPY — tradeability layer under test. Your live terminal is unchanged at <a href="trading.html" style="color:#fff">trading.html</a>. Settings here are stored separately from the live page.</div>
+<div class="top"><div class="tl"><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a><button id="wuB" class="alb" style="margin:0">📄 Write-up</button></div><div class="brand">Joshi's Corner</div>
+<div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
+<div class="dockrow"><div class="lcol"><div class="wrap"><table id="tb"></table></div><div class="mini"><div class="hm nwg bx" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div><div class="hm nwg bx" id="bgB"><div class="hmh"><b>MARKET BAROMETER</b><span id="bgc" class="hmc"></span></div><div class="nw" id="bgL">loading…</div></div><div class="hm nwg bx" id="rvB"><div class="hmh"><b>EARLY REVERSAL ALERTS</b><span id="rvc" class="hmc"></span></div><div class="nw" id="rvL">scanning…</div></div></div></div><div class="tvd" id="tvB"><div class="tvh"><b>ZEE BUSINESS LIVE</b><span style="flex:1"></span><button id="tvX" title="Switch between the official Zee Business stream and the YouTube fallback">⇄ Source</button><button id="tvR" title="Reload the TV only (page is not reloaded)">↻ TV</button><button id="tvM" title="unmute / mute">🔊</button><button id="tvP" title="Pop out - stays on top of other windows (Chrome/Edge)">⧉ Pop-out</button><button id="tvH" title="hide / show">▾</button></div>
+<div class="tvw" id="tvW"><video id="tvV" muted autoplay playsinline controls controlslist="nodownload"></video><iframe id="tvF" src="about:blank" title="Zee Business live" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>
+<div id="tvS" style="font:600 10.5px Segoe UI;color:#93a1b5;padding:2px 6px"></div><input id="tvU" placeholder="stream stopped? paste new YouTube live link" style="width:100%;box-sizing:border-box;font-size:10.5px"></div></div>
+<div class="split"><div class="hm" id="hm"><div class="hmh"><b>HEAT-MAP</b><span id="hmc" class="hmc"></span>
+ <label>Open=Low<input type="checkbox" id="fOL" checked></label><label>Above prev close<input type="checkbox" id="fUP" checked></label>
+ <label>Volume ≥<select id="fV"><option>1</option><option selected>1.5</option><option>2</option><option>3</option></select>× avg</label>
+ <label title="Compare volume with the share of the session already elapsed, so the filter works from the first hour">Pace-adjusted<input type="checkbox" id="fPC" checked></label>
+ <label>Group<select id="fG"><option value="">All 499</option><option value="L">Large 100</option><option value="M">Mid+Small 399</option></select></label>
+ <label>Show<select id="fN"><option>36</option><option selected>60</option><option>120</option><option value="9999">All</option></select></label>
+ <label title="Ticket size per trade (rupees lakh). Liquidity rule: ticket at most 1% of the stock's 20-day average daily traded value">Ticket ₹<input id="trT" type="number" min="0.5" step="0.5" style="width:46px">L</label><label title="Trading capital (rupees lakh) used for position sizing">Capital ₹<input id="trC" type="number" min="1" step="1" style="width:46px">L</label><label title="Capital risked per trade (entry to stop-loss)">Risk<input id="trR" type="number" min="0.1" max="3" step="0.1" style="width:42px">%</label><label title="Assumed slippage per side in basis points (spread + impact). Edit to match your fills">Slip<input id="trS" type="number" min="0" step="1" style="width:38px">bp</label><label title="Hide signals that are too thin for your ticket or whose costs eat more than 0.2 of the stop distance">Tradeable only<input type="checkbox" id="trO"></label><button id="evB" class="evbtn">📊 How reliable?</button>
+ <span id="hms" class="hmc"></span><span class="hmc" style="margin-left:auto;font-weight:600;opacity:.8">▲ profit to target 1 · ▼ loss to stop-loss · blinking ★ = best reward:risk · click a stock for technicals</span></div><div id="evBox" class="evb" style="display:none"></div><div class="lgd"><span><u style="border-color:#b466ff;box-shadow:0 0 6px #b466ff"></u>🐟 BIG FISH (bull) · violet</span><span><u style="border-color:#ff6a3d;box-shadow:0 0 6px #ff6a3d"></u><span class="rf">🐟</span>🔻 BIG FISH SHORT (bear) · red fish, orange-red edge</span><span><u style="border-color:#d6667a;background:#6a2a35"></u>🔻 Bear: Open=High, below prev close · rose</span><span><u style="border-color:#c9bd94;background:#27624f"></u>Bull match · gold edge</span></div><div class="hmg" id="hmg"></div></div>
+<div class="hm al" id="al"><div class="hmh"><b>LIVE ALERTS</b><span id="alc" class="hmc"></span>
+ <select id="alF" title="filter"><option value="">All types</option></select>
+ <button id="alS" class="alb">⚙ Triggers</button><span id="als" class="hmc" style="margin-left:auto"></span></div>
+ <div id="alCfg" class="alcfg" style="display:none"></div>
+ <div class="alt" id="alt"></div></div></div>
+<div class="foot" id="note"></div>
+<div class="mo" id="wu"><div class="md" style="max-width:1180px"><div class="mdh"><h2>Write-up · Live trading screen (current, finalized)</h2><span class="cm" style="font-size:11px">updated 05 Nov 2026 17:25 IST</span><button class="x" id="wuX">✕ Close</button></div><div style="padding:10px 16px;overflow:auto;max-height:82vh;font:15px/1.5 'Segoe UI',system-ui,sans-serif;color:#e6ecf3">
+<p style="margin:0 0 6px;color:#d9cfae">This sheet is updated with every finalized change. All data is real; nothing is invented. Restore point for the first layout: git branch <b>layout-v1</b> (commit 0792055) - run <code>git checkout layout-v1 -- trading.html</code>, then commit and push.</p><h3 class="wh">1. Screen layout (top to bottom)</h3><table class="wt"><thead><tr><th>Block</th><th>Position</th><th>What it is</th></tr></thead><tbody><tr><td>Top bar</td><td>Row 1</td><td>Left: LIVE TRADING SCREEN, Macro dashboard link, Write-up button. Centre: Joshi's Corner (gold script; no logo image yet). Right: market status, IST clock, data source label, data age</td></tr><tr><td>Index table</td><td>Row 2, left</td><td>Excel-style banded table: NIFTY50, BANKNIFTY, SENSEX, INDVIX, USDINR, BRENT CRUDE, US $ INDEX, US 10Y</td></tr><tr><td>Zee Business live TV</td><td>Row 2, right</td><td>Live player (official Zee stream, YouTube fallback) with title strip, status line and buttons</td></tr><tr><td>Live news / Market barometer / Early reversal alerts</td><td>Row 3 (under the index table, beside the TV)</td><td>Three boxes sharing the space; each scrolls inside itself</td></tr><tr><td>Heat-map</td><td>Row 4, left</td><td>Nifty 100 + MidSmallCap 400, filtered and ranked, with trading call per cell</td></tr><tr><td>Live alerts</td><td>Row 4, right</td><td>Alert feed with filter and trigger settings</td></tr><tr><td>Footer note</td><td>Bottom</td><td>How rows 1-4 of the index table are read</td></tr></tbody></table><h3 class="wh">2. Index table</h3><table class="wt"><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody><tr><td>Rows per index</td><td>1) price + trend tag; 2) points and % change; 3) S1 R1; 4) S2 R2</td></tr><tr><td>Pivots</td><td>LIVE floating pivots from today's high, low and last price: P=(H+L+C)/3, R1=2P-L, S1=2P-H, R2=P+(H-L), S2=P-(H-L). Level within 0.35% of price is highlighted</td></tr><tr><td>Trend tags</td><td>BULLISH, BEARISH, SIDEWAYS, BREAKOUT, BREAKDOWN, PULLBACK, RECOVERY, MILD BULL / MILD BEAR - from day change, position in the day range, slope of the latest readings and fresh day high/low</td></tr><tr><td>Inverse colours</td><td>INDVIX, USDINR and US 10Y: a rise is shown as pressure (red)</td></tr><tr><td>Refresh</td><td>Live quotes every 20 s in market hours, 120 s otherwise; GitHub snapshot used when the live feed is busy</td></tr></tbody></table><h3 class="wh">3. Heat-map and trading call</h3><table class="wt"><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody><tr><td>Popup chart with levels</td><td>Candles (5/15 min) with EMA9, EMA21 and VWAP, plus colour-coded level lines: red = stop-loss, cyan = targets, magenta = OI call wall, lime = OI put wall, gold = most-active strike, amber = day high/low, grey = previous day high/low, light red / green = pivot resistances / supports. Tick boxes for Pivots, OI, Fib. Button "TradingView live chart" opens the full chart in a new tab; "Copy levels for TradingView" copies a Pine script that draws the same lines on it (TradingView › Pine Editor › paste › Add to chart). TradingView cannot take drawn levels through a link, hence the script.</td></tr><tr><td>Option OI table (popup)</td><td>Top-3 call/put OI strikes, most-active strikes, stop-loss walls, broken/sustain status</td></tr><tr><td>Universe</td><td>Nifty 100 + MidSmallCap 400 = 499 stocks (about 495-497 return data)</td></tr><tr><td>Filters (all on by default)</td><td>Open = Low (within 0.05%), above previous close, volume at least 1.5x average (1 / 1.5 / 2 / 3 selectable), pace-adjusted for the share of the session elapsed. Group: All / Large 100 / Mid+Small 399. Show 36 / 60 / 120 / All</td></tr><tr><td>Ordering</td><td>Stocks matching every filter float to the top, then by how many filters match, then by % move</td></tr><tr><td>Cell content</td><td>Symbol, % move, volume multiple, ▲ profit to target 1, ▼ loss to stop-loss</td></tr><tr><td>Trading call</td><td>Entry = last price. Side by vote of EMA 9/21, EMA 10/20, EMA 50, VWAP, standard pivot, live pivot (50% or more bullish = BUY; 70% or more / 30% or less = strong). Stop-loss = EMA 50 if within 3%, else nearest support. Targets 1 and 2 = nearest levels beyond 0.25% of price. Shows profit, loss and reward:risk</td></tr><tr><td>Stocks without intraday bars</td><td>Only the top 40 by filter rank have 5-min bars; the rest use a day-range call (day high/low, live pivot, previous close)</td></tr><tr><td>Blinking ★ (top 3)</td><td>Must match all filters, be a BUY with profit to target 1 of at least 0.5% and loss of at most 3%, have intraday bars, volume of the latest bars at least 10% above the bars before (rising), price above VWAP and EMA9 above EMA21. Ranked by reward:risk. Soft 2.6 s pulse</td></tr><tr><td>🐟 BIG FISH trigger</td><td>Violet glow cell with a fish mark, floated to the top. A stock is a Big Fish only when ALL hold: price at least Rs 50; day volume above 3.5 lakh; relative volume (pace-adjusted) at least 1.5x; day range (high-low) at least 1.5%; price at least 2% above today's open; RSI 14 (daily, with today's price) above 55; price above the previous 1-month (20-session) high. Same violet colour and fish mark in Live alerts</td></tr><tr><td>🔻 Bear side</td><td>Order: Big Fish Short tiles pinned first (rare, time-critical); then all flagged tiles (Big Fish, matching bull, bear) with the 3 priority stars leading, bull and bear mixed by technical strength = (day range % + move %) x volume pace (capped at 5) x technical factor (1.3 when the intraday call is strong and agrees with the move's direction, 1.1 agrees, 0.9 disagrees), Big Fish x1.6. Bear tiles also include strong SELL calls down 2% or more on 1.5x volume pace, so positions change as volatility and volume change. Bear tile (🔻, rose glow): Open = High (within 0.05%), price below previous close, volume at least the chosen multiple of average. red fish + 🔻 BIG FISH SHORT (orange-red glow, pinned at the very top): price at least Rs 50; day volume above 3.5 lakh; relative volume BELOW 1.2x; day range at least 1.5%; price at least 1.5% below today's open; RSI 14 below 40; price below the previous 1-month low. Same colours in Live alerts. A colour legend sits under the heat-map header</td></tr><tr><td>Click a cell</td><td>Opens intraday technicals popup: timeframe 5 or 15 min; EMA 9/21 and 10/20 with above/below; EMA 50 as the day's stop-loss; VWAP; standard pivots; live pivots; Fibonacci 23.6 / 38.2 / 50 / 61.8 / 78.6% from the day high; volume trend vs previous bars and vs yesterday; verdict; colour-coded level ladder with the CMP marked; the trading call</td></tr><tr><td>Data</td><td>Branch heat (heat.json, bars.json) rebuilt every 5 min in market hours; live quotes through Apps Script when available; page refresh 45 s open / 180 s closed</td></tr></tbody></table><h3 class="wh">4. Live alerts</h3><table class="wt"><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody><tr><td>Alert types</td><td>Day high, day low, 1-month high, 1-month low, 52-week high, 52-week low, volume blast, price + volume breakout, Open = Low, Open = High, gap, custom price triggers</td></tr><tr><td>Rules</td><td>Each alert fires once per stock per day; first sweep capped at 60 alerts; stored in the browser per day; filter by type; count per type in the header; optional sound</td></tr><tr><td>🐟 BIG FISH alert</td><td>Violet row, fires once per stock per day with the time. The data job replays today's 5-min bars to find the minute each stock first met every condition, so the list is filled with real times even if the page was closed</td></tr><tr><td>🔻 BIG FISH SHORT alert</td><td>Orange-red row, once per stock per day with time (replayed from 5-min bars like the bull side). Open = High alerts already exist as OPEN=HIGH WEAK</td></tr><tr><td>⚙ Triggers</td><td>Settings for thresholds, sound and your own price triggers</td></tr><tr><td>Data</td><td>Same feed as the heat-map</td></tr></tbody></table><h3 class="wh">5. Zee Business live TV</h3><table class="wt"><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody><tr><td>Default source (from 05 Nov, evening)</td><td>Zee's own official 24x7 live stream (the same feed zeebiz.com plays), played natively in the page with hls.js: always live, no YouTube, no link to refresh. Auto-reconnects (token refresh every 50 min, frozen-picture watchdog). ⇄ Source switches to the YouTube programme fallback described below; pasting a YouTube link also switches to it.</td></tr><tr><td>Which stream</td><td>Newest-started programme stream of the Zee Business channel that is live now. A stream counts only if its tile shows "watching" and its page says "Started streaming N minutes/hours ago" (an old link says "on 25 Oct" and is rejected). View counts are ignored. Programme names matched: Zee Business, Share Market, First Trade, Final Trade, Market Radar, Anil Singhvi, Closing Bell</td></tr><tr><td>Refresh of the link</td><td>Branch zee, built by a GitHub job every 15 min in market hours (8:30-16:30 IST) and hourly otherwise; the page asks every 2 min</td></tr><tr><td>Buttons</td><td>↻ TV (reloads only the video, no page reload), 🔇/🔊 sound, ⧉ Pop-out (always-on-top window in Chrome/Edge; a plain small window elsewhere), ▾ hide, paste-link box (overrides the automatic choice in that browser)</td></tr><tr><td>Sound</td><td>Starts muted (browser rule). The first click or key press anywhere on the page unmutes it (volume 80)</td></tr><tr><td>Status line</td><td>Shows the programme, minutes since start and time of last check, plus an open-on-YouTube link; a red message with a link appears if YouTube blocks playing it inside the page</td></tr></tbody></table><h3 class="wh">6. Live news</h3><table class="wt"><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody><tr><td>Content</td><td>Market headlines, newest first, each with source, IST time and link</td></tr><tr><td>Sources</td><td>Economic Times, Moneycontrol, Mint, Business Standard and Google News market search (public RSS)</td></tr><tr><td>Refresh</td><td>Branch news, built every 10 min in market hours (30 min otherwise); page reads it every 60 s</td></tr></tbody></table><h3 class="wh">7. Market barometer and Fear & Greed</h3><table class="wt"><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody><tr><td>Tiles</td><td>Advancing / Declining, Average move, Day highs / lows (within 0.2% of the day extreme), 1-month highs / lows. 52-week counts are in the Fear & Greed tooltip</td></tr><tr><td>Fear & Greed score (0-100)</td><td>Average of: India VIX (25 = 0 to 10 = 100), % of stocks advancing, share of 1-month highs among highs + lows, Nifty day move (-2% = 0, +2% = 100). Zones: below 25 extreme fear, below 45 fear, below 55 neutral, below 75 greed, else extreme greed. This is our own score, not an official index</td></tr><tr><td>Market stance icon</td><td>Contrarian reading of the Fear &amp; Greed score (more greed = more risk, more fear = more opportunity): 75+ 🔥 overheated - avoid chasing; 55-75 ⚠️ getting risky - tighten stops; 45-55 ⚖️ balanced - stock-specific; 25-45 🛒 opportunity building - stagger buys; below 25 💎 opportunity - accumulate in stages. If the score is under 45 and 2 or more cross-asset factors are adverse, the line adds: wait, macro adverse. A general reading, not a trade signal</td></tr><tr><td>Data</td><td>Uses the heat-map feed already loaded; re-evaluated after every heat-map load and every 15 s</td></tr></tbody></table><h3 class="wh">8. Early reversal alerts</h3><table class="wt"><thead><tr><th>Check</th><th>Rule</th></tr></thead><tbody><tr><td>Index turn (Nifty, Bank Nifty, Sensex)</td><td>UP: price at least 0.25% above the day low, the low made within the last 20 readings, last 4 readings rising, the 8 before the low falling. DOWN: mirror image from the day high. EARLY from 0.25%, CONFIRMED above 0.6%</td></tr><tr><td>Top-40 stocks</td><td>15-min EMA9 crosses EMA21 within the last 3 bars, with the latest 2 bars' volume above the 2 before</td></tr><tr><td>Sudden cross-asset moves (30 min)</td><td>RISK-OFF when India VIX rises 3%, USDINR rises 0.15%, Brent rises 1.2%, US $ index rises 0.25%, US 10Y yield rises 2%, or Dow futures fall 0.4%. RISK-ON for the opposite moves. These limits are my starting values and can be changed</td></tr><tr><td>Tiles</td><td>One tile per factor with its 30-min move (pink adverse, green supportive, cyan below limit; adverse tiles pulse softly) and an adverse / supportive count</td></tr><tr><td>Note</td><td>Live feed readings are 15-min apart, snapshot readings 5-min apart; the 30-min window adjusts to the source</td></tr></tbody></table><h3 class="wh">9. Look and feel</h3><table class="wt"><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody><tr><td>Theme</td><td>Soft slate-blue dark background with muted sage / rose / sand accents (chosen to reduce eye strain); light background not adopted</td></tr><tr><td>Tiles</td><td>Barometer and cross-asset tiles use smoky glass gradients with fluorescent glow (cyan, pink, green)</td></tr><tr><td>Blink</td><td>Priority stocks pulse slowly instead of blinking fast</td></tr><tr><td>Branding</td><td>Joshi's Corner centred in the top bar in gold Brush Script. The tree emoji was removed; the real logo image can be added when supplied</td></tr></tbody></table><h3 class="wh">10. Data sources and limits</h3><table class="wt"><thead><tr><th>Data</th><th>Source</th><th>Refresh / note</th></tr></thead><tbody><tr><td>Live quotes, heat-map prices</td><td>Yahoo Finance through your Apps Script backend</td><td>Free daily UrlFetch quota; when it is out, the page falls back to the GitHub snapshot</td></tr><tr><td>Snapshot (29 symbols)</td><td>Branch snapshot, built by GitHub Actions</td><td>About every minute across a 5-min cycle in market hours</td></tr><tr><td>Heat-map data and bars</td><td>Branch heat</td><td>Every 5 min in market hours</td></tr><tr><td>News</td><td>Branch news</td><td>Every 10 min</td></tr><tr><td>Zee link</td><td>Branch zee</td><td>Every 15 min in market hours</td></tr><tr><td>GitHub access</td><td>News and Zee read from raw files first; quotes use the GitHub API first with raw as fallback</td><td>The anonymous GitHub API allows 60 calls per hour per network</td></tr><tr><td>Apps Script</td><td>apps-script/Code.gs in jc-stock-analyst must be redeployed for the per-symbol caching and quieter Telegram polling</td><td>Pending on your side</td></tr></tbody></table><h3 class="wh">11. Macro dashboard (index.html)</h3><table class="wt"><thead><tr><th>Item</th><th>Detail</th></tr></thead><tbody><tr><td>Button</td><td>◂ TRADING TERMINAL in its header opens this screen</td></tr><tr><td>Data</td><td>All demo numbers removed. India, US, Asia, Europe and commodity tables use the live GitHub snapshot (spot indices and futures labelled as such); live news; FII/DII and FPI from your jc-stock-analyst data; stock option OI from the last close</td></tr><tr><td>Shown as n/a</td><td>Gift Nifty, Euro-Bund, Long Gilt, India 10Y, Nifty PCR (no free feed)</td></tr><tr><td>Removed</td><td>Fear/Greed demo card and astrology card (invented numbers)</td></tr><tr><td>Header</td><td>Badge shows real feed age; global trend from the average % change of 8 indices/futures</td></tr></tbody></table><h3 class="wh">12. Change history (finalized items only)</h3><table class="wt"><thead><tr><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>05 Nov 2026</td><td>Dashboard quota fix and count-button tiles (stock analyst app)</td></tr><tr><td>05 Nov 2026</td><td>Trading terminal: index table with live pivots, heat-map, technicals popup, trading call and priority stars, live alerts</td></tr><tr><td>05 Nov 2026</td><td>Macro dashboard rebuilt on live data with terminal button</td></tr><tr><td>05 Nov 2026</td><td>Live news; equal panel heights</td></tr><tr><td>05 Nov 2026</td><td>Calm colour theme; priority stars now need rising volume, price above VWAP and EMA9 above EMA21</td></tr><tr><td>06 Nov 2026</td><td>Popup: level chart with colour coding, TradingView link, Pine export; TV starts faster and sits closer to live</td></tr><tr><td>05 Nov 2026</td><td>Zee Business TV now plays the official Zee stream directly (always live); YouTube kept as fallback via ⇄ Source</td></tr><tr><td>05 Nov 2026</td><td>Zee Business live TV with automatic latest-programme link, refresh button, pop-out, sound on first click</td></tr><tr><td>05 Nov 2026</td><td>Market barometer, Fear & Greed with market stance icon, early reversal alerts with cross-asset moves, infographic tiles</td></tr><tr><td>05 Nov 2026</td><td>Write-up button; centred Joshi's Corner header; tree removed</td></tr><tr><td>05 Nov 2026</td><td>Barometer and reversal tiles fill their boxes; bull and bear tiles ranked together by volatility x volume</td></tr><tr><td>05 Nov 2026</td><td>Bear side: Open=High bear tiles, Big Fish Short trigger with separate colours in heat-map and alerts</td></tr><tr><td>05 Nov 2026</td><td>Big Fish trigger (violet colour, fish mark) in heat-map and live alerts with today's results and times</td></tr><tr><td>05 Nov 2026</td><td>Market stance icon made contrarian (greed = risky, fear = opportunity); only one TV plays across open tabs; larger write-up font</td></tr></tbody></table><h3 class="wh">13. Tried and removed</h3><table class="wt"><thead><tr><th>Item</th><th>Why</th></tr></thead><tbody><tr><td>TV trading calls panel</td><td>Built from channel website headlines, not the on-screen ticker</td></tr><tr><td>Dial, tug-of-war bar, fill meters</td><td>Made the boxes taller than the available space</td></tr><tr><td>Weather-style icon for Fear &amp; Greed (clear sky for greed)</td><td>Read the wrong way round: greed is the risky end, fear is the opportunity. Replaced by the contrarian stance icon</td></tr><tr><td>Bottom news row</td><td>News moved into the gap beside the TV</td></tr></tbody></table></div></div></div>
+<div class="mo" id="mo"><div class="md"><div class="mdh"><h2 id="mSym">—</h2><span class="cm" id="mCmp"></span><span id="mChg"></span>
+ <label style="font:700 12px 'Segoe UI';color:#dde4ee">Timeframe <select id="mTf"><option value="5">5 min</option><option value="15" selected>15 min</option></select></label><small id="mSrc"></small><button class="x" id="mX">✕ Close</button></div>
+ <div id="mVer"></div><div class="chb" id="mCh"><div class="chh"><b>CHART · LEVELS</b><span id="mChL" class="chl"></span><span style="flex:1"></span><label><input type="checkbox" id="chP" checked> Pivots</label><label><input type="checkbox" id="chO" checked> OI</label><label><input type="checkbox" id="chF"> Fib</label><a id="mTV" class="chbtn" target="_blank" rel="noopener">📈 TradingView live chart ↗</a><button id="mPine" class="chbtn" title="Copies a TradingView script that draws every level on the full TradingView chart">⧉ Copy levels for TradingView</button></div><div id="mChC"></div></div><div class="mdb"><div><div id="mCond"></div><div id="mPlan"></div><div id="mOI"></div></div><div id="mLad"></div></div>
+ <div class="mdn">EMA = exponential moving average on closing prices of the chosen timeframe (warmed up over the last 5 sessions) · VWAP = volume-weighted average price of today's session · Standard pivot from the previous session · Live pivot and Fibonacci retracement from today's high/low · EMA50 used as the day's stop-loss reference. Delayed Yahoo data · study aid, not advice.</div></div></div>
+<script>
+'use strict';
+window.TVM=(function(){ try{ return localStorage.getItem('jctv_mode')==='yt'?'yt':'hls'; }catch(e){ return 'hls'; } })();   // TV source is decided before any TV code runs
+/* ---- config ---- */
+const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'; // shared Joshi's Corner Apps Script (action=dash)
+const COLS=[['^NSEI','NIFTY50',2],['^NSEBANK','BANKNIFTY',2],['^BSESN','SENSEX',2],['^INDIAVIX','INDVIX',2,1],['USDINR=X','USDINR',3,1],['BZ=F','BRENT CRUDE',2],['DX-Y.NYB','US $ INDEX',2],['^TNX','US 10Y',3,1]];
+const DEF={}; COLS.forEach(a=>DEF[a[0]]={n:a[1],dp:a[2],inv:!!a[3]});
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=(v,dp)=>Number(v).toFixed(dp);
+const sg=(v,dp)=>(v>0?'+':v<0?'-':'')+fmt(Math.abs(v),dp);
+const ist=()=>new Date(Date.now()+19800000);
+const istMin=()=>{const d=ist();return d.getUTCHours()*60+d.getUTCMinutes()};
+const indiaOpen=()=>{const d=ist().getUTCDay();return d>0&&d<6&&istMin()>=555&&istMin()<=930};
+/* ---- trend engine: day change, position in the day's range, slope of the latest bars, fresh high/low ---- */
+function trend(r,inv){
+  const sp=(r.sp||[]).filter(v=>v!=null), p=r.p, pc=r.pc, chg=pc?(p/pc-1)*100:0;
+  if(sp.length<6) return chg>0.25?['BULLISH','bu']:chg<-0.25?['BEARISH','be']:['SIDEWAYS','sw'];
+  const hi=Math.max(...sp,r.hi||0), lo=Math.min(...sp.filter(v=>v>0),r.lo||1e18), rng=Math.max(hi-lo,1e-9), pos=(p-lo)/rng;
+  const prior=sp.slice(0,-3), pH=Math.max(...prior), pL=Math.min(...prior), n=Math.min(10,sp.length-1), slope=(sp[sp.length-1]/sp[sp.length-1-n]-1)*100;
+  const narrow=rng/p*100<0.18;
+  if(p>pH&&sp.length>=20&&chg>0.15) return ['BREAKOUT','bo'];
+  if(p<pL&&sp.length>=20&&chg<-0.15) return ['BREAKDOWN','bd2'];
+  if(narrow||Math.abs(chg)<0.12&&pos>0.25&&pos<0.75) return ['SIDEWAYS','sw'];
+  if(chg>0.2&&slope>=-0.03&&pos>0.5) return ['BULLISH','bu'];
+  if(chg<-0.2&&slope<=0.03&&pos<0.5) return ['BEARISH','be'];
+  if(chg>0.2&&slope<-0.05) return ['PULLBACK','sw'];
+  if(chg<-0.2&&slope>0.05) return ['RECOVERY','sw'];
+  return chg>0?['MILD BULL','bu']:chg<0?['MILD BEAR','be']:['SIDEWAYS','sw'];
+}
+const Q={}; let srcLabel='loading…', snapTs=0;
+function livePv(r){ // floating pivots from today's live high/low and the current price
+  const sp=(r.sp||[]).filter(v=>v!=null); if(sp.length<3) return null;
+  const H=Math.max(r.hi||0,...sp,r.p), L=Math.min(r.lo||1e18,...sp,r.p); if(!(H>L)) return null;
+  const P=(H+L+r.p)/3, R=H-L; return {P,R1:2*P-L,S1:2*P-H,R2:P+R,S2:P-R};
+}
+function cell(a){
+  const s=a[0], d=DEF[s], r=Q[s];
+  if(!r||r.p==null) return ['<td class="nodata">no data</td>','<td></td>','<td></td>','<td></td>'];
+  const pv=livePv(r);
+  const pt=r.pc?r.p-r.pc:0, pc=r.pc?(r.p/r.pc-1)*100:0, good=d.inv?pt<0:pt>0, cls=pt===0?'fl':(good?'up':'dn');
+  let [txt,k]=trend(r,d.inv);
+  if(d.inv&&(k==='bu'||k==='be')){txt=k==='bu'?'RISING':'FALLING'; k=k==='bu'?'be':'bu';}
+  if(d.inv&&k==='bo'){txt='SPIKE';k='bd2';} if(d.inv&&k==='bd2'){txt='DROP';k='bo';}
+  const nr=(v)=>Math.abs(r.p/v-1)<0.0035?' near':'';
+  const L=(c,l,v)=>`<span class="${c}${nr(v)}"><i>${l}</i><b>${fmt(v,d.dp)}</b></span>`;
+  return [`<td class="px ${cls}">${fmt(r.p,d.dp)}<span class="tag ${k}">${txt}</span></td>`,
+    `<td class="${cls}">${sg(pt,d.dp)} (${sg(pc,2)}%)</td>`,
+    pv?`<td class="sr">${L('s','S1',pv.S1)}${L('r','R1',pv.R1)}</td>`:'<td class="nodata">levels building…</td>',
+    pv?`<td class="sr">${L('s','S2',pv.S2)}${L('r','R2',pv.R2)}</td>`:'<td></td>'];
+}
+function paint(){
+  const c=COLS.map(cell);
+  $('tb').innerHTML='<thead><tr>'+COLS.map(a=>`<th data-y="${a[0]}" style="cursor:pointer" title="click for intraday technicals">${a[1]}</th>`).join('')+'</tr></thead><tbody>'+[0,1,2,3].map(i=>'<tr>'+c.map(x=>x[i]).join('')+'</tr>').join('')+'</tbody>';
+  $('src').textContent=srcLabel; ageTick();
+}
+function ageTick(){ const e=$('age'); if(!snapTs){e.textContent='';return;} const m=Math.max(0,Math.round((Date.now()-snapTs)/60000)); e.textContent='data '+(m<1?'<1':m)+' min old'; e.className='age '+(m<=6?'ok':'old'); }
+/* ---- data: live backend first; GitHub snapshot (real Yahoo data built every 5 min) when the backend is out of quota ---- */
+async function getJ(url,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,cache:'no-store'});const tx=await r.text();return JSON.parse(tx)}finally{clearTimeout(t)}}
+const API='https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/snapshot.json?ref=snapshot';
+async function snap(){ // newest snapshot: GitHub API (no CDN lag) -> raw branch -> file in main
+  const c=new AbortController(), t=setTimeout(()=>c.abort(),10000);
+  try{ const r=await fetch(API,{headers:{Accept:'application/vnd.github.raw'},signal:c.signal}); if(r.ok) return JSON.parse(await r.text()); }catch(e){} finally{clearTimeout(t)}
+  try{ return await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/snapshot/snapshot.json?x='+Math.floor(Date.now()/60000),10000); }catch(e){}
+  return await getJ('data/snapshot.json?x='+Math.floor(Date.now()/60000),10000);
+}
+let quotaUntil=0, lvAt=0;
+async function load(){
+  const syms=COLS.map(a=>a[0]).concat(['YM=F']);
+  if(Date.now()>quotaUntil){
+    try{
+      const j=await getJ(BACKEND+'?action=dash&symbols='+encodeURIComponent(syms.join(',')),12000);
+      if(j&&Array.isArray(j.rows)&&j.rows.length){ j.rows.forEach(r=>{if(r&&!r.err&&r.p!=null){const o=Q[r.s]; Q[r.s]=Object.assign(o&&o.hi?{hi:o.hi,lo:o.lo}:{},r);}}); srcLabel='LIVE'; snapTs=Date.now(); return paint(); }
+      if(j&&j.error&&/too many times|quota/i.test(j.error)) quotaUntil=Date.now()+30*60000;
+    }catch(e){ quotaUntil=Date.now()+180000; } // quota page / timeout: retry the live feed in 3 min, meanwhile use the snapshot
+  }
+  try{
+    const j=await snap();
+    j.rows.forEach(r=>{Q[r.s]=r;}); snapTs=Date.parse(j.ts); srcLabel='SNAPSHOT (live feed busy)';
+  }catch(e){ srcLabel='no data source reachable'; }
+  paint();
+}
+/* ---------------- HEAT-MAP: Open=Low · above previous close · volume ≥ N× average ---------------- */
+const HM={rows:[],ts:0,src:'',uni:null,at:0,busyUntil:0,stat:{},statAt:0};
+const BF={val:50,vol:350000,rel:1.5,vola:1.5,fo:2,rsi:55};
+function bfOk(r,f){ const [sy,g,p,pc,o,h,l,v,av]=r, st=HM.stat[sy]||[], mh=r[10]??st[0], rs=r[14]??st[4]; if(!o||!l||!av||mh==null||rs==null) return false; return p>=BF.val&&v>=BF.vol&&v/(av*f)>=BF.rel&&(h-l)/l*100>=BF.vola&&(p-o)/o*100>=BF.fo&&rs>BF.rsi&&p>mh; }
+const BS={rel:1.2,fo:-1.5,rsi:40};
+function bsOk(r,f){ const [sy,g,p,pc,o,h,l,v,av]=r, st=HM.stat[sy]||[], ml=r[11]??st[1], rs=r[14]??st[4]; if(!o||!l||!av||ml==null||rs==null) return false; return p>=BF.val&&v>=BF.vol&&v/(av*f)<BS.rel&&(h-l)/l*100>=BF.vola&&(p-o)/o*100<=BS.fo&&rs<BS.rsi&&p<ml; }
+const BSS=()=>{ const s={}; HM.rows.forEach(r=>{ if(r[9]===istDay()&&bsOk(r,frac())) s[r[0]]=1; }); Object.keys(HM.bs||{}).forEach(k=>{ s[k]=s[k]||2; }); return s; };
+const BFS=()=>{ const s={}; HM.rows.forEach(r=>{ if(r[9]===istDay()&&bfOk(r,frac())) s[r[0]]=1; }); Object.keys(HM.bf||{}).forEach(k=>{ s[k]=s[k]||2; }); return s; };
+const frac=()=>{const m=istMin(); return m>=555&&m<=930?Math.max((m-555)/375,0.04):1;};
+const istDay=()=>ist().toISOString().slice(0,10);
+async function heatFeed(){
+  // 1) live quotes through the backend (3-min back-off when it is out of quota)  2) GitHub 'heat' branch built every 5 min
+  if(Date.now()>quotaUntil && Date.now()>=HM.busyUntil){
+    HM.busyUntil=Date.now()+110000;
+    try{
+      if(!HM.uni) HM.uni=await getJ('data/universe.json',10000);
+      const all=HM.uni.large.map(x=>[x,'L']).concat(HM.uni.midsmall.map(x=>[x,'M'])), g={}; all.forEach(a=>g[a[0]]=a[1]);
+      const parts=[all.slice(0,250),all.slice(250)], rows=[];
+      const rs=await Promise.all(parts.map(p=>getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.map(a=>a[0]+'.NS').join(',')),30000)));
+      rs.forEach(j=>{ if(j&&j.ok) Object.keys(j.q).forEach(k=>{const q=j.q[k],sy=k.replace(/\.NS$/,''); if(q&&q[1]){ const st=HM.stat[sy]||[]; rows.push([sy,g[sy]||'M',q[0],q[1],q[2],q[3],q[4],q[5],q[6],istDay(),st[0],st[1],Math.max(st[2]||0,q[8]||0)||null,(st[3]&&q[9])?Math.min(st[3],q[9]):(st[3]||q[9]||null),st[4]]); }}); });
+      if(rows.length>all.length*0.5){ HM.rows=rows; HM.ts=Date.now(); HM.src='LIVE'; if(Date.now()-HM.statAt>240000) await snapFetch(true); return; }
+    }catch(e){ quotaUntil=Math.max(quotaUntil,Date.now()+180000); }
+  }
+  await snapFetch(false);
+}
+async function snapFetch(statOnly){
+  try{
+    let j; const c=new AbortController(), t=setTimeout(()=>c.abort(),12000);
+    try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/heat.json?ref=heat',{headers:{Accept:'application/vnd.github.raw'},signal:c.signal}); if(r.ok) j=JSON.parse(await r.text()); }catch(e){} finally{clearTimeout(t)}
+    if(!j) j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Math.floor(Date.now()/60000),12000);
+    j.rows.forEach(r=>{ HM.stat[r[0]]=[r[10],r[11],r[12],r[13],r[14]]; }); HM.statAt=Date.now(); HM.bf=j.bf||{}; HM.bs=j.bs||{};
+    if(!statOnly){ HM.rows=j.rows; HM.ts=Date.parse(j.ts); HM.src='SNAPSHOT'; }
+  }catch(e){ if(!statOnly&&!HM.rows.length) HM.src='no feed'; }
+}
+/* ---------------- TRADING CALL: entry = LTP, stop-loss, first/second target, profit vs loss ---------------- */
+const CALLS={}, BARS={}; let barsAt=0, barsTs=0;
+function buildCall(c,lv,e50,side){ // lv = [[name,price],...]
+  const minD=c*0.0025, ab=lv.map(x=>x[1]).filter(v=>v>c+minD).sort((a,b)=>a-b), be=lv.map(x=>x[1]).filter(v=>v<c-minD).sort((a,b)=>b-a);
+  let sl,t1,t2;
+  if(side==='BUY'){ sl=(e50!=null&&e50<c&&(c-e50)/c<=0.03)?e50:(be[0]!=null?be[0]:c*0.99); t1=ab[0]!=null?ab[0]:c*1.01; t2=ab.find(v=>v>t1+minD); if(t2==null) t2=t1+(t1-c); }
+  else { sl=(e50!=null&&e50>c&&(e50-c)/c<=0.03)?e50:(ab[0]!=null?ab[0]:c*1.01); t1=be[0]!=null?be[0]:c*0.99; t2=be.find(v=>v<t1-minD); if(t2==null) t2=t1-(c-t1); }
+  const prof=Math.abs(t1-c), loss=Math.max(Math.abs(c-sl),c*0.0005);
+  return {side,entry:c,sl,t1,t2,prof,loss,pp:prof/c*100,lp:loss/c*100,rr:prof/loss};
+}
+function levelsOf(A){ const L=[]; const add=(n,v)=>{ if(v!=null&&isFinite(v)) L.push([n,v]); };
+  [9,21,10,20].forEach(k=>add('EMA'+k,A.e[k])); add('VWAP',A.vwap); add('Day high',A.dh); add('Day low',A.dl);
+  if(A.std){ ['R3','R2','R1','P','S1','S2','S3'].forEach(k=>add('Std '+k,A.std[k])); } ['R2','R1','P','S1','S2'].forEach(k=>add('Live '+k,A.live[k])); A.fib.forEach(f=>add('Fib '+f[0],f[1])); add('EMA50',A.e[50]); return L; }
+function sideOf(A){ let b=0,t=0; const c=A.cmp; [[9,21],[10,20]].forEach(([x,y])=>{ if(A.e[x]!=null){t++; if(c>A.e[x]&&c>A.e[y]) b++;} }); if(A.e[50]!=null){t++; if(c>A.e[50]) b++;} if(A.hasVol&&A.vwap!=null){t++; if(c>A.vwap) b++;} if(A.std){t++; if(c>A.std.P) b++;} t++; if(c>A.live.P) b++; const r=t?b/t:.5; return {ratio:r,side:r>=0.5?'BUY':'SELL',strong:r>=0.7||r<=0.3}; }
+function rowCall(x,r){ // fallback for stocks without intraday bars: day high/low, live pivot, previous close
+  const [sy,g,p,pc,o,h,l]=r, P=(h+l+p)/3, lv=[['Day high',h],['Day low',l],['Live R1',2*P-l],['Live S1',2*P-h],['Live R2',P+(h-l)],['Live S2',P-(h-l)],['Prev close',pc],['Open',o]];
+  return buildCall(p,lv,null,x.pct>=0?'BUY':'SELL'); }
+async function loadBarsCache(){
+  if(Date.now()-barsAt<240000) return; barsAt=Date.now();
+  try{ let j; const c=new AbortController(), t=setTimeout(()=>c.abort(),15000);
+    try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/bars.json?ref=heat',{headers:{Accept:'application/vnd.github.raw'},signal:c.signal}); if(r.ok) j=JSON.parse(await r.text()); }catch(e){} finally{clearTimeout(t)}
+    if(!j) j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/bars.json?x='+Math.floor(Date.now()/60000),15000);
+    Object.assign(BARS,j.bars); barsTs=Date.parse(j.ts); }catch(e){} }
+function callFor(x,r){ const b=BARS[x.sy]; if(b){ try{ const A=analyse(b,15); if(A){ const sd=sideOf(A); const cl=buildCall(x.p,levelsOf(A),A.e[50],sd.side); cl.src='bars'; cl.strong=sd.strong; cl.vchg=A.vchg; cl.vw=A.vwap!=null&&A.cmp>A.vwap; cl.e9=A.e[9]!=null&&A.e[21]!=null&&A.e[9]>A.e[21]; return cl; } }catch(e){} } const cl=rowCall(x,r); cl.src='day range'; return cl; }
+
+/* ---- tradeability layer: ticket, liquidity (1 % of 20-day value), cost-in-R, position size, late-entry guard ---- */
+const trCfg=()=>Object.assign({T:5,C:10,R:0.5,S:5,only:true},ldj('jct_tr',{}));
+function trCost(T,slipBp){ const br=Math.min(0.0003*T,20)*2, stt=0.00025*T, stamp=0.00003*T, ex=0.0000307*T*2, sebi=0.000001*T*2, gst=0.18*(br+ex+sebi), stat=br+stt+stamp+ex+sebi+gst, slip=T*slipBp/10000*2; return {stat,slip,tot:stat+slip,pct:(stat+slip)/T*100}; }
+function trPlan(p,avgVol,cl,cfg,ct){ const val=(avgVol||0)*p, per=Math.abs(cl.entry-cl.sl), qR=per>0?Math.floor(cfg.C*1e5*cfg.R/100/per):0, qT=Math.floor(cfg.T*1e5/p), qL=Math.floor(0.01*val/p), qty=Math.max(0,Math.min(qR,qT,qL)), lim=qty===qL&&qL<Math.min(qR,qT)?'liquidity (1% of daily value)':qty===qT&&qT<qR?'ticket size':'risk %';
+  const costR=cl.lp>0?ct.pct/cl.lp:9, thin=val<cfg.T*1e5*100, costly=costR>0.2; return {valCr:val/1e7,qty,qLim:lim,riskRs:qty*per,costPct:ct.pct,costR,be:(1+costR)/(1+cl.rr)*100,thin,costly,ok:!thin&&!costly,tradeRs:qty*p}; }
+function heatPaint(){
+  const ol=$('fOL').checked, up=$('fUP').checked, vm=+$('fV').value, pace=$('fPC').checked, grp=$('fG').value, lim=+$('fN').value, today=istDay(), f=frac();
+  const out=[]; HM.rows.forEach(r=>{
+    const [sy,g,p,pc,o,h,l,v,av,d]=r; if(grp&&g!==grp) return; if(!pc||!o) return;
+    const live=(d===today), pct=(p/pc-1)*100, cOL=live&&(o-l)/o*100<=0.05, cOH=live&&(h-o)/o*100<=0.05, cDN=live&&p<pc, cUP=live&&p>pc, vx=av?v/av:0, vpace=av?v/(av*f):0, cV=live&&(pace?vpace:vx)>=vm;
+    const need=(ol?1:0)+(up?1:0)+1, got=(ol&&cOL?1:0)+(up&&cUP?1:0)+(cV?1:0);
+    out.push({sy,g,p,pct,vx,vpace,cOL,cUP,cV,live,full:live&&got===need,got,need,r,bear:live&&cOH&&cDN&&cV});
+  });
+  const bfs=BFS(), bss=BSS(); out.forEach(x=>{ x.bf=bfs[x.sy]||0; x.bs=bss[x.sy]||0; });
+
+  out.forEach(x=>{ x.cl=callFor(x,x.r); CALLS[x.sy]=x.cl; x.cl.pri=0; });
+  const TRX=trCfg(), TCT=trCost(TRX.T*1e5,TRX.S), LATE=istMin()>=885&&istMin()<=930; out.forEach(x=>Object.assign(x,trPlan(x.p,x.r[8],x.cl,TRX,TCT)));
+  out.forEach(x=>{ x.sell2=x.live&&!x.bear&&x.cl.side==='SELL'&&x.cl.strong&&x.pct<=-2&&x.vpace>=1.5; if(x.sell2) x.bear=true; });
+  // priority = full-filter stocks CONFIRMED by rising intraday volume (latest bars >=10% above the bars before), price above VWAP and EMA9>EMA21;  with the best profit-to-loss (small stop-loss, big first target), top 3
+  out.filter(x=>x.full&&x.cl.side==='BUY'&&x.cl.pp>=0.5&&x.cl.lp<=3&&x.cl.src==='bars'&&x.cl.vchg!=null&&x.cl.vchg>=10&&x.cl.vw&&x.cl.e9).sort((a,b)=>b.cl.rr-a.cl.rr||a.cl.lp-b.cl.lp).slice(0,3).forEach((x,i)=>{ x.cl.pri=i+1; });
+  out.forEach(x=>{ const rg=x.r[6]?(x.r[5]-x.r[6])/x.r[6]*100:0, dn=x.pct<0, agree=(x.cl.side==='SELL')===dn;
+    x.str=(rg+Math.abs(x.pct))*Math.min(Math.max(x.vpace,0.5),5)*(x.cl.strong&&agree?1.3:agree?1.1:0.9)*((x.bf||x.bs)?1.6:1); x.tier=(x.bf||x.bs||x.full||x.bear)?2:1; });
+  // Big Fish SHORT tiles are rare and time-critical: pinned first; then flagged bull + bear tiles mixed by technical strength (priority stars lead the bulls); then the rest
+  out.sort((a,b)=>(!!b.bs-!!a.bs)||(b.bs?(b.str-a.str):0)||(b.tier-a.tier)||(b.tier>1?(((b.cl.pri?1:0)-(a.cl.pri?1:0))||(b.str-a.str)):((b.got-a.got)||(b.pct-a.pct))));
+  const totAll=out.length, hid={thin:0,cost:0}; if(TRX.only){ for(let i=out.length-1;i>=0;i--){ const x=out[i]; if(!x.ok){ if(x.got>0||x.bf||x.bs||x.bear){ x.thin?hid.thin++:hid.cost++; } out.splice(i,1); } } }
+  const nf=out.filter(x=>x.full).length, tot=totAll, shown=out.filter((x,i)=>i<lim||x.bs||x.bear);
+  const col=(x)=>{const a=Math.min(Math.abs(x.pct)/4,1); return x.pct>=0?`hsl(158 ${24+Math.round(a*18)}% ${21+Math.round(a*10)}%)`:`hsl(352 ${24+Math.round(a*18)}% ${23+Math.round(a*9)}%)`;};
+  $('hmg').innerHTML=shown.map(x=>{ const c=x.cl; return `<div data-sy="${x.sy}" class="hc ${LATE?'late ':''}${x.full?'full':x.got?'part':'none'}${c.pri?' pri':''}${x.bf?' bf':''}${x.bs?' bs':''}${x.bear?' bear':''}" style="background:${col(x)}" title="${x.sy}  ${fmt(x.p,2)}  ${sg(x.pct,2)}%  | Open=Low ${x.cOL?'yes':'no'} | above prev close ${x.cUP?'yes':'no'} | vol ${x.vx.toFixed(2)}x avg, pace ${x.vpace.toFixed(2)}x\n${c.side}: entry ${fmt(c.entry,2)} · SL ${fmt(c.sl,2)} · T1 ${fmt(c.t1,2)} · T2 ${fmt(c.t2,2)} · reward:risk ${c.rr.toFixed(2)} (levels from ${c.src})\nPlan: qty ${x.qty} (limit: ${x.qLim}) · cost ${x.costPct.toFixed(2)}% = ${x.costR.toFixed(2)}R · break-even hit-rate ${x.be.toFixed(0)}% · avg daily value ₹${x.valCr.toFixed(1)} cr${x.ok?'':' · NOT TRADEABLE ('+(x.thin?'thin':'cost-heavy')+')'}"><i><u class="${x.cOL?'on':''}"></u><u class="${x.cUP?'on':''}"></u><u class="${x.cV?'on':''}"></u></i><b>${x.bf?'🐟 ':''}${x.bs?'<span class="rf">🐟</span>🔻 ':x.bear?'🔻 ':''}${c.pri?'★'+c.pri+' ':''}${x.sy}</b><span>${sg(x.pct,1)}% · ${(pace?x.vpace:x.vx).toFixed(1)}x</span><span class="cl"><span class="p">▲+${c.pp.toFixed(1)}%</span> <span class="l">▼−${c.lp.toFixed(1)}%</span></span></div>`; }).join('')||'<div class="nodata" style="padding:8px">no data yet</div>';
+  const nb=out.filter(x=>x.bf).length, ns=out.filter(x=>x.bs).length, nbe=out.filter(x=>x.bear).length; $('hmc').textContent=`MATCH ${nf} / ${tot}`+(nb?` · 🐟 BIG FISH ${nb}`:'')+(ns?` · 🔻 SHORT FISH ${ns}`:'')+(nbe?` · 🔻 BEAR ${nbe}`:'')+(TRX.only&&(hid.thin||hid.cost)?` · hidden ${hid.thin+hid.cost} (thin ${hid.thin}, cost-heavy ${hid.cost})`:'')+(LATE?' · ⏰ after 14:45: no new entries, square off by 15:15':'');
+  const m=HM.ts?Math.max(0,Math.round((Date.now()-HM.ts)/60000)):null;
+  $('hms').textContent=(HM.src||'loading…')+(m==null?'':' · '+(m<1?'<1':m)+' min old')+(out.length&&!out[0].live?' · last session (market not open yet)':'');
+}
+
+/* ---------------- LIVE ALERTS & TRIGGERS ---------------- */
+const AT={DH:['DAY HIGH','g'],DL:['DAY LOW','r'],MH:['1M HIGH','g2'],ML:['1M LOW','r2'],WH:['52W HIGH','y'],WL:['52W LOW','r2'],VB:['VOLUME BLAST','b'],PV:['PRICE+VOL BREAKOUT','y'],OL:['OPEN=LOW SETUP','g'],OH:['OPEN=HIGH WEAK','r'],BF:['🐟 BIG FISH','bf'],BS:['🔻 BIG FISH SHORT','bs'],GP:['GAP ±2%','b'],PX:['PRICE TRIGGER','y']};
+const ldj=(k,d)=>{ try{ return JSON.parse(localStorage.getItem(k)||'null')||d; }catch(e){ return d; } }, svj=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} };
+const CFG=Object.assign({types:{},pace:3,minchg:0.5,sound:0,px:[]},ldj('jcal_cfg',{})); Object.keys(AT).forEach(k=>{ if(CFG.types[k]==null) CFG.types[k]=1; });
+const AL={list:[],done:{},st:{},first:true,seen:0,filter:'',day:''};
+function alLoad(){ const d=istDay(); AL.day=d; const j=ldj('jcal_'+d,null); if(j){ AL.list=j.list||[]; AL.done=j.done||{}; AL.seen=AL.list.length; AL.first=false; } }
+function alSave(){ svj('jcal_'+AL.day,{list:AL.list.slice(0,300),done:AL.done}); }
+function beep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; g.gain.value=.08; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.18); }catch(e){} }
+function bfSeed(){
+  const today=istDay(); if(AL.day!==today) return; let add=0;
+  [['BF','bf','BIG FISH'],['BS','bs','BIG FISH SHORT']].forEach(([ty,fk,nm])=>{ const M=HM[fk]; if(!M) return;
+  Object.keys(M).forEach(sy=>{ const key=sy+'|'+ty; if(AL.done[key]) return; const b=M[sy], row=HM.rows.find(x=>x[0]===sy); if(!row||row[9]!==today) return; const p=row[2], pc=row[3], o=row[4], v=row[7], av=row[8], rs=row[14]??(HM.stat[sy]||[])[4];
+    AL.done[key]=1; add++; AL.list.push({t:Date.parse(today+'T'+b[0]+':00+05:30'),sy,ty,p:b[1],pct:(b[1]/pc-1)*100,pace:av?v/(av*frac()):0,note:`${nm} first met all conditions at ${b[0]} @ ${fmt(b[1],2)} · now ${fmt(p,2)} (${sg((p/o-1)*100,1)}% from open) · RSI ${rs==null?'-':rs.toFixed(0)} · day vol ${(v/1e5).toFixed(1)}L`}); }); });
+  if(add){ AL.list.sort((a,b)=>b.t-a.t); alSave(); }
+}
+function alRun(){
+  if(istDay()!==AL.day){ AL.list=[]; AL.done={}; AL.st={}; AL.first=true; AL.seen=0; alLoad(); }
+  const f=frac(), today=istDay(), now=Date.now(), cand=[], open=indiaOpen();
+  bfSeed();
+  if(!open&&AL.first===true&&!AL.list.length){ alPaint(); return; }
+  HM.rows.forEach(r=>{
+    const [sy,g,p,pc,o,h,l,v,av,d]=r; if(d!==today||!pc||!o) return;
+    const stt=HM.stat[sy]||[], mh=r[10]??stt[0], ml=r[11]??stt[1], wh=r[12]??stt[2], wl=r[13]??stt[3];
+    const pct=(p/pc-1)*100, pace=av?v/(av*f):0, st=AL.st[sy]||(AL.st[sy]={dh:h,dl:l,t:{},init:true}), mc=CFG.minchg;
+    const once=(ty,k)=>{ const key=sy+'|'+ty+(k||''); if(AL.done[key]) return false; return key; };
+    const push=(ty,note,key,pcx)=>{ if(!CFG.types[ty]) return; cand.push({t:((ty==='BF'||ty==='BS')&&!open)?Date.parse(today+'T15:30:00+05:30'):now,sy,ty,p,pct,pace,note,key,adv:Math.abs(pct)}); };
+    if(p>=h*0.9995&&pct>=mc&&(st.init||h>st.dh)&&(!st.t.DH||now-st.t.DH>600000)){ st.t.DH=now; push('DH',`new day high ${fmt(h,2)}`); }
+    if(p<=l*1.0005&&pct<=-mc&&(st.init||l<st.dl)&&(!st.t.DL||now-st.t.DL>600000)){ st.t.DL=now; push('DL',`new day low ${fmt(l,2)}`); }
+    st.dh=Math.max(st.dh,h); st.dl=Math.min(st.dl,l); st.init=false;
+    let k;
+    if(mh&&p>mh&&pct>0&&(k=once('MH'))) push('MH',`above 1-month high ${fmt(mh,2)} (+${((p/mh-1)*100).toFixed(1)}%)`,k);
+    if(ml&&p<ml&&pct<0&&(k=once('ML'))) push('ML',`below 1-month low ${fmt(ml,2)} (${((p/ml-1)*100).toFixed(1)}%)`,k);
+    if(wh&&p>=wh&&(k=once('WH'))) push('WH',`52-week high ${fmt(wh,2)} broken`,k);
+    if(wl&&p<=wl&&(k=once('WL'))) push('WL',`52-week low ${fmt(wl,2)} broken`,k);
+    if(pace>=CFG.pace&&Math.abs(pct)>=mc&&(k=once('VB',pct>=0?'u':'d'))) push('VB',`${pct>=0?'▲':'▼'} vol pace ${pace.toFixed(1)}x avg · day vol ${(v/av).toFixed(2)}x`,k);
+    if(pace>=2&&pct>=1&&((mh&&p>mh)||(wh&&p>=wh)||(p>=h*0.999&&pct>=2))&&(k=once('PV'))) push('PV',`price ▲ ${sg(pct,1)}% with volume pace ${pace.toFixed(1)}x`,k);
+    if((o-l)/o*100<=0.05&&p>pc&&pace>=1.5&&(k=once('OL'))) push('OL',`open=low, above prev close, vol pace ${pace.toFixed(1)}x`,k);
+    if((h-o)/o*100<=0.05&&p<pc&&pace>=1.5&&(k=once('OH'))) push('OH',`open=high, below prev close, vol pace ${pace.toFixed(1)}x`,k);
+    if(bfOk(r,f)&&(k=once('BF'))) push('BF',`BIG FISH · ${sg((p/o-1)*100,1)}% from open · day range ${((h-l)/l*100).toFixed(1)}% · RSI ${(r[14]??stt[4]).toFixed(0)} · vol ${(v/1e5).toFixed(1)}L (${pace.toFixed(1)}x) · above 1M high ${fmt(mh,2)}`,k);
+    if(bsOk(r,f)&&(k=once('BS'))) push('BS',`BIG FISH SHORT · ${sg((p/o-1)*100,1)}% from open · day range ${((h-l)/l*100).toFixed(1)}% · RSI ${(r[14]??stt[4]).toFixed(0)} · vol ${(v/1e5).toFixed(1)}L (${pace.toFixed(1)}x) · below 1M low ${fmt(ml,2)}`,k);
+    if(Math.abs(o/pc-1)*100>=2&&(k=once('GP'))) push('GP',`opened ${sg((o/pc-1)*100,1)}% vs prev close ${fmt(pc,2)}`,k);
+  });
+  // custom price triggers
+  CFG.px.forEach(t=>{ if(t.done) return; const r=HM.rows.find(x=>x[0]===t.sy); if(!r||r[9]!==today) return; const p=r[2]; if((t.dir==='A'&&p>=t.px)||(t.dir==='B'&&p<=t.px)){ t.done=1; svj('jcal_cfg',CFG); if(CFG.types.PX) cand.push({t:now,sy:t.sy,ty:'PX',p,pct:(p/r[3]-1)*100,pace:r[8]?r[7]/(r[8]*f):0,note:`crossed ${t.dir==='A'?'above':'below'} your level ${fmt(t.px,2)}`,adv:99}); } });
+  let list=cand; if(AL.first&&list.length>60){ list=list.sort((a,b)=>b.adv-a.adv); list.slice(60).forEach(x=>{ if(x.key) AL.done[x.key]=1; }); list=list.slice(0,60); }
+  list.sort((a,b)=>a.adv-b.adv).forEach(x=>{ if(x.key) AL.done[x.key]=1; AL.list.unshift(x); });
+  if(list.length){ if(!AL.first&&CFG.sound) beep(); if(document.hidden) document.title='('+list.length+') Live Trading Screen'; alSave(); }
+  AL.first=false; alPaint();
+}
+function alPaint(){
+  const fl=AL.filter, rows=AL.list.filter(x=>!fl||x.ty===fl), isNew=(i)=>i<AL.list.length-AL.seen&&AL.seen>0&&Date.now()-AL.list[i].t<8000;
+  const counts={}; AL.list.forEach(x=>counts[x.ty]=(counts[x.ty]||0)+1);
+  $('alc').textContent=`${AL.list.length} today`+(Object.keys(counts).length?' · '+Object.keys(counts).map(k=>({DH:'DayH',DL:'DayL',MH:'1M-H',ML:'1M-L',WH:'52W-H',WL:'52W-L',VB:'Vol',PV:'Brk',OL:'O=L',OH:'O=H',GP:'Gap',PX:'Px',BF:'🐟 BigFish',BS:'🔻 FishShort'}[k])+' '+counts[k]).join(' · '):'');
+  $('als').textContent=indiaOpen()?'watching '+HM.rows.length+' stocks':'market closed — alerts fire 09:15–15:30 IST';
+  const sel=$('alF'); if(sel.options.length<2) Object.keys(AT).forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=AT[k][0]; sel.appendChild(o); });
+  $('alt').innerHTML=rows.length?`<table><thead><tr><th>Time</th><th>Stock</th><th>Alert</th><th>CMP</th><th>Chg%</th><th>Vol×</th><th>Detail</th></tr></thead><tbody>${rows.slice(0,150).map((x,i)=>`<tr data-sy="${esc(x.sy)}" class="${isNew(i)?'new':''}${x.ty==='BF'?' bfr':x.ty==='BS'?' bsr':''}"><td>${new Date(x.t+19800000).toISOString().slice(11,19)}</td><td class="sy">${esc(x.sy)}</td><td><span class="at ${AT[x.ty][1]}">${AT[x.ty][0]}</span></td><td>${fmt(x.p,2)}</td><td class="${x.pct>=0?'up':'dn'}">${sg(x.pct,1)}%</td><td>${x.pace?x.pace.toFixed(1)+'x':'—'}</td><td class="dt">${esc(x.note)}</td></tr>`).join('')}</tbody></table>`:`<div class="nodata" style="padding:10px">${indiaOpen()?'No alert yet — triggers are armed (day high/low, 1-month, 52-week, volume blast, price+volume breakout, open=low/high, gaps, your price levels).':'Alerts are generated while the market is open.'}</div>`;
+  AL.seen=AL.list.length;
+}
+function alCfgPaint(){
+  const T=Object.keys(AT).map(k=>`<label><input type="checkbox" data-t="${k}" ${CFG.types[k]?'checked':''}>${AT[k][0]}</label>`).join('');
+  $('alCfg').innerHTML=`<div class="grp">TRIGGERS ON / OFF</div>${T}<div class="grp">THRESHOLDS</div>
+  <label>Volume pace ≥ <select id="cPace">${[1.5,2,3,5].map(v=>`<option ${v===CFG.pace?'selected':''}>${v}</option>`).join('')}</select>× avg</label>
+  <label>Min move <select id="cMin">${[0.3,0.5,1,2].map(v=>`<option ${v===CFG.minchg?'selected':''}>${v}</option>`).join('')}</select>%</label>
+  <label>Sound <input type="checkbox" id="cSnd" ${CFG.sound?'checked':''}></label>
+  <div class="grp">YOUR PRICE TRIGGERS</div>
+  <label>Stock <input type="text" id="pxS" placeholder="e.g. TATASTEEL"></label><label><select id="pxD"><option value="A">goes above</option><option value="B">falls below</option></select></label><label><input type="number" id="pxP" step="0.05" placeholder="price"></label><button class="alb" id="pxAdd">Add trigger</button>
+  <span id="pxL">${CFG.px.map((t,i)=>`<span class="px">${esc(t.sy)} ${t.dir==='A'?'≥':'≤'} ${t.px}${t.done?' ✓ fired':''}<u data-i="${i}">✕</u></span>`).join(' ')}</span>`;
+}
+$('alS').onclick=()=>{ const c=$('alCfg'); if(c.style.display==='none'){ alCfgPaint(); c.style.display='flex'; } else c.style.display='none'; };
+$('alCfg').addEventListener('change',e=>{ const t=e.target; if(t.dataset.t) CFG.types[t.dataset.t]=t.checked?1:0; else if(t.id==='cPace') CFG.pace=+t.value; else if(t.id==='cMin') CFG.minchg=+t.value; else if(t.id==='cSnd'){ CFG.sound=t.checked?1:0; if(t.checked) beep(); } svj('jcal_cfg',CFG); });
+$('alCfg').addEventListener('click',e=>{ const t=e.target; if(t.id==='pxAdd'){ const sy=$('pxS').value.trim().toUpperCase(), px=+$('pxP').value; if(sy&&px>0){ CFG.px.push({sy,dir:$('pxD').value,px}); svj('jcal_cfg',CFG); alCfgPaint(); alRun(); } } else if(t.tagName==='U'){ CFG.px.splice(+t.dataset.i,1); svj('jcal_cfg',CFG); alCfgPaint(); } });
+$('alF').addEventListener('change',()=>{ AL.filter=$('alF').value; alPaint(); });
+$('alt').addEventListener('click',e=>{ const r=e.target.closest('tr[data-sy]'); if(r) openTech(r.dataset.sy+'.NS',r.dataset.sy,r.dataset.sy,2); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) document.title="Joshi's Corner | Live Trading Screen"; });
+alLoad();
+async function heatLoad(){ await heatFeed(); await loadBarsCache(); heatPaint(); alRun(); if(typeof miniRun==="function") miniRun(); }
+['fOL','fUP','fV','fPC','fG','fN'].forEach(id=>$(id).addEventListener('change',heatPaint));
+(function(){ const c=trCfg(); $('trT').value=c.T; $('trC').value=c.C; $('trR').value=c.R; $('trS').value=c.S; $('trO').checked=!!c.only;
+  const save=()=>{ svj('jct_tr',{T:Math.max(0.5,+$('trT').value||5),C:Math.max(1,+$('trC').value||10),R:Math.min(3,Math.max(0.1,+$('trR').value||0.5)),S:Math.max(0,+$('trS').value||0),only:$('trO').checked}); heatPaint(); };
+  ['trT','trC','trR','trS','trO'].forEach(id=>$(id).addEventListener('change',save)); })();
+let TRK=null; async function trkLoad(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/track/track.json?x='+Math.floor(Date.now()/300000),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/track.json?ref=track']){ try{ const r=await fetch(u,u.includes('api.')?{headers:{Accept:'application/vnd.github.raw'}}:{}); if(r.ok){ TRK=await r.json(); return; } }catch(e){} } }
+function trkStats(){ const o={bf:{n:0,t:0,s:0,o:0,sum:0},bs:{n:0,t:0,s:0,o:0,sum:0},days:0}; if(!TRK||!TRK.days) return o; for(const d in TRK.days){ const e=TRK.days[d]; if(!e.final) continue; o.days++; ['bf','bs'].forEach(k=>{ for(const sy in e[k]||{}){ const v=e[k][sy], oc=v[2], rt=+v[3]||0, a=o[k]; a.n++; a[oc==='T'?'t':oc==='S'?'s':'o']++; a.sum+=rt; } }); } return o; }
+function evPaint(){ const st=trkStats(), c=trCfg(), ct=trCost(c.T*1e5,c.S), row=(n,a)=>{ const hr=a.n?(a.t/Math.max(1,a.t+a.s)*100):null, net=a.n?a.sum/a.n-ct.pct:null; return `<tr><td>${n}</td><td class="r">${a.n}</td><td class="r">${a.t}/${a.s}/${a.o}</td><td class="r">${hr==null?'–':hr.toFixed(0)+'%'}</td><td class="r">${a.n?(a.sum/a.n).toFixed(2)+'%':'–'}</td><td class="r ${net==null?'':net>=0?'pos':'neg'}">${net==null?'–':net.toFixed(2)+'%'}</td></tr>`; };
+  $('evBox').innerHTML=`<h4>HONEST SCORECARD · what has been tested</h4>
+<div>No intraday screen can promise high precision, and nothing here claims a 95% hit rate. Tested on NSE data, Open=Low, Open=High, Big Fish and short rules gave higher volatility but <b>no net edge after costs</b>. SEBI's study found about 71% of intraday cash traders lost money in FY23. Realistic hit rate for direction calls is 51–55%.</div>
+<h4>YOUR COSTS RIGHT NOW (ticket ₹${c.T}L, slippage ${c.S} bp/side)</h4>
+<div>Round-trip cost ≈ <b>${ct.pct.toFixed(2)}%</b> of ticket (₹${Math.round(ct.tot)}): statutory ₹${Math.round(ct.stat)} + slippage ₹${Math.round(ct.slip)}. A trade needs hit-rate above (1 + cost÷stop) ÷ (1 + reward:risk). The tile tooltip shows that break-even for each stock. A 50% vs 55% difference needs about 780 independent trades to prove.</div>
+<h4>LIVE FORWARD LOG · every trigger recorded, +1.5% target vs −1.5% stop, costs deducted in the last column${TRK?` · since ${TRK.since} · ${st.days} completed days`:''}</h4>
+${TRK?`<table><tr><th>Signal</th><th class="r">Trades</th><th class="r">Target/Stop/Open</th><th class="r">Target share</th><th class="r">Avg return</th><th class="r">Avg after costs</th></tr>${row('🐟 Big Fish',st.bf)}${row('🔻 Big Fish Short',st.bs)}</table>`:'<div>The log starts after the next heat-map run completes. It will fill in day by day.</div>'}
+<h4>RULES THE TILES NOW APPLY</h4>
+<div>Ticket ≤ 1% of the stock's 20-day average daily value · cost ≤ 0.2 of the stop distance · size = capital × risk% ÷ stop distance · no new entries after 14:45 IST, square off by 15:15 · stop-loss always placed with the order. Use "Tradeable only" off to see everything.</div>`; }
+$('evB').onclick=()=>{ const b=$('evBox'); if(b.style.display==='none'){ b.style.display='block'; evPaint(); trkLoad().then(evPaint); } else b.style.display='none'; };
+/* ---------------- INTRADAY TECHNICALS (click a heat-map stock or an index heading) ---------------- */
+const TQ={sym:null,y:null,bars:null,src:'',ts:0};
+const dayOf=t=>new Date((t+19800)*1000).toISOString().slice(0,10);
+const ema=(a,n)=>{ if(a.length<n) return a.map(()=>null); const k=2/(n+1); let e=a.slice(0,n).reduce((x,y)=>x+y,0)/n; const out=Array(n-1).fill(null); out.push(e); for(let i=n;i<a.length;i++){ e=a[i]*k+e*(1-k); out.push(e);} return out; };
+function aggr(b,m){ if(m===5) return b; const f=m/5, o=[]; for(let i=0;i<b.t.length;){ const d=dayOf(b.t[i]); let j=i, n=0, h=-1e18,l=1e18,v=0; while(j<b.t.length&&n<f&&dayOf(b.t[j])===d){ h=Math.max(h,b.h[j]); l=Math.min(l,b.l[j]); v+=b.v[j]; j++; n++; } o.push({t:b.t[i],h,l,c:b.c[j-1],v}); i=j; } return {t:o.map(x=>x.t),h:o.map(x=>x.h),l:o.map(x=>x.l),c:o.map(x=>x.c),v:o.map(x=>x.v)}; }
+function parseYahoo(j){ const x=j.chart.result[0], q=x.indicators.quote[0], t=[],o=[],h=[],l=[],c=[],v=[]; x.timestamp.forEach((ts,i)=>{ if(q.close[i]==null||q.high[i]==null||q.low[i]==null) return; t.push(ts);o.push(q.open&&q.open[i]!=null?q.open[i]:q.close[i]);h.push(q.high[i]);l.push(q.low[i]);c.push(q.close[i]);v.push(q.volume[i]||0); }); return {t,o,h,l,c,v}; }
+async function getBars(y,sy){
+  const yurl='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(y)+'?range=5d&interval=5m&includePrePost=false';
+  if(Date.now()>quotaUntil){ try{ const j=await getJ(BACKEND+'?action=fetch&url='+encodeURIComponent(yurl),20000); return {b:parseYahoo(j),src:'LIVE'}; }catch(e){ quotaUntil=Math.max(quotaUntil,Date.now()+180000); } }
+  try{ let j; const c=new AbortController(), t=setTimeout(()=>c.abort(),15000);
+    try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/bars.json?ref=heat',{headers:{Accept:'application/vnd.github.raw'},signal:c.signal}); if(r.ok) j=JSON.parse(await r.text()); }catch(e){} finally{clearTimeout(t)}
+    if(!j) j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/bars.json?x='+Math.floor(Date.now()/60000),15000);
+    const b=j.bars[sy]; if(b) return {b,src:'SNAPSHOT · '+Math.max(0,Math.round((Date.now()-Date.parse(j.ts))/60000))+' min old'};
+  }catch(e){}
+  return null;
+}
+function analyse(B,tf){
+  const D=aggr(B,tf), n=D.c.length; if(n<30) return null;
+  const days=[...new Set(D.t.map(dayOf))], today=days[days.length-1], prev=days[days.length-2];
+  const idx=(d)=>D.t.map((t,i)=>dayOf(t)===d?i:-1).filter(i=>i>=0), it=idx(today), ip=prev?idx(prev):[];
+  const cmp=D.c[n-1], dh=Math.max(...it.map(i=>D.h[i])), dl=Math.min(...it.map(i=>D.l[i]));
+  const E={9:ema(D.c,9),21:ema(D.c,21),10:ema(D.c,10),20:ema(D.c,20),50:ema(D.c,50)}, e={}; Object.keys(E).forEach(k=>e[k]=E[k][n-1]);
+  let pv=0,vv=0; it.forEach(i=>{pv+=(D.h[i]+D.l[i]+D.c[i])/3*D.v[i]; vv+=D.v[i];}); const vwap=vv?pv/vv:null;
+  let std=null; if(ip.length){ const H=Math.max(...ip.map(i=>D.h[i])), L=Math.min(...ip.map(i=>D.l[i])), C=D.c[ip[ip.length-1]], P=(H+L+C)/3; std={P,R1:2*P-L,S1:2*P-H,R2:P+(H-L),S2:P-(H-L),R3:H+2*(P-L),S3:L-2*(H-P),H,L,C}; }
+  const LP=(dh+dl+cmp)/3, live={P:LP,R1:2*LP-dl,S1:2*LP-dh,R2:LP+(dh-dl),S2:LP-(dh-dl)};
+  const rg=dh-dl, fib=[.236,.382,.5,.618,.786].map(r=>[r,dh-r*rg]);
+  const k=Math.min(4,Math.floor(it.length/2)), vNow=it.slice(-k).reduce((a,i)=>a+D.v[i],0), vPrev=it.slice(-2*k,-k).reduce((a,i)=>a+D.v[i],0);
+  const vchg=k>=2&&vPrev>0?(vNow/vPrev-1)*100:null;
+  const yv=ip.slice(0,it.length).reduce((a,i)=>a+D.v[i],0), vsY=yv>0?vv/yv:null;
+  return {cmp,dh,dl,e,vwap,std,live,fib,vchg,vsY,k,tf,today,last:D.t[n-1],hasVol:vv>0,prevDay:prev};
+}
+const fx=(v,d)=>v==null?'—':Number(v).toFixed(d);
+function renderTech(A,dp,name){
+  const c=A.cmp, d=dp, pc=(v)=>`${v>=c?'+':'-'}${(Math.abs(v/c-1)*100).toFixed(2)}%`;
+  const ck=(cls,t)=>`<span class="ck ${cls}">${t}</span>`;
+  const pos=(lv)=>c>lv?['g','ABOVE']:['r','BELOW'];
+  const rows=[]; let bull=0,tot=0;
+  const pair=(a,b,lab)=>{ const ea=A.e[a], eb=A.e[b]; if(ea==null||eb==null) return; tot++; const ab=c>ea&&c>eb, be=c<ea&&c<eb; if(ab) bull++; rows.push([lab,`EMA${a} ${fx(ea,d)} · EMA${b} ${fx(eb,d)}`,ab?ck('g','ABOVE BOTH'):be?ck('r','BELOW BOTH'):ck('y','BETWEEN'), `${ea>eb?'EMA'+a+' > EMA'+b+' (bullish alignment)':'EMA'+a+' < EMA'+b+' (bearish alignment)'}`]); };
+  pair(9,21,'Price vs EMA 9/21'); pair(10,20,'Price vs EMA 10/20');
+  if(A.e[50]!=null){ tot++; const up=c>A.e[50]; if(up) bull++; const risk=Math.abs(c/A.e[50]-1)*100; rows.push(['EMA 50 = day stop-loss',`EMA50 ${fx(A.e[50],d)}`,up?ck('g','ABOVE'):ck('r','BELOW'),up?`Long stop-loss ${fx(A.e[50],d)} · risk ${risk.toFixed(2)}% from CMP`:`CMP is below EMA50 — it is overhead resistance ${fx(A.e[50],d)} (${risk.toFixed(2)}% away); short-side stop above it`]); }
+  if(A.hasVol&&A.vwap!=null){ tot++; const up=c>A.vwap; if(up) bull++; rows.push(['Avg trading price (VWAP)',`VWAP ${fx(A.vwap,d)}`,up?ck('g','ABOVE'):ck('r','BELOW'),`CMP ${((c/A.vwap-1)*100>=0?'+':'')}${((c/A.vwap-1)*100).toFixed(2)}% vs VWAP — ${up?'buyers in control':'sellers in control'}`]); }
+  if(A.std){ tot++; const up=c>A.std.P; if(up) bull++; rows.push(['Standard pivot (prev day)',`P ${fx(A.std.P,d)}`,up?ck('g','ABOVE P'):ck('r','BELOW P'),`prev H ${fx(A.std.H,d)} · L ${fx(A.std.L,d)} · C ${fx(A.std.C,d)}`]); }
+  { tot++; const up=c>A.live.P; if(up) bull++; rows.push(['Live pivot (today)',`P ${fx(A.live.P,d)}`,up?ck('g','ABOVE P'):ck('r','BELOW P'),`day H ${fx(A.dh,d)} · L ${fx(A.dl,d)}`]); }
+  if(A.vchg!=null){ const inc=A.vchg>0; rows.push(['Volume trend',`last ${A.k} bars vs prior ${A.k}: ${A.vchg>=0?'+':''}${Math.round(A.vchg)}%`,inc?ck('g','INCREASING'):ck('r','DECREASING'),A.vsY?`today vs yesterday at same time: ${A.vsY.toFixed(2)}x`:'']); }
+  const fh=A.fib.find(f=>c>=f[1]); const fz=A.fib.filter(f=>f[1]>c).pop();
+  rows.push(['Fibonacci (day range)',fz&&fh?`between ${(fh[0]*100).toFixed(1)}% ${fx(fh[1],d)} and ${(fz[0]*100).toFixed(1)}% ${fx(fz[1],d)}`:(c>=A.fib[0][1]?`above 23.6% ${fx(A.fib[0][1],d)}`:`below 78.6% ${fx(A.fib[4][1],d)}`),ck('n','ZONE'),`retracement from day high ${fx(A.dh,d)} to low ${fx(A.dl,d)}`]);
+  const ratio=tot?bull/tot:0.5, vcls=ratio>=0.7?'g':ratio<=0.3?'r':'n', vt=ratio>=0.7?'BULLISH':ratio<=0.3?'BEARISH':'MIXED / SIDEWAYS';
+  const ver=`<div class="ver ${vcls}">${vt} — ${bull} of ${tot} conditions bullish · CMP ${fx(c,d)} · stop-loss reference EMA50 ${fx(A.e[50],d)}</div>`;
+  const cond=`<table><thead><tr><th>Condition</th><th>Levels</th><th>Status</th><th>Justification</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody></table>`;
+  // ladder
+  const L=[]; const add=(g,n,v)=>{ if(v!=null&&isFinite(v)) L.push([g,n,v]); };
+  [9,21,10,20,50].forEach(k=>add('EMA','EMA '+k,A.e[k])); add('VWAP','VWAP',A.vwap); add('DAY','Day high',A.dh); add('DAY','Day low',A.dl);
+  if(A.std){ ['R3','R2','R1','P','S1','S2','S3'].forEach(k=>add('STD','Std '+k,A.std[k])); add('PREV','Prev high',A.std.H); add('PREV','Prev low',A.std.L); }
+  ['R2','R1','P','S1','S2'].forEach(k=>add('LIVE','Live '+k,A.live[k])); A.fib.forEach(f=>add('FIB','Fib '+(f[0]*100).toFixed(1)+'%',f[1]));
+  L.push(['CMP','▶ CMP',c]); L.sort((a,b)=>b[2]-a[2]);
+  const lad=`<div class="lad"><table><thead><tr><th>Type</th><th>Level</th><th>Price</th><th>vs CMP</th></tr></thead><tbody>${L.map(x=>`<tr class="${x[0]==='CMP'?'cmp':x[2]>c?'rs':'sp'}"><td>${x[0]}</td><td>${x[1]}</td><td>${fx(x[2],d)}</td><td class="pc">${x[0]==='CMP'?'◀ price now':pc(x[2])}</td></tr>`).join('')}</tbody></table></div>`;
+  const L0=levelsOf(A), sd=sideOf(A), cl=buildCall(c,L0,A.e[50],sd.side), pri=(CALLS[TQ.sym]||{}).pri||0; CALLS[TQ.sym]=Object.assign(cl,{pri});
+  const sdc=sd.strong?(sd.side==='BUY'?'b':'s'):'w', sdt=(sd.strong?'':'WEAK ')+sd.side, e50=A.e[50];
+  const callBox=`<div class="cb${pri?' pri':''}"><div class="hh"><span>TRADING CALL</span><span class="sd ${sdc}">${sdt}</span><span style="font-weight:600;font-size:11px;color:#b9c4d4">${sd.side==='BUY'?'stop-loss below, targets above':'stop-loss above, targets below'} · SL = ${e50!=null&&((sd.side==='BUY'&&e50<c)||(sd.side==='SELL'&&e50>c))&&Math.abs(c/e50-1)<=0.03?'EMA50':'nearest level'}</span>${pri?`<span class="pr">★ PRIORITY ${pri} — best profit-to-loss among filter matches</span>`:''}</div>
+   <table><thead><tr><th>ENTRY (LTP)</th><th>STOP-LOSS</th><th>TARGET 1</th><th>TARGET 2</th><th>PROFIT to T1</th><th>LOSS to SL</th><th>REWARD : RISK</th></tr></thead><tbody><tr><td>${fx(c,d)}</td><td>${fx(cl.sl,d)}</td><td>${fx(cl.t1,d)}</td><td>${fx(cl.t2,d)}</td><td class="pf">${fx(cl.prof,d)} (+${cl.pp.toFixed(2)}%)</td><td class="ls">${fx(cl.loss,d)} (−${cl.lp.toFixed(2)}%)</td><td style="font-weight:900;color:${cl.rr>=2?'#8fc7ad':cl.rr>=1?'#c9bd94':'#d39098'}">${cl.rr.toFixed(2)} : 1</td></tr></tbody></table></div>`;
+  $('mVer').innerHTML=ver+callBox; $('mCond').innerHTML=cond; $('mLad').innerHTML='<div class="cap" style="padding:0 0 3px">LEVEL LADDER — red rows resist above CMP, green rows support below</div>'+lad;
+}
+
+/* ---- popup: highest-OI strikes (call = resistance, put = support) and most-active strikes ---- */
+let OIX=null; (async function(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jc-stock-analyst/main/data/fno_oi.json?x='+Math.floor(Date.now()/300000),'https://api.github.com/repos/ssjs1mu/jc-stock-analyst/contents/data/fno_oi.json']){ try{ const r=await fetch(u,u.includes('api.github')?{headers:{Accept:'application/vnd.github.raw'}}:{}); if(r.ok){ OIX=await r.json(); break; } }catch(e){} } if(TQ.sym&&TQ.bars){ oiPaint(); chartPaint(analyse(TQ.bars,+$('mTf').value)); } })();
+function oiPaint(){
+  const el=$('mOI'); if(!el) return; const o=OIX&&OIX.stocks&&OIX.stocks[TQ.sym]; const A=TQ.bars&&analyse(TQ.bars,+$('mTf').value); const c=A?A.cmp:null;
+  if(!OIX){ el.innerHTML='<div class="oib"><div class="oh">OPTION OI · KEY STRIKES</div><div class="sl">Option-OI file loading…</div></div>'; return; }
+  if(!o||c==null){ el.innerHTML='<div class="oib"><div class="oh">OPTION OI · KEY STRIKES</div><div class="sl">'+(c==null?'waiting for price…':'No option-chain OI for '+esc(TQ.label)+' yet (index tiles and non-F&amp;O names have none; the OI file fills up across scheduled runs).')+'</div></div>'; return; }
+  const lk=n=>n>=1e5?(n/1e5).toFixed(2)+' L':(n/1e3).toFixed(0)+' K', d=TQ.dp, pcs=k=>{ const v=(k/c-1)*100; return (v>=0?'+':'')+v.toFixed(2)+'%'; };
+  const stC=k=>{ const v=(k/c-1)*100; return Math.abs(v)<=0.35?'<span class="bk" style="color:#ffd24a">AT LEVEL · testing</span>':(k>c?'<span style="color:#ff8f9a">Resistance</span>':'<span style="color:#4ff0a8">Support</span>'); };
+  const stR=k=>{ const v=(k/c-1)*100; return Math.abs(v)<=0.35?'<span class="bk" style="color:#ffd24a">AT LEVEL · testing</span>':(c>k?'<span class="bk" style="color:#4ff0a8">Broken ↑ · sustain = upside</span>':'<span style="color:#ff8f9a">Resistance</span>'); };
+  const stS=k=>{ const v=(k/c-1)*100; return Math.abs(v)<=0.35?'<span class="bk" style="color:#ffd24a">AT LEVEL · testing</span>':(c<k?'<span class="bk" style="color:#ff8f9a">Broken ↓ · sustain = downside</span>':'<span style="color:#4ff0a8">Support</span>'); };
+  const rows=[]; (o.callOi||[]).forEach((x,i)=>rows.push(['rs','Call OI #'+(i+1),x[0],x[1],'',stR(x[0])])); (o.putOi||[]).forEach((x,i)=>rows.push(['sp','Put OI #'+(i+1),x[0],x[1],'',stS(x[0])]));
+  (o.act||[]).forEach((x,i)=>rows.push(['ac',(i?'':'★ ')+'Most active #'+(i+1),x[0],x[1]+x[2],'C '+lk(x[1])+' · P '+lk(x[2]),x[0]>c?stC(x[0]):stC(x[0])]));
+  rows.sort((a,b)=>b[2]-a[2]);
+  const cw=o.callWall, pw=o.putWall;
+  const sl=`<div class="sl">Long stop-loss: ${pw!=null?'put wall <b>'+fx(pw,d)+'</b> ('+pcs(pw)+')':'n/a'} · Short stop-loss: ${cw!=null?'call wall <b>'+fx(cw,d)+'</b> ('+pcs(cw)+')':'n/a'} · a close beyond a wall that holds decides the next leg. PCR ${o.pcr!=null?o.pcr:'n/a'} · expiry ${esc(o.expiry||'')}${o.act?'':' · most-active strikes appear after the next OI refresh'}</div>`;
+  el.innerHTML=`<div class="oib"><div class="oh">OPTION OI · KEY STRIKES<small>OI as of last close · ${esc((OIX.asof||'').slice(0,10))} · CMP ${fx(c,d)}</small></div><table><thead><tr><th>Type</th><th>Strike</th><th style="text-align:right">OI</th><th style="text-align:right">vs CMP</th><th>Status</th></tr></thead><tbody>${rows.map(r=>`<tr class="${r[0]}"><td>${r[1]}</td><td>${fx(r[2],d)}</td><td class="r">${lk(r[3])}${r[4]?'<br><small style="color:#93a1b5">'+r[4]+'</small>':''}</td><td class="r">${pcs(r[2])}</td><td>${r[5]}</td></tr>`).join('')}</tbody></table>${sl}</div>`;
+}
+
+/* ---- popup chart: candles + colour-coded levels, TradingView link, Pine export ---- */
+const TVMAP={'^NSEI':'NSE:NIFTY','^NSEBANK':'NSE:BANKNIFTY','^BSESN':'BSE:SENSEX','^INDIAVIX':'NSE:INDIAVIX','USDINR=X':'FX_IDC:USDINR','BZ=F':'TVC:UKOIL','DX-Y.NYB':'TVC:DXY','^TNX':'TVC:US10Y'};
+const tvSym=()=>TVMAP[TQ.y]||('NSE:'+String(TQ.sym||'').replace(/[-&]/g,'_'));
+const LC={sl:'#ff3b30',t1:'#00e5ff',t2:'#7ff3ff',cmp:'#ffffff',call:'#ff4fd8',put:'#b6ff3b',act:'#ffd54a',day:'#ffb74d',prev:'#b0bec5',res:'#ff8a8a',sup:'#6ee7a8',piv:'#c9c9ff',fib:'#9aa7ff'};
+let LCH=null, LCS=null, LLN=[], LSR=[], LKEY=[], LV=[], LPINE=[];
+const lwcLoad=()=>window.LightweightCharts?Promise.resolve():new Promise((ok,no)=>{ const e=document.createElement('script'); e.src='https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js'; e.onload=ok; e.onerror=()=>no(new Error('blocked')); document.head.appendChild(e); });
+function cAgg(b,m){ const f=m/5, out=[]; for(let i=0;i<b.t.length;){ const d=dayOf(b.t[i]); let j=i,n=0,h=-1e18,l=1e18,v=0,o=(b.o&&b.o[i]!=null)?b.o[i]:b.c[i]; while(j<b.t.length&&n<f&&dayOf(b.t[j])===d){ h=Math.max(h,b.h[j]); l=Math.min(l,b.l[j]); v+=b.v[j]||0; j++; n++; } out.push({t:b.t[i],o,h,l,c:b.c[j-1],v}); i=j; } return out; }
+function chLevels(A,cl,c,d){
+  const L=[], add=(n,p,col,w,st,g)=>{ if(p!=null&&isFinite(p)) L.push({n,p,col,w,st,g}); }; const side=p=>p>c?LC.res:LC.sup;
+  add('CMP',c,LC.cmp,2,0,'t'); if(cl){ add('STOP-LOSS',cl.sl,LC.sl,3,2,'t'); add('TARGET 1',cl.t1,LC.t1,2,2,'t'); add('TARGET 2',cl.t2,LC.t2,1,3,'t'); }
+  add('Day high',A.dh,LC.day,1,0,'k'); add('Day low',A.dl,LC.day,1,0,'k'); if(A.std){ add('Prev high',A.std.H,LC.prev,1,3,'k'); add('Prev low',A.std.L,LC.prev,1,3,'k'); }
+  if(CHO.piv){ if(A.std) ['R2','R1','P','S1','S2'].forEach(k=>add('Std '+k,A.std[k],k==='P'?LC.piv:side(A.std[k]),1,1,'p')); add('Live P',A.live.P,LC.piv,1,1,'p'); }
+  if(CHO.fib) A.fib.forEach(f=>add('Fib '+(f[0]*100).toFixed(1)+'%',f[1],LC.fib,1,1,'f'));
+  const o=OIX&&OIX.stocks&&OIX.stocks[TQ.sym]; if(CHO.oi&&o){ add('OI CALL WALL',o.callWall,LC.call,3,0,'o'); add('OI PUT WALL',o.putWall,LC.put,3,0,'o'); if(o.act&&o.act[0]) add('MOST ACTIVE',o.act[0][0],LC.act,2,2,'o'); }
+  return L; }
+let CHO={piv:true,oi:true,fib:false};
+async function chartPaint(A){
+  const box=$('mChC'); if(!TQ.bars||!A) return; $('mTV').href='https://www.tradingview.com/chart/?symbol='+encodeURIComponent(tvSym())+'&interval='+(+$('mTf').value);
+  try{ await lwcLoad(); }catch(e){ box.innerHTML='<div style="padding:30px;color:#ff9aa8">Chart library blocked (network / ad-blocker). The TradingView link still works.</div>'; return; }
+  if(!LCH||!box.firstChild){ box.innerHTML=''; LCH=LightweightCharts.createChart(box,{width:box.clientWidth,height:330,layout:{background:{color:'#0f1722'},textColor:'#cfd8e6',fontFamily:'Segoe UI'},grid:{vertLines:{color:'#1a2636'},horzLines:{color:'#1a2636'}},rightPriceScale:{borderColor:'#33475f',scaleMargins:{top:.06,bottom:.04}},timeScale:{borderColor:'#33475f',timeVisible:true,secondsVisible:false},crosshair:{mode:0}});
+    LCS=LCH.addCandlestickSeries({upColor:'#22c88a',downColor:'#ff5d73',borderUpColor:'#22c88a',borderDownColor:'#ff5d73',wickUpColor:'#22c88a',wickDownColor:'#ff5d73',autoscaleInfoProvider:o=>{ const r=o(); if(!r) return r; const c=TQ.bars.c[TQ.bars.c.length-1], ks=LKEY.filter(p=>Math.abs(p/c-1)<=0.06); return {priceRange:{minValue:Math.min(r.priceRange.minValue,...ks),maxValue:Math.max(r.priceRange.maxValue,...ks)},margins:r.margins}; }});
+    LSR=[LCH.addLineSeries({color:'#2fd0ff',lineWidth:1,priceLineVisible:false,lastValueVisible:false}),LCH.addLineSeries({color:'#ff8fe0',lineWidth:1,priceLineVisible:false,lastValueVisible:false}),LCH.addLineSeries({color:'#ffd24a',lineWidth:2,priceLineVisible:false,lastValueVisible:false})];
+    new ResizeObserver(()=>{ if(LCH&&box.clientWidth) LCH.applyOptions({width:box.clientWidth}); }).observe(box); }
+  const C=cAgg(TQ.bars,+$('mTf').value), sh=19800, cd=C.map(x=>({time:x.t+sh,open:x.o,high:x.h,low:x.l,close:x.c})); LCS.setData(cd);
+  const e9=ema(C.map(x=>x.c),9), e21=ema(C.map(x=>x.c),21); LSR[0].setData(C.map((x,i)=>({time:x.t+sh,value:e9[i]})).filter(x=>x.value!=null)); LSR[1].setData(C.map((x,i)=>({time:x.t+sh,value:e21[i]})).filter(x=>x.value!=null));
+  let pv=0,vv=0,pd=''; LSR[2].setData(C.map(x=>{ const dd=dayOf(x.t); if(dd!==pd){ pv=0; vv=0; pd=dd; } pv+=(x.h+x.l+x.c)/3*x.v; vv+=x.v; return {time:x.t+sh,value:vv?pv/vv:x.c}; }).filter(x=>x.value));
+  LLN.forEach(l=>{ try{ LCS.removePriceLine(l); }catch(e){} }); LLN=[]; const c=A.cmp, d=TQ.dp, cl=CALLS[TQ.sym]; LV=chLevels(A,cl,c,d); LKEY=LV.filter(x=>x.g==='t'||x.g==='o'||x.g==='k').map(x=>x.p);
+  LV.forEach(x=>{ LLN.push(LCS.createPriceLine({price:x.p,color:x.col,lineWidth:x.w,lineStyle:x.st,axisLabelVisible:true,title:x.n+' '+fx(x.p,d)})); });
+  const lg=[['STOP-LOSS',LC.sl],['TARGETS',LC.t1],['OI CALL WALL',LC.call],['OI PUT WALL',LC.put],['MOST ACTIVE',LC.act],['DAY H/L',LC.day],['RESISTANCE',LC.res],['SUPPORT',LC.sup],['VWAP','#ffd24a']]; $('mChL').innerHTML=lg.map(x=>`<i style="color:${x[1]}">${x[0]}</i>`).join('');
+  const n=cd.length; LCH.timeScale().setVisibleLogicalRange({from:Math.max(0,n-110),to:n+6}); LPINE=LV; }
+function pineText(){ const nm=String(TQ.label||TQ.sym).replace(/"/g,''), d=TQ.dp, hx=c=>c.toUpperCase(); let t='//@version=5\nindicator("JC levels · '+nm+'", overlay=true, max_labels_count=60)\n';
+  LPINE.forEach(x=>{ t+='hline('+x.p.toFixed(d)+', "'+x.n+'", color='+hx(x.col)+', linestyle='+(x.st===2?'hline.style_dashed':x.st===0?'hline.style_solid':'hline.style_dotted')+', linewidth='+Math.min(4,x.w)+')\n'; });
+  t+='var array<label> labs = array.new<label>()\nif barstate.islast\n    for l in labs\n        label.delete(l)\n    array.clear(labs)\n'; LPINE.forEach(x=>{ t+='    array.push(labs, label.new(bar_index + 3, '+x.p.toFixed(d)+', "'+x.n+' '+x.p.toFixed(d)+'", style=label.style_label_left, color=color.new('+hx(x.col)+', 25), textcolor=#000000, size=size.small))\n'; }); return t; }
+$('mPine').onclick=async()=>{ const b=$('mPine'), t=pineText(); let ok=false; try{ await navigator.clipboard.writeText(t); ok=true; }catch(e){ const a=document.createElement('textarea'); a.value=t; document.body.appendChild(a); a.select(); try{ ok=document.execCommand('copy'); }catch(x){} a.remove(); } b.textContent=ok?'Copied ✓ TradingView › Pine Editor › paste › Add to chart':'Copy failed'; setTimeout(()=>{ b.textContent='⧉ Copy levels for TradingView'; },6000); };
+['chP','chO','chF'].forEach(id=>$(id).addEventListener('change',()=>{ CHO.piv=$('chP').checked; CHO.oi=$('chO').checked; CHO.fib=$('chF').checked; if(TQ.bars){ const A=analyse(TQ.bars,+$('mTf').value); chartPaint(A); } }));
+async function openTech(y,sy,label,dp){
+  TQ.y=y; TQ.sym=sy; TQ.dp=dp; TQ.label=label; $('mo').classList.add('on'); $('mSym').textContent=label; $('mCmp').textContent=''; $('mChg').textContent=''; $('mSrc').textContent='loading intraday bars…'; $('mVer').innerHTML=''; $('mCond').innerHTML=''; $('mLad').innerHTML=''; $('mOI').innerHTML=''; if($('mPlan')) $('mPlan').innerHTML='';
+  const r=await getBars(y,sy); if(TQ.sym!==sy) return;
+  if(!r){ $('mSrc').textContent='intraday bars not available right now (live feed busy, no snapshot for this symbol) — try again shortly'; return; }
+  TQ.bars=r.b; $('mSrc').textContent=r.src; techPaint();
+}
+
+function planPaint(){ const el=$('mPlan'); if(!el) return; const hm=HM.rows.find(r=>r[0]===TQ.sym), cl=CALLS[TQ.sym]; if(!hm||!cl){ el.innerHTML=''; return; } const c=trCfg(), pl=trPlan(hm[2],hm[8],cl,c,trCost(c.T*1e5,c.S)), late=istMin()>=885&&istMin()<=930;
+  el.innerHTML=`<div class="oib"><b>TRADE PLAN · ${cl.side}</b> ${pl.ok?'':'<span class="neg">NOT TRADEABLE ('+(pl.thin?'too thin for ticket':'costs eat the edge')+')</span>'}<table><tr><td>Entry / Stop / T1</td><td class="r">${fmt(cl.entry,2)} / ${fmt(cl.sl,2)} / ${fmt(cl.t1,2)}</td></tr><tr><td>Qty (limit: ${pl.qLim})</td><td class="r">${pl.qty} · ₹${Math.round(pl.tradeRs).toLocaleString('en-IN')}</td></tr><tr><td>Risk if stopped</td><td class="r">₹${Math.round(pl.riskRs).toLocaleString('en-IN')}</td></tr><tr><td>Round-trip cost</td><td class="r">${pl.costPct.toFixed(2)}% = ${pl.costR.toFixed(2)}R</td></tr><tr><td>Break-even hit-rate</td><td class="r">${pl.be.toFixed(0)}%</td></tr><tr><td>Avg daily value</td><td class="r">₹${pl.valCr.toFixed(1)} cr</td></tr></table>${late?'<div class="neg">After 14:45 IST: no new entries, square off by 15:15.</div>':''}</div>`; }
+function techPaint(){
+  const A=analyse(TQ.bars,+$('mTf').value); if(!A){ $('mSrc').textContent+=' · not enough bars'; return; }
+  $('mCmp').textContent=fx(A.cmp,TQ.dp); const hm=HM.rows.find(r=>r[0]===TQ.sym); const q=Q[TQ.y];
+  const pcl=hm?hm[3]:(q&&q.pc); if(pcl){ const ch=(A.cmp/pcl-1)*100; $('mChg').innerHTML=`<span class="${ch>=0?'up':'dn'}" style="font:800 14px ui-monospace,Consolas,monospace">${sg(ch,2)}%</span>`; }
+  renderTech(A,TQ.dp,TQ.label); oiPaint(); chartPaint(A); planPaint();
+}
+$('mX').onclick=()=>{$('mo').classList.remove('on');TQ.sym=null}; $('mo').addEventListener('click',e=>{if(e.target.id==='mo'){$('mo').classList.remove('on');TQ.sym=null}}); document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('mo').classList.remove('on');TQ.sym=null}});
+$('mTf').addEventListener('change',()=>{ if(TQ.bars) techPaint(); });
+$('hmg').addEventListener('click',e=>{ const c=e.target.closest('.hc'); if(c) openTech(c.dataset.sy+'.NS',c.dataset.sy,c.dataset.sy,2); });
+$('tb').addEventListener('click',e=>{ const th=e.target.closest('th[data-y]'); if(th){ const d=DEF[th.dataset.y]; openTech(th.dataset.y,th.dataset.y,d.n,d.dp); } });
+function clock(){ const d=ist(); $('clk').textContent=d.toISOString().slice(11,19); const o=indiaOpen(); $('dot').className='dot'+(o?' live':''); $('mk').textContent=o?'NSE LIVE':'NSE CLOSED'; }
+$('note').innerHTML='Row 1 = last price + trend · Row 2 = points (% change) · Rows 3-4 = LIVE floating pivots from the day high, day low and last price (P=(H+L+C)/3; highlighted when price is within 0.35% of a level; narrow early in the session). VIX, USDINR and yields: a rise is pressure (red). Delayed Yahoo quotes · not advice.';
+
+/* ---- live news + TV calls (news branch, built by Actions from public RSS) ---- */
+let NW=null;
+(function(){ const f=$('tvF'); let id=''; try{ id=localStorage.getItem('jctv_id')||''; }catch(e){} if(id&&window.TVM!=='hls'){ f.dataset.man='1'; f.dataset.v=id; f.src='https://www.youtube.com/embed/'+id+'?rel=0&modestbranding=1'; }
+ $('tvU').addEventListener('change',e=>{ const m=e.target.value.match(/(?:v=|youtu\.be\/|live\/|embed\/)([\w-]{11})/); if(!m) return; try{ localStorage.setItem('jctv_id',m[1]); }catch(x){} f.dataset.man='1'; f.dataset.v=m[1]; f.src='https://www.youtube.com/embed/'+m[1]+'?rel=0&modestbranding=1'; e.target.value=''; }); })(); const MY=()=>{ try{ const d=new Date().toISOString().slice(0,10); return JSON.parse(localStorage.getItem('jctv_'+d)||'[]'); }catch(e){ return []; } };
+async function newsLoad(){
+  const u=['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/news/news.json?x='+Date.now(),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/news.json?ref=news'];
+  for(let i=0;i<u.length;i++){ try{ const r=await fetch(u[i],i===1?{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}:{cache:'no-store'}); if(!r.ok) continue; const j=await r.json(); if(j&&j.news){ NW=j; break; } }catch(e){} }
+  newsPaint();
+}
+function hhmm(t){ return new Date(t*1000).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false})+' '+new Date(t*1000).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short'}); }
+function newsPaint(){
+  if(!NW){ $('nwL').textContent='News feed unavailable right now - retrying.';  return; }
+  if(!NW) return;  $('nwc').textContent=NW.news.length+' headlines'; $('nws').textContent='updated '+hhmm(Date.parse(NW.ts)/1000);
+  $('nwL').innerHTML=NW.news.map(n=>`<a href="${esc(n.link)}" target="_blank" rel="noopener"><span class="tm">${hhmm(n.t)}</span><span class="sr2">${esc(n.src)}</span>${esc(n.title)}</a>`).join('')||'No headlines.';
+}
+
+async function zeeLoad(force){ if(window.TVM==='hls') return; try{ let z=null; for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/zee/zee.json?x='+Date.now(),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/zee.json?ref=zee']){ try{ const r=await fetch(u,u.includes('api.github')?{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}:{cache:'no-store'}); if(r.ok){ z=await r.json(); break; } }catch(e){} } if(!z){ $('tvS').textContent='Could not reach the link service - try ↻ TV again in a minute.'; return; } const f=$('tvF'); const h=document.querySelector('#tvB .tvh b'); if(z.id&&!f.dataset.man&&(force||f.dataset.v!==z.id)){ f.dataset.v=z.id; f.src='https://www.youtube.com/embed/'+z.id+'?autoplay=1&mute=1&rel=0&modestbranding=1&enablejsapi=1&origin='+encodeURIComponent(location.origin); f.onload=()=>{ try{ f.contentWindow.postMessage(JSON.stringify({event:'listening',id:1}),'*'); }catch(e){} }; } if(h&&z.title&&!f.dataset.man) h.textContent='ZEE BUSINESS LIVE · '+z.title.slice(0,38); $('tvS').innerHTML=(z.id?'Now: '+esc((z.title||'').slice(0,60))+' · started '+(z.started_min_ago!=null?z.started_min_ago+' min before check':'')+' · checked '+hhmm(Date.parse(z.ts)/1000):'No live programme found at last check')+(z.id?' · <a style="color:#d9cfae" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v='+z.id+'">open on YouTube ↗</a>':''); }catch(e){} }
+window.addEventListener('message',e=>{ if(!/youtube/.test(e.origin)) return; try{ const d=typeof e.data==='string'?JSON.parse(e.data):e.data; if(d&&(d.event==='onError'||(d.info&&d.info.errorCode))){ $('tvS').innerHTML='<b style="color:#d39098">YouTube blocked playing this stream inside the page.</b> '+($('tvF').dataset.v?'<a style="color:#d9cfae" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v='+$('tvF').dataset.v+'">Watch it on YouTube ↗</a>':''); } }catch(x){} });
+zeeLoad(); setInterval(()=>{ if(!document.hidden) zeeLoad(); },120000);
+$('tvR').onclick=()=>{ const f=$('tvF'); if(f.dataset.man){ f.src=f.src; } else { zeeLoad(true); } $('tvS').textContent='Reloading TV…'; };
+newsLoad(); (function ns(){ setTimeout(async()=>{ if(!document.hidden) await newsLoad(); ns(); }, 60000); })();
+
+/* ---- Zee Business live dock: mute, hide, always-on-top pop-out (Document Picture-in-Picture) ---- */
+(function(){ const f=$('tvF'), box=$('tvB'), w=$('tvW'); let muted=true, pip=null; const unm=()=>{ if(!muted) return; muted=false; cmd('unMute'); cmd('setVolume',[80]); cmd('playVideo'); $('tvM').textContent='🔊'; };
+ document.addEventListener('pointerdown',unm,{once:true,capture:true}); document.addEventListener('keydown',unm,{once:true,capture:true}); f.addEventListener('load',()=>{ setTimeout(()=>{ try{ cmd('unMute'); }catch(e){} },1500); });
+ const cmd=(fn,a)=>{ try{ f.contentWindow.postMessage(JSON.stringify({event:'command',func:fn,args:a||[]}),'*'); }catch(e){} };
+ $('tvM').onclick=()=>{ muted=!muted; cmd(muted?'mute':'unMute'); if(!muted) cmd('playVideo'); $('tvM').textContent=muted?'🔇':'🔊'; };
+ $('tvM').textContent='🔇';
+ $('tvH').onclick=()=>{ box.classList.toggle('min'); $('tvH').textContent=box.classList.contains('min')?'▸':'▾'; };
+ $('tvP').onclick=async()=>{
+   if(pip){ pip.close(); return; }
+   if(window.documentPictureInPicture){ try{
+     pip=await documentPictureInPicture.requestWindow({width:480,height:300});
+     const st=pip.document.createElement('style'); st.textContent='html,body{margin:0;background:#000;height:100%}iframe{width:100%;height:100%;border:0;display:block}'; pip.document.head.appendChild(st);
+     pip.document.body.appendChild(f); $('tvW').innerHTML='<div style="color:#93a1b5;font:12px Segoe UI;padding:14px">Playing in the always-on-top window. Close it to bring the video back here.</div>';
+     pip.addEventListener('pagehide',()=>{ w.innerHTML=''; w.appendChild(f); pip=null; });
+     return; }catch(e){} }
+   window.open(f.src,'zeelive','popup=yes,width=480,height=300'); alert('Your browser has no always-on-top mode, so a small separate window opened. Use Chrome or Edge on desktop for stay-on-top.');
+ };
+})();
+
+/* ---- market barometer, fear & greed, early trend-reversal alerts (all computed from live feed data in this page) ---- */
+const RV={}; const clamp=(x,a,b)=>Math.max(a,Math.min(b,x)), hm5=()=>new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false});
+function miniRun(){ try{ baro(); }catch(e){ $('bgL').textContent='Barometer error'; } try{ reversal(); }catch(e){ $('rvL').textContent='Reversal scan error'; } }
+
+function dial(v){ const C=['#ff4fa3','#ffa03c','#fff04d','#3dffb4','#1dffe6'], P=(a)=>{ const r=a*Math.PI/180; return [(50-40*Math.cos(r)).toFixed(1),(50-40*Math.sin(r)).toFixed(1)]; };
+  const arcs=C.map((c,i)=>{ const a=P(i*36+1.5), b=P((i+1)*36-1.5); return `<path d="M${a[0]} ${a[1]} A40 40 0 0 1 ${b[0]} ${b[1]}" stroke="${c}" stroke-width="9" fill="none" opacity=".95"/>`; }).join(''); const ang=clamp(v,0,100)*1.8-90;
+  return `<svg viewBox="0 0 100 58" style="width:92px;height:54px;flex:none;filter:drop-shadow(0 0 4px rgba(255,255,255,.25))">${arcs}<g transform="rotate(${ang.toFixed(1)} 50 50)"><path d="M48.6 50 L50 14 L51.4 50 Z" fill="#fff"/></g><circle cx="50" cy="50" r="4.2" fill="#fff"/></svg>`; }
+function baro(){
+  const today=istDay(), rows=HM.rows.filter(r=>r[9]===today&&r[3]&&r[2]);
+  if(rows.length<50){ $('bgL').innerHTML='<div style="padding:8px;color:#93a1b5">Needs live heat-map data (market session).</div>'; $('bgc').textContent=''; return; }
+  let adv=0,dec=0,h1=0,l1=0,h52=0,l52=0,nh=0,nl=0,sum=0;
+  rows.forEach(r=>{ const [sy,g,p,pc,o,h,l]=r, st=HM.stat[sy]||[], mh=r[10]??st[0], ml=r[11]??st[1], wh=r[12]??st[2], wl=r[13]??st[3]; const c=(p/pc-1)*100; sum+=c; if(p>pc) adv++; else if(p<pc) dec++; if(h&&p>=h*0.998) nh++; if(l&&p<=l*1.002) nl++; if(mh&&p>=mh) h1++; if(ml&&p<=ml) l1++; if(wh&&p>=wh) h52++; if(wl&&p<=wl) l52++; });
+  const n=rows.length, ap=adv/(adv+dec||1)*100, avg=sum/n, vx=Q['^INDIAVIX'], nf=Q['^NSEI'];
+  const comp=[]; if(vx&&vx.p) comp.push(['India VIX '+vx.p.toFixed(1),clamp((25-vx.p)/15*100,0,100)]); comp.push(['Breadth '+ap.toFixed(0)+'% up',ap]);
+  if(h1+l1>0) comp.push(['1M highs vs lows '+h1+'/'+l1,h1/(h1+l1)*100]); if(nf&&nf.pc) comp.push(['Nifty '+((nf.p/nf.pc-1)*100).toFixed(2)+'%',clamp(50+((nf.p/nf.pc-1)*100)*25,0,100)]);
+  const fg=comp.reduce((a,c)=>a+c[1],0)/comp.length, lab=fg<25?'EXTREME FEAR':fg<45?'FEAR':fg<55?'NEUTRAL':fg<75?'GREED':'EXTREME GREED', lc=fg<45?'dn':fg>55?'up':'fl';
+  $('bgc').textContent=n+' stocks';
+  const MM=macroWatch(null), wx=fg>=75?{i:'🔥',t:'Overheated · avoid chasing'}:fg>=55?{i:'⚠️',t:'Getting risky · tighten stops'}:fg>=45?{i:'⚖️',t:'Balanced · stock-specific'}:fg>=25?{i:'🛒',t:'Opportunity building · stagger buys'}:{i:'💎',t:'Opportunity · accumulate in stages'}; if(fg<45&&MM.bad>=2) wx.t+=' · wait, macro adverse';
+  const z=fg<25?0:fg<45?1:fg<55?2:fg<75?3:4, tl=(l,v,c)=>`<div class="ti ${c||''}"><i>${l}</i><b>${v}</b></div>`;
+  $('bgL').innerHTML=`<div class="fgt z${z}" title="Own score from: ${comp.map(c=>c[0]).join(' · ')} (not an official index). 52-week highs/lows: ${h52} / ${l52}"><div class="wx" title="Market stance - contrarian reading of Fear &amp; Greed: more greed = more risk, more fear = more opportunity">${wx.i}</div><div style="display:flex;flex-direction:column;line-height:1.05"><span>FEAR &amp; GREED</span><b>${fg.toFixed(0)}</b></div><div style="display:flex;flex-direction:column;line-height:1.15;margin-left:auto;text-align:right;min-width:0;flex:1"><em>${lab}</em><span style="letter-spacing:.02em;font-weight:700;white-space:normal;font-size:10px">${wx.t}</span></div></div>
+  <div class="tiw">${tl('Adv / Dec',adv+' / '+dec,ap>=50?'good':'bad')}${tl('Avg move',(avg>=0?'+':'')+avg.toFixed(2)+'%',avg>=0?'good':'bad')}${tl('Day H / L',nh+' / '+nl,nh>=nl?'good':'bad')}${tl('1M H / L',h1+' / '+l1,h1>=l1?'good':'bad')}</div>`;
+}
+
+/* ---- cross-asset sudden-move watch: VIX, USDINR, Brent, US$ index, US 10Y, Dow futures (my default limits, editable in MX) ---- */
+const MX=[['^INDIAVIX','VIX',3,1,2],['USDINR=X','USDINR',0.15,1,3],['BZ=F','BRENT',1.2,1,2],['DX-Y.NYB','US$IDX',0.25,1,3],['^TNX','US10Y',2,1,3],['YM=F','DOW',0.4,0,2]]; // [symbol,label,30-min move limit %,rise-is-bad(1)/fall-is-bad(0),dp]
+function spark(sp,good){ const a=sp.slice(-14); if(a.length<3) return ''; const lo=Math.min(...a), hi=Math.max(...a), r=hi-lo||1, pts=a.map((v,i)=>(i/(a.length-1)*36+1).toFixed(1)+','+(12-(v-lo)/r*11).toFixed(1)).join(' '); return `<svg viewBox="0 0 38 13"><polyline points="${pts}" fill="none" stroke="${good===null?'#93a1b5':good?'#8fc7ad':'#d39098'}" stroke-width="1.6" stroke-linejoin="round"/></svg>`; }
+function macroWatch(add){
+  const k=srcLabel==='LIVE'?2:6, out=[]; let bad=0, good=0;
+  MX.forEach(([s,n,lim,riseBad,dp])=>{ const r=Q[s]; if(!r) return; const sp=(r.sp||[]).filter(v=>v!=null); if(sp.length<=k) return; const prev=sp[sp.length-1-k], now=r.p!=null?r.p:sp[sp.length-1]; if(!prev) return; const mv=(now/prev-1)*100, hit=Math.abs(mv)>=lim, adverse=riseBad?mv>0:mv<0; let state=null; if(hit){ state=adverse?'bad':'good'; if(adverse) bad++; else good++; } out.push({n,mv,state,sp,lim}); if(hit&&add) add('MX'+s+(adverse?'B':'G'),adverse?'d':'u',`<b>${n} ${mv>0?'▲':'▼'} sudden ${Math.abs(mv).toFixed(2)}% in ~30 min</b> · ${adverse?'pressure on Indian equities':'supportive for Indian equities'}`,adverse?'RISK-OFF':'RISK-ON'); });
+  return {out,bad,good};
+}
+function reversal(){
+  const today=istDay(), t0=hm5();
+  const add=(k,cls,txt,tag)=>{ if(!RV[k]||RV[k].tag!==tag){ RV[k]={t:t0,cls,txt,tag,ts:Date.now()}; } else { RV[k].txt=txt; RV[k].cls=cls; } };
+  const live=new Set();
+  ['^NSEI','^NSEBANK','^BSESN'].forEach(s=>{ const r=Q[s]; if(!r) return; const sp=(r.sp||[]).filter(v=>v!=null); if(sp.length<14||!r.p) return; const p=r.p, hi=Math.max(...sp,r.hi||0), lo=Math.min(...sp.filter(v=>v>0),r.lo||1e18), n=sp.length, iH=sp.lastIndexOf(Math.max(...sp)), iL=sp.lastIndexOf(Math.min(...sp.filter(v=>v>0)));
+    const sl=(a,b)=>(a/b-1)*100, s4=sl(sp[n-1],sp[n-5]), pre=sl(sp[Math.max(iL,0)],sp[Math.max(iL-8,0)]), pre2=sl(sp[Math.max(iH,0)],sp[Math.max(iH-8,0)]), nm=DEF[s].n, up=(p-lo)/p*100, dn=(hi-p)/p*100;
+    if(up>=0.25&&iL>=n-20&&s4>0&&pre<0){ const k=s+'U'; live.add(k+(up>=0.6?'C':'E')); add(k,'u',`<b>${nm} ▲ turning UP</b> · ${up.toFixed(2)}% off day low ${fx(lo,DEF[s].dp)} · last 4 bars rising`,up>=0.6?'CONFIRMED':'EARLY'); }
+    if(dn>=0.25&&iH>=n-20&&s4<0&&pre2>0){ const k=s+'D'; live.add(k+(dn>=0.6?'C':'E')); add(k,'d',`<b>${nm} ▼ turning DOWN</b> · ${dn.toFixed(2)}% off day high ${fx(hi,DEF[s].dp)} · last 4 bars falling`,dn>=0.6?'CONFIRMED':'EARLY'); } });
+  const M=macroWatch(add); Object.keys(RV).forEach(k=>{ if(k.startsWith('MX')) live.add(k+'E'); });
+  // stocks with intraday bars (top 40 by filter rank): EMA9 / EMA21 cross on 15 min within the last 3 bars, with volume rising
+  Object.keys(BARS).forEach(sy=>{ try{ const D=aggr(BARS[sy],15), n=D.c.length; if(n<30||dayOf(D.t[n-1])!==today) return; const a=ema(D.c,9), b=ema(D.c,21), d0=a[n-1]-b[n-1], d3=a[n-4]-b[n-4]; if(a[n-4]==null||b[n-4]==null||d0*d3>=0) return; const vN=D.v[n-1]+D.v[n-2], vP=D.v[n-3]+D.v[n-4]; if(!(vN>vP)) return; const bull=d0>0, k=sy+(bull?'U':'D'); live.add(k+'E'); add(k,bull?'u':'d',`<b>${sy} ${bull?'▲ EMA9 crossed above EMA21':'▼ EMA9 crossed below EMA21'}</b> (15 min) · volume rising`,'EARLY'); }catch(e){} });
+  Object.keys(RV).forEach(k=>{ const alive=[...live].some(x=>x.startsWith(k)); if(!alive&&Date.now()-RV[k].ts>45*60000) delete RV[k]; });
+  const list=Object.keys(RV).map(k=>RV[k]).sort((a,b)=>b.ts-a.ts).slice(0,40); const strip='<div class="mx">'+M.out.map(x=>`<div class="ti ${x.state||''}${x.state==='bad'?' pu':''}" title="30-min move vs alert limit"><i>${x.n}</i><b>${x.mv>0?'▲':x.mv<0?'▼':'■'} ${x.mv>=0?'+':''}${x.mv.toFixed(2)}%</b></div>`).join('')+`<div class="ti ${M.bad>M.good?'bad':M.good>M.bad?'good':''}"><i>Adv / Supp</i><b>${M.bad} / ${M.good}</b></div></div>`;
+  $('rvc').textContent=list.length+' today';
+  $('rvL').innerHTML=strip+'<div class="rvl">'+(list.map(x=>`<span class="rv ${x.cls}"><span class="tm">${x.t}</span>${x.txt}<span class="tg ${x.tag==='CONFIRMED'||x.tag==='RISK-ON'?'cf':''}">${x.tag}</span></span>`).join('')||'<div style="padding:8px;color:#93a1b5">No reversal setups right now. Watches index turns, 15-min EMA9/21 crosses on the top-40 stocks, and sudden 30-min moves in VIX, USDINR, Brent, US$ index, US 10Y and Dow.</div>')+'</div>';
+}
+setTimeout(miniRun,4000); setInterval(miniRun,15000);
+$('wuB').onclick=()=>{ $('wu').classList.add('on'); }; $('wuX').onclick=()=>{ $('wu').classList.remove('on'); };
+
+/* only one live TV across open tabs */
+(function(){ if(!window.BroadcastChannel) return; const ch=new BroadcastChannel('jc-tv'), me=Math.random().toString(36).slice(2); let stopped=false;
+ ch.onmessage=e=>{ if(e.data&&e.data.t==='play'&&e.data.me!==me){ const f=$('tvF'); if(f&&f.src&&f.src!=='about:blank'&&!stopped){ stopped=true; f.dataset.v=''; f.src='about:blank'; $('tvS').innerHTML='<b style="color:#d2c08a">TV is playing in another tab/window.</b> Press ↻ TV to play it here instead.'; } } };
+ const claim=()=>{ if(window.TVM==='hls') return; stopped=false; ch.postMessage({t:'play',me}); };
+ $('tvF').addEventListener('load',()=>{ if($('tvF').src!=='about:blank') claim(); });
+ $('tvR').addEventListener('click',()=>{ stopped=false; });
+})();
+
+/* ---- Zee Business live: official stream played natively (hls.js); YouTube kept as a fallback source ---- */
+(function(){
+ const box=$('tvB'), v=$('tvV'), f=$('tvF'), S=$('tvS'); const TOK='https://03nwj0csy5.execute-api.ap-south-1.amazonaws.com/prod/cf-token', SRC='https://dwby15d04agvq.cloudfront.net/index.m3u8', LIB='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js';
+ let mode=window.TVM, hls=null, fails=0, last=-1, stall=0, muted=true, other=false, busy=false;
+ const say=h=>{ S.innerHTML=h; }, tm=()=>new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:false});
+ const lib=()=>window.Hls?Promise.resolve():new Promise((ok,no)=>{ const e=document.createElement('script'); e.src=LIB; e.onload=ok; e.onerror=()=>no(new Error('player library blocked')); document.head.appendChild(e); });
+ const stop=()=>{ try{ if(hls){ hls.destroy(); } }catch(e){} hls=null; try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} };
+ const ch=window.BroadcastChannel?new BroadcastChannel('jc-tv'):null, me='h'+Math.random().toString(36).slice(2);
+ async function start(){ if(mode!=='hls'||busy) return; busy=true; other=false; stop(); say('Connecting to the Zee Business live feed…');
+  try{ const [,r]=await Promise.all([lib(),fetch(TOK,{cache:'no-store'})]); if(!r.ok) throw new Error('token '+r.status); const j=await r.json(); let tk=String(j.video_token||''); if(!tk) throw new Error('no token'); if(tk[0]!=='?') tk='?akes='+tk; const url=SRC+tk;
+   if(window.Hls&&Hls.isSupported()){ window.TVH=hls=new Hls({maxBufferLength:12,backBufferLength:10,liveSyncDuration:8,liveMaxLatencyDuration:14,maxLiveSyncPlaybackRate:1.25,startLevel:1,abrEwmaDefaultEstimate:3000000,enableWorker:true}); hls.loadSource(url); hls.attachMedia(v);
+    hls.on(Hls.Events.ERROR,(e,d)=>{ if(d&&d.fatal){ fail('stream error '+d.details); } });
+    hls.on(Hls.Events.MANIFEST_PARSED,()=>{ fails=0; }); }
+   else if(v.canPlayType('application/vnd.apple.mpegurl')) v.src=url; else throw new Error('this browser cannot play HLS');
+   v.muted=muted; v.play().catch(()=>{}); if(ch) ch.postMessage({t:'play',me});
+   say('<b style="color:#3dffb4">● LIVE</b> · official Zee Business stream (same feed as zeebiz.com) · connected '+tm()+' IST · no YouTube needed');
+  }catch(e){ fail(String(e.message||e)); } busy=false; }
+ function fail(why){ fails++; stop(); if(fails>=3){ say('<b style="color:#d39098">Official stream not reachable ('+why+').</b> Switching to the YouTube fallback.'); setMode('yt'); return; } say('Stream hiccup ('+why+') · retrying '+fails+'/3…'); setTimeout(start,3000*fails); }
+ function setMode(m){ mode=m; window.TVM=m; try{ localStorage.setItem('jctv_mode',m); }catch(e){} box.classList.toggle('hls',m==='hls');
+  if(m==='hls'){ f.dataset.v=''; f.src='about:blank'; fails=0; start(); } else { stop(); f.dataset.man=f.dataset.man||''; if(typeof zeeLoad==='function') zeeLoad(true); } $('tvM').textContent=muted?'🔇':'🔊'; }
+ setInterval(()=>{ if(mode!=='hls'||!hls||other||v.paused) return; const pd=hls.playingDate; if(!pd) return; const lag=Math.round((Date.now()-pd.getTime())/1000); if(lag<0||lag>600) return; const e=document.getElementById('tvLag')||(()=>{ const x=document.createElement('span'); x.id='tvLag'; x.style.cssText='float:right;font-weight:800'; S.appendChild(x); return x; })(); e.textContent='⏱ '+lag+' s behind clock'; e.style.color=lag<=20?'#3dffb4':lag<=45?'#ffd24a':'#ff8f9a'; },5000);
+ // watchdog: playing but frozen for ~40 s -> restart from a fresh token
+ setInterval(()=>{ if(mode!=='hls'||!hls||v.paused||other||document.hidden) return; if(Math.abs(v.currentTime-last)<0.01){ if(++stall>=2){ stall=0; fails=0; start(); } } else stall=0; last=v.currentTime; },20000);
+ setInterval(()=>{ if(mode==='hls'&&!other&&!document.hidden&&hls) { fails=0; start(); } },50*60000);   // refresh the session token before it lapses
+ if(ch) ch.addEventListener('message',e=>{ if(e.data&&e.data.t==='play'&&e.data.me!==me&&mode==='hls'&&hls){ other=true; stop(); say('<b style="color:#d2c08a">TV is playing in another tab/window.</b> Press ↻ TV to play it here instead.'); } });
+ // controls: mute follows the first click on the page; mute button; reload; source switch; pop-out
+ const prevM=$('tvM').onclick, prevR=$('tvR').onclick, prevP=$('tvP').onclick;
+ $('tvM').onclick=e=>{ if(mode!=='hls') return prevM&&prevM(e); muted=!muted; v.muted=muted; if(!muted) v.play().catch(()=>{}); $('tvM').textContent=muted?'🔇':'🔊'; };
+ $('tvR').onclick=e=>{ if(mode!=='hls') return prevR&&prevR(e); fails=0; start(); };
+ $('tvX').onclick=()=>setMode(mode==='hls'?'yt':'hls');
+ $('tvP').onclick=async e=>{ if(mode!=='hls') return prevP&&prevP(e); try{ if(document.pictureInPictureElement){ await document.exitPictureInPicture(); } else { await v.requestPictureInPicture(); } }catch(x){ say('Pop-out is not available in this browser — use Chrome or Edge on desktop.'); } };
+ const unm=()=>{ if(mode==='hls'&&muted){ muted=false; v.muted=false; v.play().catch(()=>{}); $('tvM').textContent='🔊'; } };
+ document.addEventListener('pointerdown',unm,{once:true,capture:true}); document.addEventListener('keydown',unm,{once:true,capture:true});
+ $('tvU').addEventListener('change',()=>{ if(mode==='hls'){ mode='yt'; window.TVM='yt'; try{ localStorage.setItem('jctv_mode','yt'); }catch(e){} stop(); box.classList.remove('hls'); } });
+ box.classList.toggle('hls',mode==='hls'); if(mode==='hls'){ f.dataset.v=''; f.src='about:blank'; start(); }
+})();
+clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load(); heatLoad();
+(function hs(){ setTimeout(async()=>{ if(!document.hidden) await heatLoad(); hs(); }, indiaOpen()?45000:180000); })();
+(function sched(){ setTimeout(async()=>{ if(!document.hidden) await load(); sched(); }, indiaOpen()?20000:120000); })();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
+</script></body></html>
