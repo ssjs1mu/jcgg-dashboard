@@ -119,6 +119,23 @@ html.jc-light #jcThemeB{filter:none}
   function set(){ var l=r.classList.contains('jc-light'); b.textContent=l?'🌙':'☀'; b.title=l?'Switch to the dark theme':'Switch to the light theme'; }
   b.onclick=function(){ r.classList.toggle('jc-light'); try{ localStorage.setItem('jc_theme',r.classList.contains('jc-light')?'light':'dark'); }catch(e){} set(); };
   set(); document.body.appendChild(b); }); })();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style id="jcFont">
+/* Readability: one clean sans-serif everywhere (numbers keep equal-width digits), no wide tracking, no text glow */
+html,body,button,input,select,textarea,table,th,td,div,span,a,b,i,em,strong,small,p,label,h2,h3,h4,.ttl,.ti,.k,.r{font-family:"Inter","Segoe UI",Roboto,Arial,sans-serif!important}
+body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"cv11" 1}
+.brand,.header-title h1,.top h1{font-family:"Brush Script MT","Segoe Script",cursive!important;letter-spacing:0!important}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+#jcZ{position:fixed;right:56px;bottom:10px;z-index:99999;display:flex;gap:4px}
+#jcZ button{width:38px;height:38px;border-radius:50%;border:1px solid #2fd0ff;background:#0d5a73;color:#fff;font:700 15px/1 Inter,Arial,sans-serif!important;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+</style>
+<script>(function(){ var z=1; try{ z=parseFloat(localStorage.getItem('jc_zoom'))||1; }catch(e){}
+ function ap(){ if(document.body) document.body.style.zoom=z; }
+ document.addEventListener('DOMContentLoaded',function(){ ap(); var d=document.createElement('div'); d.id='jcZ';
+  d.innerHTML='<button type="button" title="Smaller text" id="jcZm">A−</button><button type="button" title="Larger text" id="jcZp">A+</button>'; document.body.appendChild(d);
+  function st(n){ z=Math.min(1.5,Math.max(.8,Math.round((z+n)*100)/100)); try{ localStorage.setItem('jc_zoom',z); }catch(e){} ap(); }
+  d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
 </head>
 <body>
 <header>

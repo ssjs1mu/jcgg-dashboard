@@ -66,3 +66,4 @@
 | 2026-11-06 | Fix: index previous close (Nifty, Bank Nifty, Sensex, VIX) was one session stale from the backend (showed Nifty +3.54% instead of +1.08%); now taken from daily bars in the terminal and the Index Movers page |
 | 2026-11-06 | Index Movers: stock points scaled to the actual index move |
 | 2026-11-06 | Index Movers rebuilt as side-by-side panels (2-5): every panel has its own dropdown of 34 indices (Nifty 50/100/200/500, Midcap, Smallcap, Bank, IT, Auto, Metal, Pharma, FMCG, Realty, Energy, PSU Bank, etc. + Sensex) showing each index day move, sortable best/worst/name, "Auto: best + worst" button; per panel: top 5 gainers, top 5 decliners, index tile, all stocks (10-row window) with price, %, RVOL, weight, points |
+| 2026-11-06 | Readability on all pages: Inter font, even-width digits, tighter tracking, no text glow; A- / A+ text-size buttons (remembered) |
