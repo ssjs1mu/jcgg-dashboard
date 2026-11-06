@@ -54,3 +54,4 @@
 | 2026-11-06 | Live terminal: new bottom section "Trail Board · Target Tracker" (conditions 2-7 entry, pivot stop, +0.5/1/1.5/2/3% and next-pivot targets time-stamped, scorecard vs 58-day backtest, per-browser history). Heat-map unchanged |
 | 2026-11-06 | Lab only: Early Movers radar (both sides, whole universe) + study pipeline/early_movers.py (branch early) |
 | 2026-11-06 | Live terminal: Early Movers radar added inside the Trail Board section (both sides, whole universe, excludes moves already over 6%) |
+| 2026-11-06 | Live terminal and lab: Minimise / Expand buttons on the heat-map, alerts and trail panels (state remembered per browser) |
