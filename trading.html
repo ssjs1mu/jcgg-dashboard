@@ -659,7 +659,7 @@ $('wuB').onclick=()=>{ $('wu').classList.add('on'); }; $('wuX').onclick=()=>{ $(
  const ch=window.BroadcastChannel?new BroadcastChannel('jc-tv'):null, me='h'+Math.random().toString(36).slice(2);
  async function start(){ if(mode!=='hls'||busy) return; busy=true; other=false; stop(); say('Connecting to the Zee Business live feed…');
   try{ const [,r]=await Promise.all([lib(),fetch(TOK,{cache:'no-store'})]); if(!r.ok) throw new Error('token '+r.status); const j=await r.json(); let tk=String(j.video_token||''); if(!tk) throw new Error('no token'); if(tk[0]!=='?') tk='?akes='+tk; const url=SRC+tk;
-   if(window.Hls&&Hls.isSupported()){ window.TVH=hls=new Hls({maxBufferLength:12,backBufferLength:10,liveSyncDurationCount:2,liveMaxLatencyDurationCount:4,maxLiveSyncPlaybackRate:1.15,startLevel:1,abrEwmaDefaultEstimate:3000000,enableWorker:true}); hls.loadSource(url); hls.attachMedia(v);
+   if(window.Hls&&Hls.isSupported()){ window.TVH=hls=new Hls({maxBufferLength:12,backBufferLength:10,liveSyncDuration:8,liveMaxLatencyDuration:14,maxLiveSyncPlaybackRate:1.25,startLevel:1,abrEwmaDefaultEstimate:3000000,enableWorker:true}); hls.loadSource(url); hls.attachMedia(v);
     hls.on(Hls.Events.ERROR,(e,d)=>{ if(d&&d.fatal){ fail('stream error '+d.details); } });
     hls.on(Hls.Events.MANIFEST_PARSED,()=>{ fails=0; }); }
    else if(v.canPlayType('application/vnd.apple.mpegurl')) v.src=url; else throw new Error('this browser cannot play HLS');
