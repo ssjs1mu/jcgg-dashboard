@@ -62,3 +62,4 @@
 | 2026-11-06 | Layout: news / barometer / early-reversal boxes enlarged to fit their content, TV widened to match, bottom heat-map and alerts bodies aligned |
 | 2026-11-06 | Layout: top boxes shrunk to fit their tiles (no spare space), TV narrowed; Early Reversal Alerts now market-only (stock EMA cross lines removed — stocks stay in Live Alerts) |
 | 2026-11-06 | Early Reversal empty-state text corrected (market only) |
+| 2026-11-06 | New page indices.html (Index Movers): dropdown + tiles for Nifty 50 / Bank Nifty / Nifty Next 50 / Nifty IT / Sensex; top-5 gainers, top-5 decliners, all constituents (10-row fixed window) with live price, change, %, free-float weight and index-points drag; row colour follows % move. Switch buttons on all pages. Constituents+float shares from workflow idx.yml (branch idx, weekdays 09:10 IST) |

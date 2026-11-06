@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Joshi's Corner - Index Movers</title>
+<style>
+:root{--bg:#0e1621;--card:#16243a;--line:#2d4260;--tx:#f1f5fb;--mu:#a9b8cc;--gold:#e0cd96;--up:#35f0a8;--dn:#ff6b9d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:linear-gradient(180deg,#0e1621,#0a111a);color:var(--tx);font:14px/1.4 "Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;padding:8px 12px 30px;-webkit-font-smoothing:antialiased}
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:1500px;margin:0 auto 8px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.top h1{font:400 32px/1 "Brush Script MT","Segoe Script",cursive;color:var(--gold);margin-right:auto}
+.sw{display:inline-block;padding:5px 14px;border-radius:999px;background:linear-gradient(180deg,#ffd35c,#d9a21c);color:#1a1030;font:800 12px "Segoe UI",sans-serif;text-decoration:none;letter-spacing:.02em}
+.sw.on{background:#1d3a5c;color:#9ee7ff;border:1px solid #2fd0ff;pointer-events:none}
+.st{font:700 12px ui-monospace,Consolas,monospace;color:var(--mu)}
+.st b{color:var(--up)}
+main{max-width:1500px;margin:0 auto}
+.sel{display:flex;gap:10px;align-items:center;margin:2px 0 8px;flex-wrap:wrap}
+.sel label{font:800 12px "Segoe UI";letter-spacing:.12em;color:var(--gold);text-transform:uppercase}
+.sel select{background:#10263d;color:#fff;border:1px solid #2fd0ff;border-radius:8px;padding:6px 10px;font:700 14px "Segoe UI";cursor:pointer}
+.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.cd{border-radius:10px;padding:8px 10px;border:1px solid var(--line);background:var(--card);cursor:pointer;display:grid;gap:1px}
+.cd.on{outline:2px solid #2fd0ff}
+.cd i{font:800 12px "Segoe UI";font-style:normal;letter-spacing:.1em;color:var(--mu);text-transform:uppercase}
+.cd b{font:800 20px ui-monospace,Consolas,monospace}
+.cd em{font:700 13px ui-monospace,Consolas,monospace;font-style:normal}
+.cd.up{background:linear-gradient(135deg,#0b3a31,#0f5c48);border-color:#2bbd8b}.cd.up b,.cd.up em{color:var(--up)}
+.cd.dn{background:linear-gradient(135deg,#40102c,#74193f);border-color:#d04e86}.cd.dn b,.cd.dn em{color:var(--dn)}
+.box{border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:10px;overflow:hidden}
+.bh{display:flex;align-items:center;gap:10px;padding:6px 10px;background:#0f1d30;border-bottom:1px solid var(--line);font:800 12.5px "Segoe UI";letter-spacing:.12em;text-transform:uppercase}
+.bh span{margin-left:auto;font:600 12px "Segoe UI";letter-spacing:0;color:var(--mu);text-transform:none}
+.bh.g{color:var(--up)}.bh.r{color:var(--dn)}.bh.c{color:var(--gold)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{background:#0f1d30;color:var(--gold);font:800 11.5px "Segoe UI";letter-spacing:.06em;text-transform:uppercase;padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+th:first-child,td:first-child{text-align:center;width:44px}
+th:nth-child(2),td:nth-child(2){text-align:left}
+td{padding:0 8px;height:34px;text-align:right;font:700 14px ui-monospace,Consolas,"Courier New",monospace;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}
+td:nth-child(2){font:800 14px "Segoe UI",sans-serif;letter-spacing:.01em}
+td small{display:block;font:500 11px "Segoe UI";color:var(--mu);overflow:hidden;text-overflow:ellipsis;max-width:230px;margin-top:-3px}
+.fx{height:calc(34px*10 + 33px);overflow:auto}
+tr.u td{color:#eafff6}tr.d td{color:#fff0f6}
+tr.fu td{animation:fu .9s}tr.fd td{animation:fd .9s}
+@keyframes fu{from{background:#3dffb4}}@keyframes fd{from{background:#ff6b9d}}
+.bar{display:inline-block;height:8px;border-radius:3px;background:#2fd0ff;vertical-align:middle;margin-right:6px}
+.cu{color:#5dffc2}.cdn{color:#ff8fb7}
+.note{color:var(--mu);font:12px/1.5 "Segoe UI";max-width:1500px;margin:4px auto 0}
+@media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}td{font-size:13px}}
+</style>
+<style id="jcTheme">
+/* Light theme: one switch for the whole app. Implemented as a colour inversion of the finished page with hue kept, so every panel, table, chart and popup follows; media is flipped back. */
+html.jc-light{filter:invert(1) hue-rotate(180deg);background:#fff}
+html.jc-light img,html.jc-light video,html.jc-light iframe{filter:invert(1) hue-rotate(180deg)}
+#jcThemeB{position:fixed;right:10px;bottom:10px;z-index:99999;width:38px;height:38px;border-radius:50%;border:1px solid #2fd0ff;background:#0d5a73;color:#fff;font:700 18px/1 "Segoe UI",sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+html.jc-light #jcThemeB{filter:none}
+</style>
+<script>(function(){ try{ if(localStorage.getItem('jc_theme')==='light') document.documentElement.classList.add('jc-light'); }catch(e){}
+ document.addEventListener('DOMContentLoaded',function(){ var b=document.createElement('button'); b.id='jcThemeB'; b.type='button'; var r=document.documentElement;
+  function set(){ var l=r.classList.contains('jc-light'); b.textContent=l?'🌙':'☀'; b.title=l?'Switch to the dark theme':'Switch to the light theme'; }
+  b.onclick=function(){ r.classList.toggle('jc-light'); try{ localStorage.setItem('jc_theme',r.classList.contains('jc-light')?'light':'dark'); }catch(e){} set(); };
+  set(); document.body.appendChild(b); }); })();</script>
+</head>
+<body>
+<div class="top"><h1>Joshi's Corner</h1>
+ <a class="sw" href="trading.html">TRADING TERMINAL</a><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw on" href="indices.html">INDEX MOVERS</a>
+ <span class="st" id="st">connecting…</span></div>
+<main>
+ <div class="sel"><label for="ix">Index</label><select id="ix"></select><span class="st" id="info"></span></div>
+ <div class="cards" id="cards"></div>
+ <div class="box"><div class="bh g">▲ Top 5 gainers <span id="gt"></span></div><table id="tg"></table></div>
+ <div class="box"><div class="bh r">▼ Top 5 decliners <span id="dt"></span></div><table id="td"></table></div>
+ <div class="box"><div class="bh c">All constituents <span id="ct"></span></div><div class="fx"><table id="tc"></table></div></div>
+</main>
+<div class="note" id="nt"></div>
+<script>
+const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
+const IDX=[['NIFTY 50','^NSEI','Nifty 50'],['NIFTY BANK','^NSEBANK','Bank Nifty'],['NIFTY NEXT 50','^NSMIDCP','Nifty Next 50'],['NIFTY IT','^CNXIT','Nifty IT'],['SENSEX','^BSESN','Sensex']];
+const $=id=>document.getElementById(id);
+let CONS=null, cur=(()=>{try{return localStorage.getItem('jc_ix')}catch(e){return null}})()||'NIFTY 50', LV={}, PX={}, prev={};
+const f2=v=>v==null?'–':v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const sg=v=>(v>0?'+':'')+f2(v);
+async function J(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||20000);try{const r=await fetch(u,{signal:c.signal,cache:'no-store'});return JSON.parse(await r.text())}finally{clearTimeout(t)}}
+async function loadCons(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json?x='+Date.now(),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/idx.json?ref=idx']){ try{ let j=await J(u,15000); if(j.content) j=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))))); if(j&&j.indices){ CONS=j; return; } }catch(e){} } }
+async function pull(){
+  try{
+    const rows=CONS.indices[cur].rows, syms=rows.map(r=>r[0]+'.NS'), parts=[]; for(let i=0;i<syms.length;i+=30) parts.push(syms.slice(i,i+30));
+    const rs=await Promise.all(parts.map(p=>J(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.join(',')),25000)));
+    rs.forEach(j=>{ if(j&&j.ok) Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]&&q[1]) PX[k.replace(/\.NS$/,'')]={p:q[0],pc:q[1],v:q[5]}; }); });
+    const d=await J(BACKEND+'?action=dash&symbols='+encodeURIComponent(IDX.map(x=>x[1]).join(',')),20000);
+    if(d&&d.rows) d.rows.forEach(r=>{ if(r.p!=null&&r.pc) LV[r.s]={p:r.p,pc:r.pc}; });
+    $('st').innerHTML='<b>● LIVE</b> '+new Date().toLocaleTimeString('en-IN',{hour12:false,timeZone:'Asia/Kolkata'})+' IST';
+  }catch(e){ $('st').textContent='feed retrying…'; }
+  paint();
+}
+function build(){
+  const I=CONS.indices[cur], rows=[]; let sp=0, sc=0;
+  I.rows.forEach(r=>{ const q=PX[r[0]]; if(q){ rows.push({s:r[0],n:r[1],p:q.p,pc:q.pc,fs:r[2]}); } });
+  rows.forEach(r=>{ sp+=r.fs*r.p; sc+=r.fs*r.pc; });
+  const lv=LV[IDX.find(x=>x[0]===cur)[1]], base=lv?lv.pc:null;
+  rows.forEach(r=>{ r.ch=r.p-r.pc; r.pct=r.ch/r.pc*100; r.w=r.fs*r.p/sp*100; r.pts=base?(r.fs*r.pc/sc)*(r.pct/100)*base:null; });
+  return {rows,lv,sumPts:rows.reduce((a,r)=>a+(r.pts||0),0),miss:I.rows.length-rows.length};
+}
+function head(){ return '<tr><th>#</th><th>Stock</th><th>LTP</th><th>Chg</th><th>Chg %</th><th>Weight %</th><th>Index pts</th></tr>'; }
+function tint(pct){ const a=Math.min(Math.abs(pct)/3,1), al=(0.10+a*0.62).toFixed(2); return pct>0?'background:rgba(20,200,140,'+al+')':pct<0?'background:rgba(235,60,120,'+al+')':''; }
+function rowH(r,i){ const k=r.s, o=prev[k], fl=o==null||o===r.p?'':(r.p>o?' fu':' fd'); return '<tr class="'+(r.pct>0?'u':r.pct<0?'d':'')+fl+'" style="'+tint(r.pct)+'"><td>'+(i+1)+'</td><td>'+r.s+'<small>'+r.n+'</small></td><td>'+f2(r.p)+'</td><td class="'+(r.ch>=0?'cu':'cdn')+'">'+sg(r.ch)+'</td><td>'+(r.pct>0?'▲ ':r.pct<0?'▼ ':'')+sg(r.pct)+'%</td><td><span class="bar" style="width:'+Math.min(r.w*5,70).toFixed(0)+'px"></span>'+r.w.toFixed(2)+'</td><td>'+(r.pts==null?'–':sg(r.pts))+'</td></tr>'; }
+function paint(){
+  if(!CONS||!CONS.indices[cur]) return; const B=build();
+  $('cards').innerHTML=IDX.filter(x=>CONS.indices[x[0]]).map(x=>{ const l=LV[x[1]], c=l?(l.p-l.pc):0, pc=l?c/l.pc*100:0; return '<div class="cd '+(l?(c>=0?'up':'dn'):'')+(x[0]===cur?' on':'')+'" data-i="'+x[0]+'"><i>'+x[2]+'</i><b>'+(l?f2(l.p):'–')+'</b><em>'+(l?(c>=0?'▲ ':'▼ ')+sg(c)+'  ('+sg(pc)+'%)':'')+'</em></div>'; }).join('');
+  document.querySelectorAll('.cd').forEach(e=>e.onclick=()=>{ cur=e.dataset.i; $('ix').value=cur; try{localStorage.setItem('jc_ix',cur)}catch(x){} PX={}; prev={}; pull(); });
+  const s=B.rows.slice().sort((a,b)=>b.pct-a.pct);
+  $('tg').innerHTML=head()+s.slice(0,5).map(rowH).join(''); $('td').innerHTML=head()+s.slice(-5).reverse().map(rowH).join('');
+  const byW=B.rows.slice().sort((a,b)=>b.w-a.w); $('tc').innerHTML=head()+byW.map(rowH).join('');
+  B.rows.forEach(r=>prev[r.s]=r.p);
+  const nm=IDX.find(x=>x[0]===cur)[2], adv=B.rows.filter(r=>r.pct>0).length, dec=B.rows.filter(r=>r.pct<0).length;
+  $('gt').textContent='of '+B.rows.length+' stocks in '+nm; $('dt').textContent=$('gt').textContent; $('ct').textContent=B.rows.length+' stocks · '+adv+' up · '+dec+' down · sorted by weight · scroll for the rest';
+  $('info').textContent=B.lv?('Index '+f2(B.lv.p)+' ('+sg((B.lv.p/B.lv.pc-1)*100)+'%) · stock points add up to '+sg(B.sumPts)+' vs index move '+sg(B.lv.p-B.lv.pc)):'';
+  $('nt').innerHTML='Weight % = free-float shares x live price (same basis NSE uses; shares refreshed daily). Index pts = prior-day weight x stock % move x prior index close; they add up close to the index move, small gaps come from divisor and free-float changes.'+(cur==='SENSEX'?' <b>Sensex is BSE-owned: weights here are estimated from float shares, and one constituent (Tata Motors, post-demerger ticker) is missing, so its weight is spread over the other 29.</b>':'')+(B.miss?' · '+B.miss+' stock(s) without a live price right now.':'');
+}
+(async function(){
+  await loadCons(); if(!CONS){ $('st').textContent='constituents not available'; return; }
+  const have=IDX.filter(x=>CONS.indices[x[0]]); if(!CONS.indices[cur]) cur=have[0][0];
+  $('ix').innerHTML=have.map(x=>'<option value="'+x[0]+'">'+x[2]+'</option>').join(''); $('ix').value=cur;
+  $('ix').onchange=()=>{ cur=$('ix').value; try{localStorage.setItem('jc_ix',cur)}catch(e){} PX={}; prev={}; pull(); };
+  await pull(); setInterval(pull,15000);
+})();
+</script>
+</body></html>
