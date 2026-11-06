@@ -1,26 +1,41 @@
-"""Index constituents + weights. NSE API gives free-float market cap (ffmc) per constituent - the same basis NSE uses for index weights.
-Sensex (BSE) is not on the NSE API: fixed 30-name list, weighted by Yahoo market cap (approximate). Output: $OUT json."""
+"""All Nifty index constituents (NSE archive CSVs) + free-float shares (Yahoo via the shared Apps Script backend, cached between runs).
+Sensex = fixed 30-name list. Output json: {ts, indices:{NAME:{y:yahooSymbol,rows:[[sym,company]]}}, floats:{sym:shares}}"""
 import json, os, time, requests
-H={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36','Accept':'application/json,text/plain,*/*','Accept-Language':'en-US,en;q=0.9','Referer':'https://www.nseindia.com/'}
-NSE={'NIFTY 50':'NIFTY 50','NIFTY BANK':'NIFTY BANK','NIFTY NEXT 50':'NIFTY NEXT 50','NIFTY IT':'NIFTY IT'}
-SENSEX='RELIANCE HDFCBANK ICICIBANK INFY BHARTIARTL ITC LT TCS SBIN AXISBANK KOTAKBANK M&M HINDUNILVR BAJFINANCE MARUTI SUNPHARMA NTPC TATAMOTORS TITAN ULTRACEMCO POWERGRID ASIANPAINT HCLTECH BAJAJFINSV TATASTEEL ADANIPORTS TECHM NESTLEIND INDUSINDBK JSWSTEEL'.split()
-out={'ts':int(time.time()),'indices':{}}
-def nse():
-    s=requests.Session(); s.headers.update(H)
-    try: s.get('https://www.nseindia.com/',timeout=20); s.get('https://www.nseindia.com/market-data/live-equity-market',timeout=20)
-    except Exception as e: print('nse warm fail',e)
-    for k,v in NSE.items():
-        for t in range(3):
-            try:
-                r=s.get('https://www.nseindia.com/api/equity-stockIndices',params={'index':v},timeout=25); j=r.json(); rows=[]
-                for d in j['data']:
-                    if d.get('priority') or d['symbol']==v: continue
-                    ff=d.get('ffmc')
-                    if ff: rows.append([d['symbol'],(d.get('meta') or {}).get('companyName') or d['symbol'],float(ff)])
-                if rows: out['indices'][k]={'src':'NSE free-float mcap','rows':rows}; print(k,len(rows),'NSE ok'); break
-            except Exception as e: print(k,'try',t,'fail',str(e)[:100]); time.sleep(2)
-BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'
 from concurrent.futures import ThreadPoolExecutor
+UA={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'}
+BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'
+# name, nse csv, yahoo index symbol
+CAT=[('NIFTY 50','ind_nifty50list','^NSEI'),('NIFTY NEXT 50','ind_niftynext50list','^NSMIDCP'),('NIFTY 100','ind_nifty100list','^CNX100'),('NIFTY 200','ind_nifty200list','^CNX200'),('NIFTY 500','ind_nifty500list',''),
+('NIFTY MIDCAP 50','ind_niftymidcap50list',''),('NIFTY MIDCAP 100','ind_niftymidcap100list','NIFTY_MIDCAP_100.NS'),('NIFTY MIDCAP 150','ind_niftymidcap150list','NIFTYMIDCAP150.NS'),
+('NIFTY SMALLCAP 50','ind_niftysmallcap50list',''),('NIFTY SMALLCAP 100','ind_niftysmallcap100list',''),('NIFTY SMALLCAP 250','ind_niftysmallcap250list',''),
+('NIFTY BANK','ind_niftybanklist','^NSEBANK'),('NIFTY PRIVATE BANK','ind_nifty_privatebanklist','NIFTY_PVT_BANK.NS'),('NIFTY PSU BANK','ind_niftypsubanklist','^CNXPSUBANK'),('NIFTY FIN SERVICE','ind_niftyfinancelist','NIFTY_FIN_SERVICE.NS'),
+('NIFTY IT','ind_niftyitlist','^CNXIT'),('NIFTY AUTO','ind_niftyautolist','^CNXAUTO'),('NIFTY METAL','ind_niftymetallist','^CNXMETAL'),('NIFTY PHARMA','ind_niftypharmalist','^CNXPHARMA'),('NIFTY FMCG','ind_niftyfmcglist','^CNXFMCG'),
+('NIFTY REALTY','ind_niftyrealtylist','^CNXREALTY'),('NIFTY ENERGY','ind_niftyenergylist','^CNXENERGY'),('NIFTY MEDIA','ind_niftymedialist','^CNXMEDIA'),('NIFTY INFRA','ind_niftyinfralist','^CNXINFRA'),('NIFTY PSE','ind_niftypselist','^CNXPSE'),
+('NIFTY MNC','ind_niftymnclist','^CNXMNC'),('NIFTY SERVICES','ind_niftyservicelist','^CNXSERVICE'),('NIFTY CONSUMPTION','ind_niftyconsumptionlist','^CNXCONSUM'),('NIFTY OIL & GAS','ind_niftyoilgaslist','NIFTY_OIL_AND_GAS.NS'),
+('NIFTY HEALTHCARE','ind_niftyhealthcarelist','NIFTY_HEALTHCARE.NS'),('NIFTY CONSUMER DURABLES','ind_niftyconsumerdurableslist','NIFTY_CONSR_DURBL.NS'),('NIFTY COMMODITIES','ind_niftycommoditieslist','^CNXCMDT'),
+('NIFTY INDIA DIGITAL','ind_niftyindiadigitallist','NIFTY_IND_DIGITAL.NS'),('NIFTY INDIA DEFENCE','ind_niftyindiadefencelist',''),('NIFTY INDIA MANUFACTURING','ind_niftyindiamanufacturinglist',''),('NIFTY CAPITAL MARKETS','ind_niftycapitalmarketslist',''),
+('NIFTY ALPHA 50','ind_niftyalpha50list',''),('NIFTY LOW VOLATILITY 50','ind_niftylowvolatility50list',''),('NIFTY HIGH BETA 50','ind_niftyhighbeta50list','')]
+SENSEX='RELIANCE HDFCBANK ICICIBANK INFY BHARTIARTL ITC LT TCS SBIN AXISBANK KOTAKBANK M&M HINDUNILVR BAJFINANCE MARUTI SUNPHARMA NTPC TMPV TITAN ULTRACEMCO POWERGRID ASIANPAINT HCLTECH BAJAJFINSV TATASTEEL ADANIPORTS TECHM NESTLEIND INDUSINDBK JSWSTEEL'.split()
+def csv(f):
+    for base in ('https://nsearchives.nseindia.com/content/indices/','https://www.niftyindices.com/IndexConstituent/'):
+        try:
+            r=requests.get(base+f+'.csv',headers=UA,timeout=20)
+            if r.status_code==200 and 'Symbol' in r.text:
+                L=r.text.strip().splitlines(); h=[x.strip() for x in L[0].split(',')]; i=h.index('Symbol'); n=h.index('Company Name')
+                return [[l.split(',')[i].strip(),l.split(',')[n].strip()] for l in L[1:] if l.strip()]
+        except Exception as e: pass
+    return None
+out={'ts':int(time.time()),'indices':{},'floats':{}}
+for name,f,y in CAT:
+    r=csv(f); print(name,'->',len(r) if r else 'none')
+    if r: out['indices'][name]={'y':y,'rows':r}
+out['indices']['SENSEX']={'y':'^BSESN','rows':[[x,x] for x in SENSEX]}
+need=sorted({r[0] for v in out['indices'].values() for r in v['rows']})
+old={}
+try:
+    old=requests.get('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json',timeout=20).json().get('floats',{})
+except Exception as e: print('no previous',str(e)[:60])
+monday=time.gmtime().tm_wday==0
 def one(x):
     u='https://query2.finance.yahoo.com/v10/finance/quoteSummary/'+requests.utils.quote(x+'.NS',safe='')+'?modules=defaultKeyStatistics'
     for t in range(3):
@@ -28,26 +43,12 @@ def one(x):
             j=requests.get(BACKEND,params={'action':'fetch','url':u},timeout=40).json(); d=j['quoteSummary']['result'][0]['defaultKeyStatistics']
             f=(d.get('floatShares') or {}).get('raw') or (d.get('sharesOutstanding') or {}).get('raw')
             if f: return x,float(f)
-        except Exception as e: err=str(e)[:60]
+        except Exception as e: pass
         time.sleep(2)
-    print('float fail',x); return x,None
-def yq(syms):
-    with ThreadPoolExecutor(6) as ex: res=dict(ex.map(one,syms))
-    res={k:v for k,v in res.items() if v}; print('float shares ok',len(res),'of',len(syms)); return res
-def arch():
-    res={}
-    for k,f in {'NIFTY 50':'ind_nifty50list','NIFTY BANK':'ind_niftybanklist','NIFTY NEXT 50':'ind_niftynext50list','NIFTY IT':'ind_niftyitlist'}.items():
-        for base in ('https://nsearchives.nseindia.com/content/indices/','https://www.niftyindices.com/IndexConstituent/'):
-            try:
-                r=requests.get(base+f+'.csv',headers={'User-Agent':H['User-Agent']},timeout=20); print(k,base[:30],r.status_code,len(r.text))
-                if r.status_code==200 and 'Symbol' in r.text:
-                    L=r.text.strip().splitlines(); h=L[0].split(','); i=h.index('Symbol'); n=h.index('Company Name'); res[k]=[(l.split(',')[i].strip(),l.split(',')[n].strip()) for l in L[1:] if l]; break
-            except Exception as e: print(k,'arch fail',str(e)[:80])
-    return res
-AR=arch(); AR['SENSEX']=[(x,x) for x in SENSEX]
-mc=yq(sorted({a for v in AR.values() for a,_ in v}))
-for k,v in AR.items():
-    r=[[x,n,mc[x]] for x,n in v if x in mc]
-    if len(r)>=len(v)*0.8: out['indices'][k]={'src':'free-float shares x live price','rows':r}
-for k in out['indices']: print(k,len(out['indices'][k]['rows']))
+    return x,None
+todo=[x for x in need if monday or x not in old]; print('symbols',len(need),'to fetch',len(todo))
+t0=time.time()
+with ThreadPoolExecutor(8) as ex: got=dict(ex.map(one,todo)) if todo else {}
+out['floats']={x:(got.get(x) or old.get(x)) for x in need if (got.get(x) or old.get(x))}
+print('floats',len(out['floats']),'of',len(need),'in',int(time.time()-t0),'s; missing',[x for x in need if x not in out['floats']][:40])
 json.dump(out,open(os.environ.get('OUT','/tmp/idx.json'),'w'))
