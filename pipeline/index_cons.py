@@ -19,18 +19,21 @@ def nse():
                     if ff: rows.append([d['symbol'],(d.get('meta') or {}).get('companyName') or d['symbol'],float(ff)])
                 if rows: out['indices'][k]={'src':'NSE free-float mcap','rows':rows}; print(k,len(rows),'NSE ok'); break
             except Exception as e: print(k,'try',t,'fail',str(e)[:100]); time.sleep(2)
-def yq(syms):
-    res={}; s=requests.Session(); s.headers.update({'User-Agent':H['User-Agent']}); now=int(time.time())
-    for x in syms:
+BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'
+from concurrent.futures import ThreadPoolExecutor
+def one(x):
+    u='https://query2.finance.yahoo.com/v10/finance/quoteSummary/'+requests.utils.quote(x+'.NS',safe='')+'?modules=defaultKeyStatistics'
+    for t in range(3):
         try:
-            r=s.get('https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/'+x+'.NS',params={'type':'trailingMarketCap,quarterlyOrdinarySharesNumber','merge':'false','period1':now-400*86400,'period2':now},timeout=20).json()
-            d={}
-            for it in r['timeseries']['result']:
-                k=it['meta']['type'][0]; v=[a['reportedValue']['raw'] for a in it.get(k,[]) if a and a.get('reportedValue')]
-                if v: d[k]=v[-1]
-            if d: res[x]=(x,d.get('trailingMarketCap'),d.get('quarterlyOrdinarySharesNumber'))
-        except Exception as e: print('ts fail',x,str(e)[:80])
-    print('timeseries ok',len(res),'of',len(syms)); return res
+            j=requests.get(BACKEND,params={'action':'fetch','url':u},timeout=40).json(); d=j['quoteSummary']['result'][0]['defaultKeyStatistics']
+            f=(d.get('floatShares') or {}).get('raw') or (d.get('sharesOutstanding') or {}).get('raw')
+            if f: return x,float(f)
+        except Exception as e: err=str(e)[:60]
+        time.sleep(2)
+    print('float fail',x); return x,None
+def yq(syms):
+    with ThreadPoolExecutor(6) as ex: res=dict(ex.map(one,syms))
+    res={k:v for k,v in res.items() if v}; print('float shares ok',len(res),'of',len(syms)); return res
 def arch():
     res={}
     for k,f in {'NIFTY 50':'ind_nifty50list','NIFTY BANK':'ind_niftybanklist','NIFTY NEXT 50':'ind_niftynext50list','NIFTY IT':'ind_niftyitlist'}.items():
@@ -41,22 +44,10 @@ def arch():
                     L=r.text.strip().splitlines(); h=L[0].split(','); i=h.index('Symbol'); n=h.index('Company Name'); res[k]=[(l.split(',')[i].strip(),l.split(',')[n].strip()) for l in L[1:] if l]; break
             except Exception as e: print(k,'arch fail',str(e)[:80])
     return res
-nse()
-AR=arch(); need=set(SENSEX)
+AR=arch(); AR['SENSEX']=[(x,x) for x in SENSEX]
+mc=yq(sorted({a for v in AR.values() for a,_ in v}))
 for k,v in AR.items():
-    if k not in out['indices']: need|={a for a,_ in v}
-mc=yq(sorted(need))
-def mk(syms,names=None):
-    r=[]
-    for x in syms:
-        m=mc.get(x)
-        if m and m[1]: r.append([x,(names or {}).get(x,x),float(m[1])])
-    return r
-for k,v in AR.items():
-    if k not in out['indices']:
-        r=mk([a for a,_ in v],dict(v))
-        if len(r)>=len(v)*0.8: out['indices'][k]={'src':'market cap (approx, not free-float)','rows':r}
-r=mk(SENSEX)
-if len(r)>=24: out['indices']['SENSEX']={'src':'market cap (approx, not free-float)','rows':r}
-for k in list(out['indices']): print(k,len(out['indices'][k]['rows']),out['indices'][k]['src'])
+    r=[[x,n,mc[x]] for x,n in v if x in mc]
+    if len(r)>=len(v)*0.8: out['indices'][k]={'src':'free-float shares x live price','rows':r}
+for k in out['indices']: print(k,len(out['indices'][k]['rows']))
 json.dump(out,open(os.environ.get('OUT','/tmp/idx.json'),'w'))
