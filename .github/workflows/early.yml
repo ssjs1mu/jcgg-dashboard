@@ -1,0 +1,19 @@
+name: Early movers study
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUT=/tmp/early.json python pipeline/early_movers.py | tee /tmp/log.txt
+          b=$(git hash-object -w /tmp/early.json); t=$(printf '100644 blob %s\tearly.json\n' "$b" | git mktree); c=$(git commit-tree "$t" -m "early $(date -u +%FT%TZ)"); git push -q -f origin "$c":refs/heads/early
