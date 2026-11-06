@@ -51,3 +51,4 @@
 | 2026-11-06 | Tradeability layer moved to separate test page trading-lab.html; trading.html restored to previous version |
 | 2026-11-06 | Lab only: Trail Board (conditions 1-10, pivot trail stop, volume exit) + 60-day backtest workflow pipeline/trail_bt.py (branch trailbt) |
 | 2026-11-06 | Lab: Trail Board High-win preset + walk-forward refinement results (pipeline/trail_opt.py, branch trailopt) |
+| 2026-11-06 | Live terminal: new bottom section "Trail Board · Target Tracker" (conditions 2-7 entry, pivot stop, +0.5/1/1.5/2/3% and next-pivot targets time-stamped, scorecard vs 58-day backtest, per-browser history). Heat-map unchanged |
