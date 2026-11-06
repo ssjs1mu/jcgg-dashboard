@@ -1,0 +1,23 @@
+name: Index constituents
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '40 3 * * 1-5'
+permissions:
+  contents: write
+jobs:
+  cons:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run and publish
+        run: |
+          pip install -q requests
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUT=/tmp/idx.json python pipeline/index_cons.py | tee /tmp/log.txt
+          test -s /tmp/idx.json
+          b=$(git hash-object -w /tmp/idx.json); t=$(printf '100644 blob %s\tidx.json\n' "$b" | git mktree); c=$(git commit-tree "$t" -m "idx $(date -u +%FT%TZ)"); git push -q -f origin "$c":refs/heads/idx
