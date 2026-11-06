@@ -4,44 +4,35 @@
 <style>
 :root{--bg:#0e1621;--card:#16243a;--line:#2d4260;--tx:#f1f5fb;--mu:#a9b8cc;--gold:#e0cd96;--up:#35f0a8;--dn:#ff6b9d}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:linear-gradient(180deg,#0e1621,#0a111a);color:var(--tx);font:14px/1.4 "Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;padding:8px 12px 30px;-webkit-font-smoothing:antialiased}
-.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:1500px;margin:0 auto 8px;padding-bottom:7px;border-bottom:1px solid var(--line)}
-.top h1{font:400 32px/1 "Brush Script MT","Segoe Script",cursive;color:var(--gold);margin-right:auto}
-.sw{display:inline-block;padding:5px 14px;border-radius:999px;background:linear-gradient(180deg,#ffd35c,#d9a21c);color:#1a1030;font:800 12px "Segoe UI",sans-serif;text-decoration:none;letter-spacing:.02em}
+body{background:linear-gradient(180deg,#0e1621,#0a111a);color:var(--tx);font:13px/1.35 "Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;padding:8px 10px 30px;-webkit-font-smoothing:antialiased}
+.top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:1800px;margin:0 auto 6px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.top h1{font:400 30px/1 "Brush Script MT","Segoe Script",cursive;color:var(--gold);margin-right:auto}
+.sw{display:inline-block;padding:5px 13px;border-radius:999px;background:linear-gradient(180deg,#ffd35c,#d9a21c);color:#1a1030;font:800 12px "Segoe UI",sans-serif;text-decoration:none}
 .sw.on{background:#1d3a5c;color:#9ee7ff;border:1px solid #2fd0ff;pointer-events:none}
-.st{font:700 12px ui-monospace,Consolas,monospace;color:var(--mu)}
-.st b{color:var(--up)}
-main{max-width:1500px;margin:0 auto}
-.sel{display:flex;gap:10px;align-items:center;margin:2px 0 8px;flex-wrap:wrap}
-.sel label{font:800 12px "Segoe UI";letter-spacing:.12em;color:var(--gold);text-transform:uppercase}
-.sel select{background:#10263d;color:#fff;border:1px solid #2fd0ff;border-radius:8px;padding:6px 10px;font:700 14px "Segoe UI";cursor:pointer}
-.cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:10px}
-.cd{border-radius:10px;padding:8px 10px;border:1px solid var(--line);background:var(--card);cursor:pointer;display:grid;gap:1px}
-.cd.on{outline:2px solid #2fd0ff}
-.cd i{font:800 12px "Segoe UI";font-style:normal;letter-spacing:.1em;color:var(--mu);text-transform:uppercase}
-.cd b{font:800 20px ui-monospace,Consolas,monospace}
-.cd em{font:700 13px ui-monospace,Consolas,monospace;font-style:normal}
-.cd.up{background:linear-gradient(135deg,#0b3a31,#0f5c48);border-color:#2bbd8b}.cd.up b,.cd.up em{color:var(--up)}
-.cd.dn{background:linear-gradient(135deg,#40102c,#74193f);border-color:#d04e86}.cd.dn b,.cd.dn em{color:var(--dn)}
-.box{border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:10px;overflow:hidden}
-.bh{display:flex;align-items:center;gap:10px;padding:6px 10px;background:#0f1d30;border-bottom:1px solid var(--line);font:800 12.5px "Segoe UI";letter-spacing:.12em;text-transform:uppercase}
-.bh span{margin-left:auto;font:600 12px "Segoe UI";letter-spacing:0;color:var(--mu);text-transform:none}
-.bh.g{color:var(--up)}.bh.r{color:var(--dn)}.bh.c{color:var(--gold)}
-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-th{background:#0f1d30;color:var(--gold);font:800 11.5px "Segoe UI";letter-spacing:.06em;text-transform:uppercase;padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
-th:first-child,td:first-child{text-align:center;width:44px}
-th:nth-child(2),td:nth-child(2){text-align:left}
-td{padding:0 8px;height:34px;text-align:right;font:700 14px ui-monospace,Consolas,"Courier New",monospace;border-bottom:1px solid rgba(255,255,255,.07);white-space:nowrap}
-td:nth-child(2){font:800 14px "Segoe UI",sans-serif;letter-spacing:.01em}
-td small{display:block;font:500 11px "Segoe UI";color:var(--mu);overflow:hidden;text-overflow:ellipsis;max-width:230px;margin-top:-3px}
-.fx{height:calc(34px*10 + 33px);overflow:auto}
-tr.u td{color:#eafff6}tr.d td{color:#fff0f6}
+.st{font:700 12px ui-monospace,Consolas,monospace;color:var(--mu)}.st b{color:var(--up)}
+.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:1800px;margin:0 auto 8px}
+.ctl label{font:800 11.5px "Segoe UI";letter-spacing:.1em;color:var(--gold);text-transform:uppercase}
+select,.btn{background:#10263d;color:#fff;border:1px solid #2fd0ff;border-radius:7px;padding:5px 8px;font:700 13px "Segoe UI";cursor:pointer}
+.btn{background:#14507a}
+.grid{display:grid;gap:8px;max-width:1800px;margin:0 auto;grid-template-columns:repeat(var(--n,4),minmax(0,1fr));align-items:start}
+.pn{border:1px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden;min-width:0}
+.ph{padding:5px 6px;background:#0f1d30}
+.ph select{width:100%;font-size:14px;text-align:center;text-align-last:center;letter-spacing:.03em}
+.tile{display:grid;grid-template-columns:1.4fr 1fr 1fr;text-align:center;padding:5px 2px;font:800 17px ui-monospace,Consolas,monospace;border-top:2px solid #0a111a;border-bottom:2px solid #0a111a}
+.tile small{display:block;font:700 10px "Segoe UI";letter-spacing:.08em;opacity:.8;text-transform:uppercase}
+.tile.up{background:linear-gradient(135deg,#0b3a31,#0f6a52);color:#4dffbe}.tile.dn{background:linear-gradient(135deg,#40102c,#85204b);color:#ff86b0}
+.sec{padding:2px 8px;font:800 10.5px "Segoe UI";letter-spacing:.12em;text-transform:uppercase;background:#0c1829;color:var(--mu)}
+.fx{height:calc(26px*10 + 26px);overflow:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;table-layout:fixed}
+th{background:#243a58;color:#fff;font:800 10.5px "Segoe UI";letter-spacing:.04em;text-transform:uppercase;padding:4px 4px;text-align:right;position:sticky;top:0;z-index:2}
+th:first-child,td:first-child{text-align:left;width:31%;padding-left:6px}
+td{padding:0 4px;height:26px;text-align:right;font:700 13px ui-monospace,Consolas,"Courier New",monospace;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td:first-child{font:800 12.5px "Segoe UI",sans-serif}
+.hp .p6{display:none}
 tr.fu td{animation:fu .9s}tr.fd td{animation:fd .9s}
 @keyframes fu{from{background:#3dffb4}}@keyframes fd{from{background:#ff6b9d}}
-.bar{display:inline-block;height:8px;border-radius:3px;background:#2fd0ff;vertical-align:middle;margin-right:6px}
-.cu{color:#5dffc2}.cdn{color:#ff8fb7}
-.note{color:var(--mu);font:12px/1.5 "Segoe UI";max-width:1500px;margin:4px auto 0}
-@media(max-width:900px){.cards{grid-template-columns:repeat(2,1fr)}td{font-size:13px}}
+.note{color:var(--mu);font:12px/1.5 "Segoe UI";max-width:1800px;margin:8px auto 0}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))!important}}
 </style>
 <style id="jcTheme">
 /* Light theme: one switch for the whole app. Implemented as a colour inversion of the finished page with hue kept, so every panel, table, chart and popup follows; media is flipped back. */
@@ -60,68 +51,74 @@ html.jc-light #jcThemeB{filter:none}
 <div class="top"><h1>Joshi's Corner</h1>
  <a class="sw" href="trading.html">TRADING TERMINAL</a><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw on" href="indices.html">INDEX MOVERS</a>
  <span class="st" id="st">connecting…</span></div>
-<main>
- <div class="sel"><label for="ix">Index</label><select id="ix"></select><span class="st" id="info"></span></div>
- <div class="cards" id="cards"></div>
- <div class="box"><div class="bh g">▲ Top 5 gainers <span id="gt"></span></div><table id="tg"></table></div>
- <div class="box"><div class="bh r">▼ Top 5 decliners <span id="dt"></span></div><table id="td"></table></div>
- <div class="box"><div class="bh c">All constituents <span id="ct"></span></div><div class="fx"><table id="tc"></table></div></div>
-</main>
+<div class="ctl"><label>Panels</label><select id="cn"><option>2</option><option>3</option><option>4</option><option>5</option></select>
+ <label>Order index list by</label><select id="so"><option value="b">Day move: best first</option><option value="w">Day move: worst first</option><option value="n">Name</option></select>
+ <button class="btn" id="au">Auto: best + worst indices</button><span class="st" id="info"></span></div>
+<div class="grid" id="gr"></div>
 <div class="note" id="nt"></div>
 <script>
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
-const IDX=[['NIFTY 50','^NSEI','Nifty 50'],['NIFTY BANK','^NSEBANK','Bank Nifty'],['NIFTY NEXT 50','^NSMIDCP','Nifty Next 50'],['NIFTY IT','^CNXIT','Nifty IT'],['SENSEX','^BSESN','Sensex']];
 const $=id=>document.getElementById(id);
-let PCX={}, PCT=0; let CONS=null, cur=(()=>{try{return localStorage.getItem('jc_ix')}catch(e){return null}})()||'NIFTY 50', LV={}, PX={}, prev={};
+const ld=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}}, sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let CONS=null, PX={}, PCX={}, PCT={}, LV={}, prev={}, NP=ld('jc_np',4), SO=ld('jc_so','b'), PAN=ld('jc_pan',['NIFTY 50','NIFTY BANK','NIFTY MIDCAP 50','NIFTY AUTO','NIFTY METAL']), AP={};
 const f2=v=>v==null?'–':v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const sg=v=>(v>0?'+':'')+f2(v);
-async function J(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||20000);try{const r=await fetch(u,{signal:c.signal,cache:'no-store'});return JSON.parse(await r.text())}finally{clearTimeout(t)}}
-async function loadCons(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json?x='+Date.now(),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/idx.json?ref=idx']){ try{ let j=await J(u,15000); if(j.content) j=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))))); if(j&&j.indices){ CONS=j; return; } }catch(e){} } }
-async function pcLoad(){ if(Date.now()-PCT<1800000&&Object.keys(PCX).length) return; PCT=Date.now(); const today=new Date(Date.now()+19800000).toISOString().slice(0,10);
-  await Promise.all(IDX.map(async x=>{ try{ const j=await J(BACKEND+'?action=fetch&url='+encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(x[1])+'?range=7d&interval=1d'),20000), r=j.chart.result[0], c=r.indicators.quote[0].close, t=r.timestamp.map(v=>new Date((v+19800)*1000).toISOString().slice(0,10)); let i=t.length-1; while(i>0&&(t[i]>=today||c[i]==null)) i--; if(c[i]) PCX[x[1]]=c[i]; }catch(e){} })); }
+async function J(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||25000);try{const r=await fetch(u,{signal:c.signal,cache:'no-store'});return JSON.parse(await r.text())}finally{clearTimeout(t)}}
+const ist=()=>new Date(Date.now()+19800000), istDay=()=>ist().toISOString().slice(0,10), frac=()=>{const d=ist(),m=d.getUTCHours()*60+d.getUTCMinutes();return m>=555&&m<=930?Math.max((m-555)/375,0.04):1;};
+async function loadCons(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json?x='+Date.now(),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/idx.json?ref=idx']){ try{ let j=await J(u,20000); if(j.content) j=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))))); if(j&&j.indices&&j.floats){ CONS=j; return; } }catch(e){} } }
+async function pcLoad(ys){ const today=istDay();
+  await Promise.all(ys.filter(y=>y&&(!PCT[y]||Date.now()-PCT[y]>1800000)).map(async y=>{ PCT[y]=Date.now(); try{ const j=await J(BACKEND+'?action=fetch&url='+encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(y)+'?range=7d&interval=1d')), r=j.chart.result[0], c=r.indicators.quote[0].close, t=r.timestamp.map(v=>new Date((v+19800)*1000).toISOString().slice(0,10)); let i=t.length-1; while(i>0&&(t[i]>=today||c[i]==null)) i--; if(c[i]) PCX[y]=c[i]; }catch(e){ PCT[y]=0; } })); }
 async function pull(){
   try{
-    await pcLoad();
-    const rows=CONS.indices[cur].rows, syms=rows.map(r=>r[0]+'.NS'), parts=[]; for(let i=0;i<syms.length;i+=30) parts.push(syms.slice(i,i+30));
-    const rs=await Promise.all(parts.map(p=>J(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.join(',')),25000)));
-    rs.forEach(j=>{ if(j&&j.ok) Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]&&q[1]) PX[k.replace(/\.NS$/,'')]={p:q[0],pc:q[1],v:q[5]}; }); });
-    const d=await J(BACKEND+'?action=dash&symbols='+encodeURIComponent(IDX.map(x=>x[1]).join(',')),20000);
-    if(d&&d.rows) d.rows.forEach(r=>{ if(r.p!=null&&r.pc) LV[r.s]={p:r.p,pc:PCX[r.s]||r.pc}; });
-    $('st').innerHTML='<b>● LIVE</b> '+new Date().toLocaleTimeString('en-IN',{hour12:false,timeZone:'Asia/Kolkata'})+' IST';
+    const syms=Object.keys(CONS.floats).map(s=>s+'.NS'), ys=PAN.slice(0,NP).map(n=>CONS.indices[n]&&CONS.indices[n].y).filter(Boolean), k=Math.ceil(syms.length/3), parts=[syms.slice(0,k).concat(ys),syms.slice(k,2*k),syms.slice(2*k)];
+    await pcLoad(ys);
+    const rs=await Promise.all(parts.map(p=>J(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.join(',')),30000).catch(()=>null)));
+    rs.forEach(j=>{ if(j&&j.ok) Object.keys(j.q).forEach(key=>{ const q=j.q[key]; if(!q||!q[0]||!q[1]) return; if(key.endsWith('.NS')&&!key.startsWith('NIFTY')) PX[key.slice(0,-3)]={p:q[0],pc:q[1],v:q[5],av:q[6]}; else LV[key]={p:q[0]}; }); });
+    $('st').innerHTML='<b>● LIVE</b> '+ist().toISOString().slice(11,19)+' IST · '+Object.keys(PX).length+' stocks';
   }catch(e){ $('st').textContent='feed retrying…'; }
   paint();
 }
-function build(){
-  const I=CONS.indices[cur], rows=[]; let sp=0, sc=0;
-  I.rows.forEach(r=>{ const q=PX[r[0]]; if(q){ rows.push({s:r[0],n:r[1],p:q.p,pc:q.pc,fs:r[2]}); } });
+function calc(name){
+  const I=CONS.indices[name], rows=[]; let sp=0, sc=0;
+  I.rows.forEach(r=>{ const q=PX[r[0]], fs=CONS.floats[r[0]]; if(q&&fs) rows.push({s:r[0],p:q.p,pc:q.pc,fs,rv:q.av?q.v/(q.av*frac()):null}); });
   rows.forEach(r=>{ sp+=r.fs*r.p; sc+=r.fs*r.pc; });
-  const lv=LV[IDX.find(x=>x[0]===cur)[1]], base=lv?lv.pc:null;
-  rows.forEach(r=>{ r.ch=r.p-r.pc; r.pct=r.ch/r.pc*100; r.w=r.fs*r.p/sp*100; r.pts=base?(r.fs*r.pc/sc)*(r.pct/100)*base:null; });
-  let raw=rows.reduce((a,r)=>a+(r.pts||0),0), k=1; if(lv&&raw&&isFinite((lv.p-lv.pc)/raw)){ k=(lv.p-lv.pc)/raw; if(k>0.3&&k<3) rows.forEach(r=>{ if(r.pts!=null) r.pts*=k; }); else k=1; }
-  return {rows,lv,k,raw,sumPts:rows.reduce((a,r)=>a+(r.pts||0),0),miss:I.rows.length-rows.length};
+  const apx=sc?(sp/sc-1)*100:0, y=I.y, lp=y&&LV[y]?LV[y].p:null, lc=y&&PCX[y]?PCX[y]:null, real=lp&&lc;
+  const pct=real?(lp/lc-1)*100:apx, move=real?lp-lc:null;
+  rows.forEach(r=>{ r.ch=r.p-r.pc; r.pct=r.ch/r.pc*100; r.w=sp?r.fs*r.p/sp*100:0; r.pts=real?(r.fs*r.pc/sc)*(r.pct/100)*lc:null; });
+  if(real){ const raw=rows.reduce((a,r)=>a+r.pts,0), k=raw?move/raw:1; if(k>0.3&&k<3) rows.forEach(r=>r.pts*=k); }
+  return {name,rows,pct,apx,real,lp,lc,move,n:rows.length,tot:I.rows.length};
 }
-function head(){ return '<tr><th>#</th><th>Stock</th><th>LTP</th><th>Chg</th><th>Chg %</th><th>Weight %</th><th>Index pts</th></tr>'; }
-function tint(pct){ const a=Math.min(Math.abs(pct)/3,1), al=(0.10+a*0.62).toFixed(2); return pct>0?'background:rgba(20,200,140,'+al+')':pct<0?'background:rgba(235,60,120,'+al+')':''; }
-function rowH(r,i){ const k=r.s, o=prev[k], fl=o==null||o===r.p?'':(r.p>o?' fu':' fd'); return '<tr class="'+(r.pct>0?'u':r.pct<0?'d':'')+fl+'" style="'+tint(r.pct)+'"><td>'+(i+1)+'</td><td>'+r.s+'<small>'+r.n+'</small></td><td>'+f2(r.p)+'</td><td class="'+(r.ch>=0?'cu':'cdn')+'">'+sg(r.ch)+'</td><td>'+(r.pct>0?'▲ ':r.pct<0?'▼ ':'')+sg(r.pct)+'%</td><td><span class="bar" style="width:'+Math.min(r.w*5,70).toFixed(0)+'px"></span>'+r.w.toFixed(2)+'</td><td>'+(r.pts==null?'–':sg(r.pts))+'</td></tr>'; }
+function tint(p){ const a=Math.min(Math.abs(p)/3,1), al=(0.10+a*0.55).toFixed(2); return p>0?'rgba(20,200,140,'+al+')':p<0?'rgba(235,60,120,'+al+')':'transparent'; }
+function rvBg(v){ if(v==null) return 'transparent'; return v>=1?'rgba(30,200,120,'+Math.min(0.25+(v-1)*0.25,0.85).toFixed(2)+')':'rgba(235,70,90,'+Math.min(0.25+(1-v)*0.8,0.85).toFixed(2)+')'; }
+function rowH(r,i,key){ const k=key+r.s, o=prev[k], fl=o==null||o===r.p?'':(r.p>o?' fu':' fd'); prev[k]=r.p; const tc=r.pct>0?'#eafff6':r.pct<0?'#fff0f6':'#fff';
+  return '<tr class="'+fl.trim()+'" style="background:'+tint(r.pct)+';color:'+tc+'"><td title="'+r.s+'">'+r.s+'</td><td>'+f2(r.p)+'</td><td style="background:'+tint(r.pct*1.6)+'">'+sg(r.pct)+'%</td><td style="background:'+rvBg(r.rv)+'">'+(r.rv==null?'–':r.rv.toFixed(2))+'</td><td>'+r.w.toFixed(2)+'</td><td class="p6">'+(r.pts==null?'–':sg(r.pts))+'</td></tr>'; }
+const HEAD='<tr><th>Symbol</th><th>Price</th><th>% Chg</th><th>RVOL</th><th>Wt %</th><th class="p6">Pts</th></tr>';
+function build(){
+  const g=$('gr'); g.style.setProperty('--n',NP); g.className='grid'+(NP>=5?' hp':'');
+  while(g.children.length>NP) g.lastChild.remove();
+  for(let i=g.children.length;i<NP;i++){ const d=document.createElement('div'); d.className='pn'; d.innerHTML='<div class="ph"><select></select></div><div class="pb"></div>'; d.querySelector('select').onchange=function(){ PAN[i]=this.value; sv('jc_pan',PAN); pull(); }; g.appendChild(d); }
+}
 function paint(){
-  if(!CONS||!CONS.indices[cur]) return; const B=build();
-  $('cards').innerHTML=IDX.filter(x=>CONS.indices[x[0]]).map(x=>{ const l=LV[x[1]], c=l?(l.p-l.pc):0, pc=l?c/l.pc*100:0; return '<div class="cd '+(l?(c>=0?'up':'dn'):'')+(x[0]===cur?' on':'')+'" data-i="'+x[0]+'"><i>'+x[2]+'</i><b>'+(l?f2(l.p):'–')+'</b><em>'+(l?(c>=0?'▲ ':'▼ ')+sg(c)+'  ('+sg(pc)+'%)':'')+'</em></div>'; }).join('');
-  document.querySelectorAll('.cd').forEach(e=>e.onclick=()=>{ cur=e.dataset.i; $('ix').value=cur; try{localStorage.setItem('jc_ix',cur)}catch(x){} PX={}; prev={}; pull(); });
-  const s=B.rows.slice().sort((a,b)=>b.pct-a.pct);
-  $('tg').innerHTML=head()+s.slice(0,5).map(rowH).join(''); $('td').innerHTML=head()+s.slice(-5).reverse().map(rowH).join('');
-  const byW=B.rows.slice().sort((a,b)=>b.w-a.w); $('tc').innerHTML=head()+byW.map(rowH).join('');
-  B.rows.forEach(r=>prev[r.s]=r.p);
-  const nm=IDX.find(x=>x[0]===cur)[2], adv=B.rows.filter(r=>r.pct>0).length, dec=B.rows.filter(r=>r.pct<0).length;
-  $('gt').textContent='of '+B.rows.length+' stocks in '+nm; $('dt').textContent=$('gt').textContent; $('ct').textContent=B.rows.length+' stocks · '+adv+' up · '+dec+' down · sorted by weight · scroll for the rest';
-  $('info').textContent=B.lv?('Index '+f2(B.lv.p)+' ('+sg((B.lv.p/B.lv.pc-1)*100)+'%) · stock points add up to '+sg(B.sumPts)+' vs index move '+sg(B.lv.p-B.lv.pc)):'';
-  $('nt').innerHTML='Weight % = free-float shares x live price (same basis NSE uses; shares refreshed daily). Index pts = prior-day weight x stock % move x prior index close; they are scaled so the stock points add up to the actual index move (caps such as the 33% single-stock limit in Bank Nifty make raw weights differ).'+(cur==='SENSEX'?' <b>Sensex is BSE-owned: weights here are estimated from float shares, and one constituent (Tata Motors, post-demerger ticker) is missing, so its weight is spread over the other 29.</b>':'')+(B.miss?' · '+B.miss+' stock(s) without a live price right now.':'');
+  if(!CONS) return; build();
+  const all=Object.keys(CONS.indices); AP={}; all.forEach(n=>AP[n]=calc(n));
+  const ord=all.slice().sort((a,b)=>SO==='n'?a.localeCompare(b):SO==='w'?AP[a].pct-AP[b].pct:AP[b].pct-AP[a].pct);
+  Array.from($('gr').children).forEach((el,i)=>{
+    const sel=el.querySelector('select'), nm=PAN[i]&&CONS.indices[PAN[i]]?PAN[i]:ord[i]; PAN[i]=nm;
+    if(document.activeElement!==sel){ sel.innerHTML=ord.map(n=>'<option value="'+n+'">'+n+'  '+(AP[n].pct>=0?'▲ ':'▼ ')+sg(AP[n].pct)+'%'+(AP[n].real?'':' ≈')+'</option>').join(''); sel.value=nm; }
+    const D=AP[nm], s=D.rows.slice().sort((a,b)=>b.pct-a.pct), key=i+nm, up=D.pct>=0;
+    el.querySelector('.pb').innerHTML='<div class="sec">▲ Top 5 gainers</div><table>'+HEAD+s.slice(0,5).map(r=>rowH(r,0,key+'g')).join('')+'</table><div class="sec">▼ Top 5 decliners</div><table>'+HEAD+s.slice(-5).reverse().map(r=>rowH(r,0,key+'d')).join('')+'</table>'
+      +'<div class="tile '+(up?'up':'dn')+'"><div>'+(D.lp?f2(D.lp):'≈ calc')+'<small>'+(D.real?'index':'weighted')+'</small></div><div>'+(D.move!=null?sg(D.move):'–')+'<small>points</small></div><div>'+sg(D.pct)+'%<small>'+D.rows.filter(r=>r.pct>0).length+'▲ '+D.rows.filter(r=>r.pct<0).length+'▼</small></div></div>'
+      +'<div class="fx"><table>'+HEAD+D.rows.slice().sort((a,b)=>b.w-a.w).map(r=>rowH(r,0,key+'c')).join('')+'</table></div>';
+  });
+  const top=ord.slice().sort((a,b)=>AP[b].pct-AP[a].pct); $('info').textContent='Best today: '+top[0]+' '+sg(AP[top[0]].pct)+'% · Weakest: '+top[top.length-1]+' '+sg(AP[top[top.length-1]].pct)+'%';
+  $('nt').innerHTML='Open any panel dropdown to switch index (list shows each index day move; ≈ = computed from its stocks, otherwise the live index). Rows: gainers and decliners (top 5 each), index tile, then all stocks by weight in a 10-row window (scroll). Wt % = free-float shares x live price. Pts = stock weight x % move scaled to the index move. RVOL = volume vs 20-day average at this time of day (green above 1, red below). Sensex weights are estimated; Nifty 500, 200 and 100 are shown as listed by NSE.';
 }
 (async function(){
+  $('cn').value=NP; $('so').value=SO;
+  $('cn').onchange=()=>{ NP=+$('cn').value; sv('jc_np',NP); pull(); }; $('so').onchange=()=>{ SO=$('so').value; sv('jc_so',SO); paint(); };
+  $('au').onclick=()=>{ const o=Object.keys(AP).filter(n=>AP[n].n>=8&&!/NIFTY (500|200|100|50|NEXT 50)$/.test(n)).sort((a,b)=>AP[b].pct-AP[a].pct), h=Math.ceil(NP/2); PAN=o.slice(0,h).concat(o.slice(-(NP-h))); sv('jc_pan',PAN); pull(); };
   await loadCons(); if(!CONS){ $('st').textContent='constituents not available'; return; }
-  const have=IDX.filter(x=>CONS.indices[x[0]]); if(!CONS.indices[cur]) cur=have[0][0];
-  $('ix').innerHTML=have.map(x=>'<option value="'+x[0]+'">'+x[2]+'</option>').join(''); $('ix').value=cur;
-  $('ix').onchange=()=>{ cur=$('ix').value; try{localStorage.setItem('jc_ix',cur)}catch(e){} PX={}; prev={}; pull(); };
-  await pull(); setInterval(pull,15000);
+  await pull(); setInterval(pull,20000);
 })();
 </script>
 </body></html>
