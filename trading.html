@@ -149,7 +149,19 @@ td .tag{font:900 11px "Segoe UI",sans-serif;letter-spacing:.06em;padding:0 6px;b
 .rf{display:inline-block;filter:hue-rotate(150deg) saturate(4) brightness(1.15)}
 .lgd{display:flex;flex-wrap:wrap;gap:3px 16px;padding:2px 10px 4px;font:700 10.5px "Segoe UI",sans-serif;color:#cfd8e6}.lgd span{display:inline-flex;align-items:center;gap:5px}.lgd u{display:inline-block;width:13px;height:10px;border:2px solid;border-radius:3px}
 .alt th,.alt td{text-align:left}.alt th:nth-child(n+4):nth-child(-n+6),.alt td:nth-child(n+4):nth-child(-n+6){text-align:right}
-</style></head><body>
+</style><style id="jcTheme">
+/* Light theme: one switch for the whole app. Implemented as a colour inversion of the finished page with hue kept, so every panel, table, chart and popup follows; media is flipped back. */
+html.jc-light{filter:invert(.92) hue-rotate(180deg);background:#fff}
+html.jc-light img,html.jc-light video,html.jc-light iframe{filter:invert(1) hue-rotate(180deg)}
+#jcThemeB{position:fixed;right:10px;bottom:10px;z-index:99999;width:38px;height:38px;border-radius:50%;border:1px solid #2fd0ff;background:#0d5a73;color:#fff;font:700 18px/1 "Segoe UI",sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+html.jc-light #jcThemeB{filter:none}
+</style>
+<script>(function(){ try{ if(localStorage.getItem('jc_theme')==='light') document.documentElement.classList.add('jc-light'); }catch(e){}
+ document.addEventListener('DOMContentLoaded',function(){ var b=document.createElement('button'); b.id='jcThemeB'; b.type='button'; var r=document.documentElement;
+  function set(){ var l=r.classList.contains('jc-light'); b.textContent=l?'🌙':'☀'; b.title=l?'Switch to the dark theme':'Switch to the light theme'; }
+  b.onclick=function(){ r.classList.toggle('jc-light'); try{ localStorage.setItem('jc_theme',r.classList.contains('jc-light')?'light':'dark'); }catch(e){} set(); };
+  set(); document.body.appendChild(b); }); })();</script>
+</head><body>
 <div class="top"><div class="tl"><div class="ttl">LIVE TRADING SCREEN</div><a href="./">◂ Macro dashboard</a><button id="wuB" class="alb" style="margin:0">📄 Write-up</button></div><div class="brand">Joshi's Corner</div>
 <div class="clock"><span><span class="dot" id="dot"></span><span id="mk">—</span></span><b id="clk">--:--:--</b><span id="src">loading…</span><span class="age" id="age"></span></div></div>
 <div class="dockrow"><div class="lcol"><div class="wrap"><table id="tb"></table></div><div class="mini"><div class="hm nwg bx" id="nwB"><div class="hmh"><b>LIVE NEWS</b><span id="nwc" class="hmc"></span><span id="nws" class="hmc" style="margin-left:auto"></span></div><div class="nw" id="nwL">loading…</div></div><div class="hm nwg bx" id="bgB"><div class="hmh"><b>MARKET BAROMETER</b><span id="bgc" class="hmc"></span></div><div class="nw" id="bgL">loading…</div></div><div class="hm nwg bx" id="rvB"><div class="hmh"><b>EARLY REVERSAL ALERTS</b><span id="rvc" class="hmc"></span></div><div class="nw" id="rvL">scanning…</div></div></div></div><div class="tvd" id="tvB"><div class="tvh"><b>ZEE BUSINESS LIVE</b><span style="flex:1"></span><button id="tvX" title="Switch between the official Zee Business stream and the YouTube fallback">⇄ Source</button><button id="tvR" title="Reload the TV only (page is not reloaded)">↻ TV</button><button id="tvM" title="unmute / mute">🔊</button><button id="tvP" title="Pop out - stays on top of other windows (Chrome/Edge)">⧉ Pop-out</button><button id="tvH" title="hide / show">▾</button></div>
