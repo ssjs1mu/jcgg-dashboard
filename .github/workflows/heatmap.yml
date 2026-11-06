@@ -21,7 +21,10 @@ jobs:
       - name: Build and publish
         run: |
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          OUT=/tmp/heat.json OUT_BARS=/tmp/bars.json OUT_STK=/tmp/stocks.json python pipeline/heatmap.py
+          git fetch -q origin track 2>/dev/null && git show FETCH_HEAD:track.json > /tmp/track_old.json 2>/dev/null || echo '{}' > /tmp/track_old.json
+          OUT=/tmp/heat.json OUT_BARS=/tmp/bars.json OUT_STK=/tmp/stocks.json OUT_TRK=/tmp/track_today.json python pipeline/heatmap.py
+          python pipeline/track_merge.py /tmp/track_old.json /tmp/track_today.json /tmp/track.json
+          tb=$(git hash-object -w /tmp/track.json); tt=$(printf '100644 blob %s\ttrack.json\n' "$tb" | git mktree); tc=$(git commit-tree "$tt" -m "track $(date -u +%FT%TZ)"); git push -q -f origin "$tc":refs/heads/track
           b1=$(git hash-object -w /tmp/heat.json); b2=$(git hash-object -w /tmp/bars.json); b3=$(git hash-object -w /tmp/stocks.json)
           tree=$(printf '100644 blob %s\tbars.json\n100644 blob %s\theat.json\n100644 blob %s\tstocks.json\n' "$b2" "$b1" "$b3" | git mktree)
           commit=$(git commit-tree "$tree" -m "heat $(date -u +%FT%TZ)")

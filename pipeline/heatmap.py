@@ -40,6 +40,21 @@ ist = datetime.now(timezone.utc) + timedelta(hours=5.5); today = ist.strftime('%
 BF_MINVAL, BF_MINVOL, BF_REL, BF_VOLAT, BF_FROMOPEN, BF_RSI = 50, 350000, 1.5, 1.5, 2.0, 55
 def fr(mm): return max((mm - 555) / 375, 0.04) if 555 <= mm <= 930 else (1.0 if mm > 930 else 0.04)
 BS_REL, BS_FROMOPEN, BS_RSI = 1.2, -1.5, 40
+
+def outcome(x, q, i0, entry, side):
+    """Forward-log outcome after a trigger at bar i0: +1.5 % target vs -1.5 % stop, first touch on later 5-min bars (both in one bar = stop first, pessimistic); else mark-to-market at the last bar."""
+    T, S = 1.5, 1.5; last = entry
+    for j in range(i0 + 1, len(x['timestamp'])):
+        if None in (q['high'][j], q['low'][j], q['close'][j]): continue
+        last = q['close'][j]
+        up, dn = (q['high'][j] - entry) / entry * 100, (entry - q['low'][j]) / entry * 100
+        if side == 1:
+            if (entry - q['low'][j]) / entry * 100 >= S: return ['S', -S]
+            if up >= T: return ['T', T]
+        else:
+            if up >= S: return ['S', -S]
+            if dn >= T: return ['T', T]
+    return ['O', round(((last - entry) / entry * 100) * side, 2)]
 def bs_replay(r):
     s, g, pp, pc, o, h, l, v, av, d, mh, ml = r[:12]
     u = 'https://query1.finance.yahoo.com/v8/finance/chart/%s.NS?range=1d&interval=5m&includePrePost=false' % urllib.parse.quote(s)
@@ -53,7 +68,7 @@ def bs_replay(r):
                 e = datetime.fromtimestamp(tt + 300 + 19800, timezone.utc); mm = e.hour * 60 + e.minute
                 rs = rsi14(CLOSES[s] + [px])
                 if px >= BF_MINVAL and cv >= BF_MINVOL and av and cv / (av * fr(mm)) < BS_REL and (hi - lo) / lo * 100 >= BF_VOLAT and (px - o) / o * 100 <= BS_FROMOPEN and rs is not None and rs < BS_RSI and px < ml:
-                    return [s, e.strftime('%H:%M'), round(px, 2)]
+                    return [s, e.strftime('%H:%M'), round(px, 2)] + outcome(x, q, i, px, -1)
             return None
         except Exception:
             time.sleep(1 + t)
@@ -70,7 +85,7 @@ def bf_replay(r):
                 e = datetime.fromtimestamp(tt + 300 + 19800, timezone.utc); mm = e.hour * 60 + e.minute
                 rs = rsi14(CLOSES[s] + [px])
                 if px >= BF_MINVAL and cv >= BF_MINVOL and av and cv / (av * fr(mm)) >= BF_REL and (hi - lo) / lo * 100 >= BF_VOLAT and (px - o) / o * 100 >= BF_FROMOPEN and rs and rs > BF_RSI and px > mh:
-                    return [s, e.strftime('%H:%M'), round(px, 2)]
+                    return [s, e.strftime('%H:%M'), round(px, 2)] + outcome(x, q, i, px, 1)
             return None
         except Exception:
             time.sleep(1 + t)
@@ -80,6 +95,10 @@ candS = [r for r in rows if r[9] == today and r[2] >= BF_MINVAL and r[7] >= BF_M
 with ThreadPoolExecutor(8) as ex: BS = {x[0]: x[1:] for x in ex.map(bs_replay, candS) if x}
 print('bigfish short candidates', len(candS), 'triggered', len(BS))
 print('bigfish candidates', len(cand), 'triggered', len(BF))
+
+# ---- forward log: today's trigger outcomes (merged with history by the workflow into branch `track`)
+_final = (ist.hour * 60 + ist.minute) >= 935
+json.dump({'date': today, 'final': _final, 'ts': ts, 'bf': {k: v for k, v in BF.items()}, 'bs': {k: v for k, v in BS.items()}}, open(os.environ.get('OUT_TRK', 'data/track_today.json'), 'w'), separators=(',', ':'))
 json.dump({'ts': ts, 'rows': rows, 'bf': BF, 'bs': BS}, open(os.environ.get('OUT', 'data/heat.json'), 'w'), separators=(',', ':'))
 
 # ---- intraday bars (5d x 5m) for the 40 best-ranked stocks: the technicals panel falls back to these when the live feed is busy
