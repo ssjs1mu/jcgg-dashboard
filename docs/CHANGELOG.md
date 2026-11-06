@@ -56,3 +56,4 @@
 | 2026-11-06 | Live terminal: Early Movers radar added inside the Trail Board section (both sides, whole universe, excludes moves already over 6%) |
 | 2026-11-06 | Live terminal and lab: Minimise / Expand buttons on the heat-map, alerts and trail panels (state remembered per browser) |
 | 2026-11-06 | Light theme for the whole app (index, trading, lab): sun/moon button bottom-right, remembered per browser, shared across pages |
+| 2026-11-06 | Clarity pass: no glow on text, bigger minimum sizes, equal-size Market Barometer boxes, clear table outlines |
