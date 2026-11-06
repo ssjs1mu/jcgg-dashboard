@@ -60,3 +60,4 @@
 | 2026-11-06 | Popup: daily movement table (1,2,3,4,5,7,15,30 sessions + last 30 days O/H/L/C/volume, where CMP sits in each range); Early Reversal tiles aligned with the barometer |
 | 2026-11-06 | Macro dashboard: indices panel fitted to its frame (column widths, pills), glow removed from text |
 | 2026-11-06 | Layout: news / barometer / early-reversal boxes enlarged to fit their content, TV widened to match, bottom heat-map and alerts bodies aligned |
+| 2026-11-06 | Layout: top boxes shrunk to fit their tiles (no spare space), TV narrowed; Early Reversal Alerts now market-only (stock EMA cross lines removed — stocks stay in Live Alerts) |
