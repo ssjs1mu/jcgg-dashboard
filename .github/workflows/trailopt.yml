@@ -1,0 +1,20 @@
+name: Trail Board refine (walk-forward)
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install numpy
+      - name: Run and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUT=/tmp/trail_opt.json python pipeline/trail_opt.py | tee /tmp/log.txt
+          b=$(git hash-object -w /tmp/trail_opt.json); t=$(printf '100644 blob %s\ttrail_opt.json\n' "$b" | git mktree); c=$(git commit-tree "$t" -m "trailopt $(date -u +%FT%TZ)"); git push -q -f origin "$c":refs/heads/trailopt
