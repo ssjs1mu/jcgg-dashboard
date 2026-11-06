@@ -282,12 +282,15 @@ async function snap(){ // newest snapshot: GitHub API (no CDN lag) -> raw branch
   return await getJ('data/snapshot.json?x='+Math.floor(Date.now()/60000),10000);
 }
 let quotaUntil=0, lvAt=0;
+/* Yahoo's chartPreviousClose from the backend is one session stale for Indian indices / VIX: take the prior close from the daily bars instead */
+const PCX={}; async function pcLoad(){ const today=istDay(); await Promise.all(['^NSEI','^NSEBANK','^BSESN','^INDIAVIX'].map(async s=>{ try{ const j=await getJ(BACKEND+'?action=fetch&url='+encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(s)+'?range=7d&interval=1d'),20000), x=j.chart.result[0], c=x.indicators.quote[0].close, t=x.timestamp.map(v=>new Date((v+19800)*1000).toISOString().slice(0,10)); let i=t.length-1; while(i>0&&(t[i]>=today||c[i]==null)) i--; if(c[i]) PCX[s]=c[i]; }catch(e){} })); }
+setTimeout(pcLoad,1500); setInterval(pcLoad,1800000);
 async function load(){
   const syms=COLS.map(a=>a[0]).concat(['YM=F']);
   if(Date.now()>quotaUntil){
     try{
       const j=await getJ(BACKEND+'?action=dash&symbols='+encodeURIComponent(syms.join(',')),12000);
-      if(j&&Array.isArray(j.rows)&&j.rows.length){ j.rows.forEach(r=>{if(r&&!r.err&&r.p!=null){const o=Q[r.s]; Q[r.s]=Object.assign(o&&o.hi?{hi:o.hi,lo:o.lo}:{},r);}}); srcLabel='LIVE'; snapTs=Date.now(); return paint(); }
+      if(j&&Array.isArray(j.rows)&&j.rows.length){ j.rows.forEach(r=>{if(r&&!r.err&&r.p!=null){const o=Q[r.s]; Q[r.s]=Object.assign(o&&o.hi?{hi:o.hi,lo:o.lo}:{},r); if(PCX[r.s]) Q[r.s].pc=PCX[r.s];}}); srcLabel='LIVE'; snapTs=Date.now(); return paint(); }
       if(j&&j.error&&/too many times|quota/i.test(j.error)) quotaUntil=Date.now()+30*60000;
     }catch(e){ quotaUntil=Date.now()+180000; } // quota page / timeout: retry the live feed in 3 min, meanwhile use the snapshot
   }

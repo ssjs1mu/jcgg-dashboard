@@ -72,18 +72,21 @@ html.jc-light #jcThemeB{filter:none}
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
 const IDX=[['NIFTY 50','^NSEI','Nifty 50'],['NIFTY BANK','^NSEBANK','Bank Nifty'],['NIFTY NEXT 50','^NSMIDCP','Nifty Next 50'],['NIFTY IT','^CNXIT','Nifty IT'],['SENSEX','^BSESN','Sensex']];
 const $=id=>document.getElementById(id);
-let CONS=null, cur=(()=>{try{return localStorage.getItem('jc_ix')}catch(e){return null}})()||'NIFTY 50', LV={}, PX={}, prev={};
+let PCX={}, PCT=0; let CONS=null, cur=(()=>{try{return localStorage.getItem('jc_ix')}catch(e){return null}})()||'NIFTY 50', LV={}, PX={}, prev={};
 const f2=v=>v==null?'–':v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const sg=v=>(v>0?'+':'')+f2(v);
 async function J(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||20000);try{const r=await fetch(u,{signal:c.signal,cache:'no-store'});return JSON.parse(await r.text())}finally{clearTimeout(t)}}
 async function loadCons(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json?x='+Date.now(),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/idx.json?ref=idx']){ try{ let j=await J(u,15000); if(j.content) j=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,''))))); if(j&&j.indices){ CONS=j; return; } }catch(e){} } }
+async function pcLoad(){ if(Date.now()-PCT<1800000&&Object.keys(PCX).length) return; PCT=Date.now(); const today=new Date(Date.now()+19800000).toISOString().slice(0,10);
+  await Promise.all(IDX.map(async x=>{ try{ const j=await J(BACKEND+'?action=fetch&url='+encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(x[1])+'?range=7d&interval=1d'),20000), r=j.chart.result[0], c=r.indicators.quote[0].close, t=r.timestamp.map(v=>new Date((v+19800)*1000).toISOString().slice(0,10)); let i=t.length-1; while(i>0&&(t[i]>=today||c[i]==null)) i--; if(c[i]) PCX[x[1]]=c[i]; }catch(e){} })); }
 async function pull(){
   try{
+    await pcLoad();
     const rows=CONS.indices[cur].rows, syms=rows.map(r=>r[0]+'.NS'), parts=[]; for(let i=0;i<syms.length;i+=30) parts.push(syms.slice(i,i+30));
     const rs=await Promise.all(parts.map(p=>J(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.join(',')),25000)));
     rs.forEach(j=>{ if(j&&j.ok) Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]&&q[1]) PX[k.replace(/\.NS$/,'')]={p:q[0],pc:q[1],v:q[5]}; }); });
     const d=await J(BACKEND+'?action=dash&symbols='+encodeURIComponent(IDX.map(x=>x[1]).join(',')),20000);
-    if(d&&d.rows) d.rows.forEach(r=>{ if(r.p!=null&&r.pc) LV[r.s]={p:r.p,pc:r.pc}; });
+    if(d&&d.rows) d.rows.forEach(r=>{ if(r.p!=null&&r.pc) LV[r.s]={p:r.p,pc:PCX[r.s]||r.pc}; });
     $('st').innerHTML='<b>● LIVE</b> '+new Date().toLocaleTimeString('en-IN',{hour12:false,timeZone:'Asia/Kolkata'})+' IST';
   }catch(e){ $('st').textContent='feed retrying…'; }
   paint();
