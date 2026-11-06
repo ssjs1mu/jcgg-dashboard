@@ -61,3 +61,4 @@
 | 2026-11-06 | Macro dashboard: indices panel fitted to its frame (column widths, pills), glow removed from text |
 | 2026-11-06 | Layout: news / barometer / early-reversal boxes enlarged to fit their content, TV widened to match, bottom heat-map and alerts bodies aligned |
 | 2026-11-06 | Layout: top boxes shrunk to fit their tiles (no spare space), TV narrowed; Early Reversal Alerts now market-only (stock EMA cross lines removed — stocks stay in Live Alerts) |
+| 2026-11-06 | Early Reversal empty-state text corrected (market only) |

@@ -745,7 +745,7 @@ function reversal(){
   Object.keys(RV).forEach(k=>{ const alive=[...live].some(x=>x.startsWith(k)); if(!alive&&Date.now()-RV[k].ts>45*60000) delete RV[k]; });
   const list=Object.keys(RV).map(k=>RV[k]).sort((a,b)=>b.ts-a.ts).slice(0,40); const strip='<div class="mx">'+M.out.map(x=>`<div class="ti ${x.state||''}${x.state==='bad'?' pu':''}" title="30-min move vs alert limit"><i>${x.n}</i><b>${x.mv>0?'▲':x.mv<0?'▼':'■'} ${x.mv>=0?'+':''}${x.mv.toFixed(2)}%</b></div>`).join('')+`<div class="ti ${M.bad>M.good?'bad':M.good>M.bad?'good':''}"><i>Adv / Supp</i><b>${M.bad} / ${M.good}</b></div></div>`;
   $('rvc').textContent=list.length+' today';
-  $('rvL').innerHTML=strip+'<div class="rvl">'+(list.map(x=>`<span class="rv ${x.cls}"><span class="tm">${x.t}</span>${x.txt}<span class="tg ${x.tag==='CONFIRMED'||x.tag==='RISK-ON'?'cf':''}">${x.tag}</span></span>`).join('')||'<div style="padding:8px;color:#93a1b5">No reversal setups right now. Watches index turns, 15-min EMA9/21 crosses on the top-40 stocks, and sudden 30-min moves in VIX, USDINR, Brent, US$ index, US 10Y and Dow.</div>')+'</div>';
+  $('rvL').innerHTML=strip+'<div class="rvl">'+(list.map(x=>`<span class="rv ${x.cls}"><span class="tm">${x.t}</span>${x.txt}<span class="tg ${x.tag==='CONFIRMED'||x.tag==='RISK-ON'?'cf':''}">${x.tag}</span></span>`).join('')||'<div style="padding:8px;color:#93a1b5">No reversal setups right now. Market only: watches Nifty / Bank Nifty / Sensex turns and sudden 30-min moves in VIX, USDINR, Brent, US$ index, US 10Y and Dow.</div>')+'</div>';
 }
 setTimeout(miniRun,4000); setInterval(miniRun,15000);
 $('wuB').onclick=()=>{ $('wu').classList.add('on'); }; $('wuX').onclick=()=>{ $('wu').classList.remove('on'); };
