@@ -49,3 +49,4 @@
 | 2026-11-06 | **[Claude]** TV: live delay readout ('N s behind clock') in the status line; tighter live-edge sync (8 s). Measured: player ~18 s behind the stream's own timestamp; the rest of the reported ~54 s sits upstream in Zee's feed. |
 | 2026-11-06 | Heat-map tradeability layer: ticket/capital/risk/slippage controls, liquidity (1% of daily value) and cost-in-R filter, position sizing, late-entry guard after 14:45, popup trade plan, "How reliable?" scorecard, forward log of Big Fish / Short Fish outcomes on branch `track` |
 | 2026-11-06 | Tradeability layer moved to separate test page trading-lab.html; trading.html restored to previous version |
+| 2026-11-06 | Lab only: Trail Board (conditions 1-10, pivot trail stop, volume exit) + 60-day backtest workflow pipeline/trail_bt.py (branch trailbt) |
