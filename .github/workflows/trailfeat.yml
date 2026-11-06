@@ -1,0 +1,19 @@
+name: Trail Board feature study
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUT=/tmp/trail_feat.json python pipeline/trail_feat.py | tee /tmp/log.txt
+          b=$(git hash-object -w /tmp/trail_feat.json); t=$(printf '100644 blob %s\ttrail_feat.json\n' "$b" | git mktree); c=$(git commit-tree "$t" -m "trailfeat $(date -u +%FT%TZ)"); git push -q -f origin "$c":refs/heads/trailfeat
