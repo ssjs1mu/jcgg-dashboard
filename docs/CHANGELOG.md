@@ -64,3 +64,4 @@
 | 2026-11-06 | Early Reversal empty-state text corrected (market only) |
 | 2026-11-06 | New page indices.html (Index Movers): dropdown + tiles for Nifty 50 / Bank Nifty / Nifty Next 50 / Nifty IT / Sensex; top-5 gainers, top-5 decliners, all constituents (10-row fixed window) with live price, change, %, free-float weight and index-points drag; row colour follows % move. Switch buttons on all pages. Constituents+float shares from workflow idx.yml (branch idx, weekdays 09:10 IST) |
 | 2026-11-06 | Fix: index previous close (Nifty, Bank Nifty, Sensex, VIX) was one session stale from the backend (showed Nifty +3.54% instead of +1.08%); now taken from daily bars in the terminal and the Index Movers page |
+| 2026-11-06 | Index Movers: stock points scaled to the actual index move |

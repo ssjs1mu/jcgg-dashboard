@@ -97,7 +97,8 @@ function build(){
   rows.forEach(r=>{ sp+=r.fs*r.p; sc+=r.fs*r.pc; });
   const lv=LV[IDX.find(x=>x[0]===cur)[1]], base=lv?lv.pc:null;
   rows.forEach(r=>{ r.ch=r.p-r.pc; r.pct=r.ch/r.pc*100; r.w=r.fs*r.p/sp*100; r.pts=base?(r.fs*r.pc/sc)*(r.pct/100)*base:null; });
-  return {rows,lv,sumPts:rows.reduce((a,r)=>a+(r.pts||0),0),miss:I.rows.length-rows.length};
+  let raw=rows.reduce((a,r)=>a+(r.pts||0),0), k=1; if(lv&&raw&&isFinite((lv.p-lv.pc)/raw)){ k=(lv.p-lv.pc)/raw; if(k>0.3&&k<3) rows.forEach(r=>{ if(r.pts!=null) r.pts*=k; }); else k=1; }
+  return {rows,lv,k,raw,sumPts:rows.reduce((a,r)=>a+(r.pts||0),0),miss:I.rows.length-rows.length};
 }
 function head(){ return '<tr><th>#</th><th>Stock</th><th>LTP</th><th>Chg</th><th>Chg %</th><th>Weight %</th><th>Index pts</th></tr>'; }
 function tint(pct){ const a=Math.min(Math.abs(pct)/3,1), al=(0.10+a*0.62).toFixed(2); return pct>0?'background:rgba(20,200,140,'+al+')':pct<0?'background:rgba(235,60,120,'+al+')':''; }
@@ -113,7 +114,7 @@ function paint(){
   const nm=IDX.find(x=>x[0]===cur)[2], adv=B.rows.filter(r=>r.pct>0).length, dec=B.rows.filter(r=>r.pct<0).length;
   $('gt').textContent='of '+B.rows.length+' stocks in '+nm; $('dt').textContent=$('gt').textContent; $('ct').textContent=B.rows.length+' stocks · '+adv+' up · '+dec+' down · sorted by weight · scroll for the rest';
   $('info').textContent=B.lv?('Index '+f2(B.lv.p)+' ('+sg((B.lv.p/B.lv.pc-1)*100)+'%) · stock points add up to '+sg(B.sumPts)+' vs index move '+sg(B.lv.p-B.lv.pc)):'';
-  $('nt').innerHTML='Weight % = free-float shares x live price (same basis NSE uses; shares refreshed daily). Index pts = prior-day weight x stock % move x prior index close; they add up close to the index move, small gaps come from divisor and free-float changes.'+(cur==='SENSEX'?' <b>Sensex is BSE-owned: weights here are estimated from float shares, and one constituent (Tata Motors, post-demerger ticker) is missing, so its weight is spread over the other 29.</b>':'')+(B.miss?' · '+B.miss+' stock(s) without a live price right now.':'');
+  $('nt').innerHTML='Weight % = free-float shares x live price (same basis NSE uses; shares refreshed daily). Index pts = prior-day weight x stock % move x prior index close; they are scaled so the stock points add up to the actual index move (caps such as Bank Nifty's 33% single-stock limit make raw weights differ).'+(cur==='SENSEX'?' <b>Sensex is BSE-owned: weights here are estimated from float shares, and one constituent (Tata Motors, post-demerger ticker) is missing, so its weight is spread over the other 29.</b>':'')+(B.miss?' · '+B.miss+' stock(s) without a live price right now.':'');
 }
 (async function(){
   await loadCons(); if(!CONS){ $('st').textContent='constituents not available'; return; }
