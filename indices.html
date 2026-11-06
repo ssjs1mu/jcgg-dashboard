@@ -70,14 +70,14 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
  <span class="st" id="st">connecting…</span></div>
 <div class="ctl"><label>Panels</label><select id="cn"><option>2</option><option>3</option><option>4</option><option>5</option></select>
  <label>Order index list by</label><select id="so"><option value="b">Day move: best first</option><option value="w">Day move: worst first</option><option value="n">Name</option></select>
- <button class="btn" id="au">Auto: best + worst indices</button><span class="st" id="info"></span></div>
+ <button class="btn" id="au">Auto best + worst: OFF</button><span class="st" id="info"></span></div>
 <div class="grid" id="gr"></div>
 <div class="note" id="nt"></div>
 <script>
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
 const $=id=>document.getElementById(id);
 const ld=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}}, sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
-let CONS=null, PX={}, PCX={}, PCT={}, LV={}, prev={}, NP=ld('jc_np',4), SO=ld('jc_so','b'), PAN=ld('jc_pan',['NIFTY 50','NIFTY BANK','NIFTY MIDCAP 50','NIFTY AUTO','NIFTY METAL']), AP={};
+let CONS=null, PX={}, PCX={}, PCT={}, LV={}, prev={}, NP=ld('jc_np',4), SO=ld('jc_so','b'), PAN=ld('jc_pan',['NIFTY 50','NIFTY BANK','NIFTY MIDCAP 50','NIFTY AUTO','NIFTY METAL']), AP={}, AUTO=ld('jc_auto',false);
 const f2=v=>v==null?'–':v.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const sg=v=>(v>0?'+':'')+f2(v);
 async function J(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||25000);try{const r=await fetch(u,{signal:c.signal,cache:'no-store'});return JSON.parse(await r.text())}finally{clearTimeout(t)}}
@@ -105,6 +105,8 @@ function calc(name){
   if(real){ const raw=rows.reduce((a,r)=>a+r.pts,0), k=raw?move/raw:1; if(k>0.3&&k<3) rows.forEach(r=>r.pts*=k); }
   return {name,rows,pct,apx,real,lp,lc,move,n:rows.length,tot:I.rows.length};
 }
+function autoPick(){ const o=Object.keys(AP).filter(n=>AP[n].n>=8&&!/NIFTY (500|200|100|50|NEXT 50)$/.test(n)).sort((a,b)=>AP[b].pct-AP[a].pct), h=Math.ceil(NP/2); PAN=o.slice(0,h).concat(o.slice(o.length-(NP-h))); }
+function setAuto(v){ AUTO=v; sv('jc_auto',v); const b=$('au'); b.textContent='Auto best + worst: '+(v?'ON':'OFF'); b.style.background=v?'#0f7a4f':'#5a2a3a'; b.title=v?'Panels follow the best and worst indices. Click to switch off and choose your own.':'Panels stay as you selected. Click to switch on.'; }
 function tint(p){ const a=Math.min(Math.abs(p)/3,1), al=(0.10+a*0.55).toFixed(2); return p>0?'rgba(20,200,140,'+al+')':p<0?'rgba(235,60,120,'+al+')':'transparent'; }
 function rvBg(v){ if(v==null) return 'transparent'; return v>=1?'rgba(30,200,120,'+Math.min(0.25+(v-1)*0.25,0.85).toFixed(2)+')':'rgba(235,70,90,'+Math.min(0.25+(1-v)*0.8,0.85).toFixed(2)+')'; }
 function rowH(r,i,key){ const k=key+r.s, o=prev[k], fl=o==null||o===r.p?'':(r.p>o?' fu':' fd'); prev[k]=r.p; const tc=r.pct>0?'#eafff6':r.pct<0?'#fff0f6':'#fff';
@@ -113,11 +115,11 @@ const HEAD='<tr><th>Symbol</th><th>Price</th><th>% Chg</th><th>RVOL</th><th>Wt %
 function build(){
   const g=$('gr'); g.style.setProperty('--n',NP); g.className='grid'+(NP>=5?' hp':'');
   while(g.children.length>NP) g.lastChild.remove();
-  for(let i=g.children.length;i<NP;i++){ const d=document.createElement('div'); d.className='pn'; d.innerHTML='<div class="ph"><select></select></div><div class="pb"></div>'; d.querySelector('select').onchange=function(){ PAN[i]=this.value; sv('jc_pan',PAN); pull(); }; g.appendChild(d); }
+  for(let i=g.children.length;i<NP;i++){ const d=document.createElement('div'); d.className='pn'; d.innerHTML='<div class="ph"><select></select></div><div class="pb"></div>'; d.querySelector('select').onchange=function(){ PAN[i]=this.value; sv('jc_pan',PAN); setAuto(false); pull(); }; g.appendChild(d); }
 }
 function paint(){
   if(!CONS) return; build();
-  const all=Object.keys(CONS.indices); AP={}; all.forEach(n=>AP[n]=calc(n));
+  const all=Object.keys(CONS.indices); AP={}; all.forEach(n=>AP[n]=calc(n)); if(AUTO) autoPick();
   const ord=all.slice().sort((a,b)=>SO==='n'?a.localeCompare(b):SO==='w'?AP[a].pct-AP[b].pct:AP[b].pct-AP[a].pct);
   Array.from($('gr').children).forEach((el,i)=>{
     const sel=el.querySelector('select'), nm=PAN[i]&&CONS.indices[PAN[i]]?PAN[i]:ord[i]; PAN[i]=nm;
@@ -133,7 +135,7 @@ function paint(){
 (async function(){
   $('cn').value=NP; $('so').value=SO;
   $('cn').onchange=()=>{ NP=+$('cn').value; sv('jc_np',NP); pull(); }; $('so').onchange=()=>{ SO=$('so').value; sv('jc_so',SO); paint(); };
-  $('au').onclick=()=>{ const o=Object.keys(AP).filter(n=>AP[n].n>=8&&!/NIFTY (500|200|100|50|NEXT 50)$/.test(n)).sort((a,b)=>AP[b].pct-AP[a].pct), h=Math.ceil(NP/2); PAN=o.slice(0,h).concat(o.slice(-(NP-h))); sv('jc_pan',PAN); pull(); };
+  setAuto(AUTO); $('au').onclick=()=>{ setAuto(!AUTO); if(AUTO) paint(); else sv('jc_pan',PAN); };
   await loadCons(); if(!CONS){ $('st').textContent='constituents not available'; return; }
   await pull(); setInterval(pull,20000);
 })();
