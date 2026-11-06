@@ -20,17 +20,43 @@ def nse():
                 if rows: out['indices'][k]={'src':'NSE free-float mcap','rows':rows}; print(k,len(rows),'NSE ok'); break
             except Exception as e: print(k,'try',t,'fail',str(e)[:100]); time.sleep(2)
 def yq(syms):
-    s=requests.Session(); s.headers.update({'User-Agent':H['User-Agent']}); res={}
-    try:
-        s.get('https://fc.yahoo.com',timeout=15); cr=s.get('https://query1.finance.yahoo.com/v1/test/getcrumb',timeout=15).text
-        for i in range(0,len(syms),40):
-            r=s.get('https://query1.finance.yahoo.com/v7/finance/quote',params={'symbols':','.join(x+'.NS' for x in syms[i:i+40]),'crumb':cr},timeout=20).json()
-            for q in r['quoteResponse']['result']: res[q['symbol'][:-3]]=(q.get('longName') or q.get('shortName') or q['symbol'],q.get('marketCap'))
-    except Exception as e: print('yahoo fail',str(e)[:120])
+    res={}; s=requests.Session(); s.headers.update({'User-Agent':H['User-Agent']}); now=int(time.time())
+    for x in syms:
+        try:
+            r=s.get('https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/'+x+'.NS',params={'type':'trailingMarketCap,quarterlyOrdinarySharesNumber','merge':'false','period1':now-400*86400,'period2':now},timeout=20).json()
+            d={}
+            for it in r['timeseries']['result']:
+                k=it['meta']['type'][0]; v=[a['reportedValue']['raw'] for a in it.get(k,[]) if a and a.get('reportedValue')]
+                if v: d[k]=v[-1]
+            if d: res[x]=(x,d.get('trailingMarketCap'),d.get('quarterlyOrdinarySharesNumber'))
+        except Exception as e: print('ts fail',x,str(e)[:80])
+    print('timeseries ok',len(res),'of',len(syms)); return res
+def arch():
+    res={}
+    for k,f in {'NIFTY 50':'ind_nifty50list','NIFTY BANK':'ind_niftybanklist','NIFTY NEXT 50':'ind_niftynext50list','NIFTY IT':'ind_niftyitlist'}.items():
+        for base in ('https://nsearchives.nseindia.com/content/indices/','https://www.niftyindices.com/IndexConstituent/'):
+            try:
+                r=requests.get(base+f+'.csv',headers={'User-Agent':H['User-Agent']},timeout=20); print(k,base[:30],r.status_code,len(r.text))
+                if r.status_code==200 and 'Symbol' in r.text:
+                    L=r.text.strip().splitlines(); h=L[0].split(','); i=h.index('Symbol'); n=h.index('Company Name'); res[k]=[(l.split(',')[i].strip(),l.split(',')[n].strip()) for l in L[1:] if l]; break
+            except Exception as e: print(k,'arch fail',str(e)[:80])
     return res
 nse()
-mc=yq(SENSEX)
-rows=[[s,mc[s][0],float(mc[s][1])] for s in SENSEX if s in mc and mc[s][1]]
-if rows: out['indices']['SENSEX']={'src':'Yahoo market cap (approx, not free-float)','rows':rows}; print('SENSEX',len(rows))
+AR=arch(); need=set(SENSEX)
+for k,v in AR.items():
+    if k not in out['indices']: need|={a for a,_ in v}
+mc=yq(sorted(need))
+def mk(syms,names=None):
+    r=[]
+    for x in syms:
+        m=mc.get(x)
+        if m and m[1]: r.append([x,(names or {}).get(x,x),float(m[1])])
+    return r
+for k,v in AR.items():
+    if k not in out['indices']:
+        r=mk([a for a,_ in v],dict(v))
+        if len(r)>=len(v)*0.8: out['indices'][k]={'src':'market cap (approx, not free-float)','rows':r}
+r=mk(SENSEX)
+if len(r)>=24: out['indices']['SENSEX']={'src':'market cap (approx, not free-float)','rows':r}
 for k in list(out['indices']): print(k,len(out['indices'][k]['rows']),out['indices'][k]['src'])
 json.dump(out,open(os.environ.get('OUT','/tmp/idx.json'),'w'))
