@@ -659,7 +659,7 @@ $('wuB').onclick=()=>{ $('wu').classList.add('on'); }; $('wuX').onclick=()=>{ $(
  const ch=window.BroadcastChannel?new BroadcastChannel('jc-tv'):null, me='h'+Math.random().toString(36).slice(2);
  async function start(){ if(mode!=='hls'||busy) return; busy=true; other=false; stop(); say('Connecting to the Zee Business live feed…');
   try{ const [,r]=await Promise.all([lib(),fetch(TOK,{cache:'no-store'})]); if(!r.ok) throw new Error('token '+r.status); const j=await r.json(); let tk=String(j.video_token||''); if(!tk) throw new Error('no token'); if(tk[0]!=='?') tk='?akes='+tk; const url=SRC+tk;
-   if(window.Hls&&Hls.isSupported()){ hls=new Hls({maxBufferLength:12,backBufferLength:10,liveSyncDurationCount:2,liveMaxLatencyDurationCount:4,maxLiveSyncPlaybackRate:1.15,startLevel:1,abrEwmaDefaultEstimate:3000000,enableWorker:true}); hls.loadSource(url); hls.attachMedia(v);
+   if(window.Hls&&Hls.isSupported()){ window.TVH=hls=new Hls({maxBufferLength:12,backBufferLength:10,liveSyncDurationCount:2,liveMaxLatencyDurationCount:4,maxLiveSyncPlaybackRate:1.15,startLevel:1,abrEwmaDefaultEstimate:3000000,enableWorker:true}); hls.loadSource(url); hls.attachMedia(v);
     hls.on(Hls.Events.ERROR,(e,d)=>{ if(d&&d.fatal){ fail('stream error '+d.details); } });
     hls.on(Hls.Events.MANIFEST_PARSED,()=>{ fails=0; }); }
    else if(v.canPlayType('application/vnd.apple.mpegurl')) v.src=url; else throw new Error('this browser cannot play HLS');
@@ -669,6 +669,7 @@ $('wuB').onclick=()=>{ $('wu').classList.add('on'); }; $('wuX').onclick=()=>{ $(
  function fail(why){ fails++; stop(); if(fails>=3){ say('<b style="color:#d39098">Official stream not reachable ('+why+').</b> Switching to the YouTube fallback.'); setMode('yt'); return; } say('Stream hiccup ('+why+') · retrying '+fails+'/3…'); setTimeout(start,3000*fails); }
  function setMode(m){ mode=m; window.TVM=m; try{ localStorage.setItem('jctv_mode',m); }catch(e){} box.classList.toggle('hls',m==='hls');
   if(m==='hls'){ f.dataset.v=''; f.src='about:blank'; fails=0; start(); } else { stop(); f.dataset.man=f.dataset.man||''; if(typeof zeeLoad==='function') zeeLoad(true); } $('tvM').textContent=muted?'🔇':'🔊'; }
+ setInterval(()=>{ if(mode!=='hls'||!hls||other||v.paused) return; const pd=hls.playingDate; if(!pd) return; const lag=Math.round((Date.now()-pd.getTime())/1000); if(lag<0||lag>600) return; const e=document.getElementById('tvLag')||(()=>{ const x=document.createElement('span'); x.id='tvLag'; x.style.cssText='float:right;font-weight:800'; S.appendChild(x); return x; })(); e.textContent='⏱ '+lag+' s behind clock'; e.style.color=lag<=20?'#3dffb4':lag<=45?'#ffd24a':'#ff8f9a'; },5000);
  // watchdog: playing but frozen for ~40 s -> restart from a fresh token
  setInterval(()=>{ if(mode!=='hls'||!hls||v.paused||other||document.hidden) return; if(Math.abs(v.currentTime-last)<0.01){ if(++stall>=2){ stall=0; fails=0; start(); } } else stall=0; last=v.currentTime; },20000);
  setInterval(()=>{ if(mode==='hls'&&!other&&!document.hidden&&hls) { fails=0; start(); } },50*60000);   // refresh the session token before it lapses
