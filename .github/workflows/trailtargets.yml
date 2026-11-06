@@ -1,0 +1,19 @@
+name: Trail Board target hit-rates
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUT=/tmp/trail_targets.json python pipeline/trail_targets.py | tee /tmp/log.txt
+          b=$(git hash-object -w /tmp/trail_targets.json); t=$(printf '100644 blob %s\ttrail_targets.json\n' "$b" | git mktree); c=$(git commit-tree "$t" -m "trailtargets $(date -u +%FT%TZ)"); git push -q -f origin "$c":refs/heads/trailtargets
