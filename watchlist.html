@@ -90,7 +90,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
  <th title="Entry at the current price">Entry</th><th title="Exit / stop-loss: beyond EMA 21 and at least 1 ATR away">Exit (SL)</th><th title="1 x risk">T1</th><th title="2 x risk">T2</th><th title="3 x risk">T3</th>
  <th title="Average volume of the last 3 bars against the 20 bars before (Rise above 1.15x, Fall below 0.85x)">Volume</th><th title="Exponential moving average, 9 bars">EMA 9</th><th title="Exponential moving average, 21 bars">EMA 21</th>
  <th title="EMA 9 above (bull) or below (bear) EMA 21; cross age in bars">9 / 21</th><th title="Remove from the watchlist"></th></tr></thead><tbody id="tb"></tbody></table></div>
-<div class="note"><b>How the call is made.</b> On the chosen timeframe: EMA 9 vs EMA 21 and a fresh cross, the slope of EMA 21, price vs EMA 9, price vs today's VWAP (Daily: vs 20-day average), RSI 14, and whether volume is rising with the move. Their agreement gives a score from -100 to +100; <b>BUY</b> at +45 or more, <b>SELL</b> at -45 or less, otherwise <b>AVOID</b>. Conviction is the size of that score. Entry is the current price; the exit (stop-loss) sits beyond EMA 21 and at least one ATR away; T1/T2/T3 are 1, 2 and 3 times that risk. Prices refresh every minute in market hours (every 5 minutes otherwise) and the table re-sorts itself by conviction. The list is kept in this browser; use <b>Share list</b> to open it elsewhere. Rule-based screen for information only, not investment advice.</div>
+<div class="note"><b>How the call is made.</b> On the chosen timeframe: EMA 9 vs EMA 21 and a fresh cross, the slope of EMA 21, price vs EMA 9, price vs today's VWAP (Daily: vs 20-day average), RSI 14, and whether volume is rising with the move. Their agreement gives a score from -100 to +100; <b>BUY</b> at +45 or more, <b>SELL</b> at -45 or less, otherwise <b>AVOID</b>. Conviction is the size of that score. Entry is the current price; the exit (stop-loss) sits beyond EMA 21 and at least one ATR away; T1/T2/T3 are 1, 2 and 3 times that risk. Prices refresh every 30 seconds in market hours (every 5 minutes otherwise) and the table re-sorts itself by conviction. The list is kept in this browser; use <b>Share list</b> to open it elsewhere. Rule-based screen for information only, not investment advice.</div>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'; // shared Joshi's Corner Apps Script (same live feed as the Trading terminal)
@@ -221,7 +221,7 @@ function status(){ const m=mkt(), any=Object.values(R).some(r=>r&&r.src==='LIVE'
   $('dot').className='dot'+(m.open&&any?' live':''); $('src').textContent=(any?'LIVE':snap?'SNAPSHOT':Date.now()<quotaUntil?'LIVE FEED BUSY':'—')+' · '+m.txt;
   $('upd').textContent=lastAt?'updated '+new Date(lastAt+19800000).toISOString().slice(11,19)+' IST':''; }
 setInterval(()=>{ $('clk').textContent=ist().toISOString().slice(11,19)+' IST'; },1000);
-(function loop(){ const m=mkt(); refresh(); setTimeout(loop,m.open?60000:300000); })();
+(function loop(){ const m=mkt(); refresh(); setTimeout(loop,m.open?30000:300000); })();
 
 /* ---------- add / delete / timeframe / share ---------- */
 $('addF').addEventListener('submit',e=>{ e.preventDefault(); const s=$('sym').value.trim().toUpperCase().replace(/\.(NS|BO)$/,'').replace(/[^A-Z0-9&_-]/g,''), x=$('exch').value; if(!s) return;
@@ -233,12 +233,12 @@ $('shareB').addEventListener('click',()=>{ const u=location.origin+location.path
 getJ('data/universe.json',15000).then(u=>{ $('uni').innerHTML=[...u.large,...u.midsmall].map(s=>`<option value="${s}">`).join(''); }).catch(()=>{});
 
 /* ---------- criteria buttons: glow the moment any watchlist stock meets one (same rules as the Trading terminal's heat-map and alerts) ---------- */
-const CR=[['OL','O=L','Open = day low (within 0.05%) and trading above it'],['PC','>PC','Above the previous close'],['V15','VOL>1.5','Volume pace at least 1.5x the 20-day average (adjusted for the time of day)'],
+const CR=[['OL','O=L','Open = day low and trading above it'],['PC','>PC','Above the previous close'],['V15','VOL>1.5','Volume pace at least 1.5x the 20-day average (adjusted for the time of day)'],
  ['BF','BIG FISH','Price ≥ 50, day volume ≥ 3.5 lakh, volume pace ≥ 1.5x, day range ≥ 1.5%, ≥ +2% from open, daily RSI > 55, above the 1-month high'],
  ['BS','BEAR FISH','Price ≥ 50, day volume ≥ 3.5 lakh, day range ≥ 1.5%, ≤ -1.5% from open, daily RSI < 40, below the 1-month low'],
- ['DH','DH','At the day high and up at least 0.5%'],['DL','DL','At the day low and down at least 0.5%'],['MH','MH','Above the 1-month high'],['ML','ML','Below the 1-month low'],
+ ['DH','DH','Price at the day high (above the previous close)'],['DL','DL','Price at the day low (below the previous close)'],['MH','MH','Above the 1-month high'],['ML','ML','Below the 1-month low'],
  ['WH','52WKH','At or above the 52-week high'],['WL','52WKL','At or below the 52-week low'],
- ['VU','VOL UP BO','Volume pace ≥ 2x with price up ≥ 1% and breaking the 1-month high or the day high'],['VD','VOL DN BO','Volume pace ≥ 2x with price down ≥ 1% and breaking the 1-month low or the day low']];
+ ['VU','VOL UP BO','Volume pace ≥ 2x, price above the previous close and breaking the 1-month high or the day high'],['VD','VOL DN BO','Volume pace ≥ 2x, price below the previous close and breaking the 1-month low or the day low']];
 const frac=()=>{ const n=ist(), m=n.getUTCHours()*60+n.getUTCMinutes(); return mkt().open?Math.max((m-555)/375,0.04):1; };
 function rsiOf(c){ return rsi(c,14); }
 function hits(w){ const B=BARS[key(w)]; if(!B||B.bad||!B.b5||!B.b5.t.length) return null; const b=B.b5, td=dayOf(b.t[b.t.length-1]);
@@ -250,12 +250,12 @@ function hits(w){ const B=BARS[key(w)]; if(!B||B.bad||!B.b5||!B.b5.t.length) ret
   if(pc==null){ for(let i=b.t.length-1;i>=0;i--) if(dayOf(b.t[i])!==td){ pc=b.c[i]; break; } }
   if(pc==null||o==null) return null;
   const pct=(p/pc-1)*100, pace=av?v/(av*frac()):null, rng=(h-l)/l*100, fo=(p/o-1)*100, H={};
-  if((o-l)/o*100<=0.05&&p>o) H.OL=1; if(p>pc) H.PC=1; if(pace!=null&&pace>=1.5) H.V15=1;
+  if(o<=l&&p>o) H.OL=1; if(p>pc) H.PC=1; if(pace!=null&&pace>=1.5) H.V15=1;
   if(pace!=null&&rs!=null&&mh!=null&&p>=50&&v>=350000&&pace>=1.5&&rng>=1.5&&fo>=2&&rs>55&&p>mh) H.BF=1;
   if(rs!=null&&ml!=null&&p>=50&&v>=350000&&rng>=1.5&&fo<=-1.5&&rs<40&&p<ml) H.BS=1;
-  if(p>=h*0.9995&&pct>=0.5) H.DH=1; if(p<=l*1.0005&&pct<=-0.5) H.DL=1;
+  if(p>=h&&p>pc) H.DH=1; if(p<=l&&p<pc) H.DL=1;   // fires the moment price prints the day high / low
   if(mh!=null&&p>mh) H.MH=1; if(ml!=null&&p<ml) H.ML=1; if(wh!=null&&p>=wh) H.WH=1; if(wl!=null&&p<=wl) H.WL=1;
-  if(pace!=null&&pace>=2&&pct>=1&&((mh!=null&&p>mh)||(p>=h*0.999))) H.VU=1; if(pace!=null&&pace>=2&&pct<=-1&&((ml!=null&&p<ml)||(p<=l*1.001))) H.VD=1;
+  if(pace!=null&&pace>=2&&p>pc&&((mh!=null&&p>mh)||p>=h)) H.VU=1; if(pace!=null&&pace>=2&&p<pc&&((ml!=null&&p<ml)||p<=l)) H.VD=1;
   return {H,today:td===istDay(),pace,pct}; }
 let CF=''; const CPREV={}, CNEW={};
 function critPaint(){ const m=mkt(), by={}; CR.forEach(c=>by[c[0]]=[]);
