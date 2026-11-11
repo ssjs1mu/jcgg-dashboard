@@ -76,7 +76,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
   <button class="btn" type="submit">+ Add</button>
  </form>
  <form id="tfF"><label class="mu" for="tf" style="font-size:12px">Timeframe</label>
-  <select id="tf"><option value="5">5 min</option><option value="15" selected>15 min</option><option value="60">1 hour</option><option value="D">Daily</option></select>
+  <select id="tf"><option value="1">1 min</option><option value="3">3 min</option><option value="5">5 min</option><option value="15" selected>15 min</option><option value="60">1 hour</option><option value="D">Daily</option></select>
   <button class="btn g" type="button" id="shareB" title="Copy a link that opens this same list on another device">Share list</button>
  </form>
  <div class="st"><span><span class="dot" id="dot"></span><b id="src">—</b></span><span id="clk"></span><span id="upd"></span></div>
@@ -90,7 +90,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
  <th title="Entry at the current price">Entry</th><th title="Exit / stop-loss: beyond EMA 21 and at least 1 ATR away">Exit (SL)</th><th title="1 x risk">T1</th><th title="2 x risk">T2</th><th title="3 x risk">T3</th>
  <th title="Average volume of the last 3 bars against the 20 bars before (Rise above 1.15x, Fall below 0.85x)">Volume</th><th title="Exponential moving average, 9 bars">EMA 9</th><th title="Exponential moving average, 21 bars">EMA 21</th>
  <th title="EMA 9 above (bull) or below (bear) EMA 21; cross age in bars">9 / 21</th><th title="Remove from the watchlist"></th></tr></thead><tbody id="tb"></tbody></table></div>
-<div class="note"><b>How the call is made.</b> On the chosen timeframe: EMA 9 vs EMA 21 and a fresh cross, the slope of EMA 21, price vs EMA 9, price vs today's VWAP (Daily: vs 20-day average), RSI 14, and whether volume is rising with the move. Their agreement gives a score from -100 to +100; <b>BUY</b> at +45 or more, <b>SELL</b> at -45 or less, otherwise <b>AVOID</b>. Conviction is the size of that score. Entry is the current price; the exit (stop-loss) sits beyond EMA 21 and at least one ATR away; T1/T2/T3 are 1, 2 and 3 times that risk. Prices refresh every 30 seconds in market hours (every 5 minutes otherwise) and the table re-sorts itself by conviction. The list is kept in this browser; use <b>Share list</b> to open it elsewhere. Rule-based screen for information only, not investment advice.</div>
+<div class="note"><b>How the call is made.</b> On the chosen timeframe: EMA 9 vs EMA 21 and a fresh cross, the slope of EMA 21, price vs EMA 9, price vs today's VWAP (Daily: vs 20-day average), RSI 14, and whether volume is rising with the move. Their agreement gives a score from -100 to +100; <b>BUY</b> at +45 or more, <b>SELL</b> at -45 or less, otherwise <b>AVOID</b>. Conviction is the size of that score. Entry is the current price; the exit (stop-loss) sits beyond EMA 21 and at least one ATR away; T1/T2/T3 are 1, 2 and 3 times that risk. Prices and triggers update every 10 seconds in market hours (bars and EMAs every 30 seconds) (every 5 minutes otherwise) and the table re-sorts itself by conviction. The list is kept in this browser; use <b>Share list</b> to open it elsewhere. Rule-based screen for information only, not investment advice.</div>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'; // shared Joshi's Corner Apps Script (same live feed as the Trading terminal)
@@ -128,14 +128,14 @@ async function snapBars(s){ if(!SNAP||Date.now()-SNAPAT>240000){ try{ SNAP=await
   const b=SNAP&&SNAP.bars&&SNAP.bars[s]; return b?{b,age:Math.max(0,Math.round((Date.now()-Date.parse(SNAP.ts))/60000))}:null; }
 async function fetchOne(w){ const k=key(w), y=w.s+'.'+w.x, B=BARS[k]||(BARS[k]={});
   if(!B.dd||B.ddDay!==istDay()){ const d=await live(y,'1y','1d'); if(d&&d.bad){ B.bad=true; return; } if(d){ B.dd=d; B.ddDay=istDay(); } }
-  const i=await live(y,'5d','5m'); if(i&&i.bad){ B.bad=true; return; }
+  const i=await live(y,'5d','1m'); if(i&&i.bad){ B.bad=true; return; } if(i&&!i.bad) i.step=1;   // 1-minute bars, the finest Yahoo gives
   if(i){ B.b5=i; B.src='LIVE'; B.at=B.at5=Date.now(); B.bad=false; return; }
-  if(w.x==='NS'){ const s=await snapBars(w.s); if(s){ B.b5=s.b; B.src='SNAPSHOT · '+s.age+' min old'; B.at=Date.now(); B.bad=false; } } }
+  if(w.x==='NS'){ const s=await snapBars(w.s); if(s){ B.b5=Object.assign({step:5},s.b); B.src='SNAPSHOT · '+s.age+' min old'; B.at=Date.now(); B.bad=false; } } }
 
 /* ---------- indicators ---------- */
 const ema=(a,n)=>{ const out=Array(a.length).fill(null); if(a.length<n) return out; const k=2/(n+1); let e=a.slice(0,n).reduce((x,y)=>x+y,0)/n; out[n-1]=e; for(let i=n;i<a.length;i++){ e=a[i]*k+e*(1-k); out[i]=e; } return out; };
 const dayOf=t=>new Date((t+19800)*1000).toISOString().slice(0,10);
-function aggr(b,m){ if(m===5) return b; const f=m/5, o={t:[],o:[],h:[],l:[],c:[],v:[]}; for(let i=0;i<b.t.length;){ const d=dayOf(b.t[i]); let j=i,n=0,h=-1e18,l=1e18,v=0; while(j<b.t.length&&n<f&&dayOf(b.t[j])===d){ h=Math.max(h,b.h[j]); l=Math.min(l,b.l[j]); v+=b.v[j]; j++; n++; } o.t.push(b.t[i]); o.o.push(b.o?b.o[i]:b.c[i]); o.h.push(h); o.l.push(l); o.c.push(b.c[j-1]); o.v.push(v); i=j; } return o; }
+function aggr(b,m){ const f=m/(b.step||5); if(f<=1) return b; const o={t:[],o:[],h:[],l:[],c:[],v:[]}; for(let i=0;i<b.t.length;){ const d=dayOf(b.t[i]); let j=i,n=0,h=-1e18,l=1e18,v=0; while(j<b.t.length&&n<f&&dayOf(b.t[j])===d){ h=Math.max(h,b.h[j]); l=Math.min(l,b.l[j]); v+=b.v[j]; j++; n++; } o.t.push(b.t[i]); o.o.push(b.o?b.o[i]:b.c[i]); o.h.push(h); o.l.push(l); o.c.push(b.c[j-1]); o.v.push(v); i=j; } return o; }
 function atr(D,n){ let a=null; for(let i=1;i<D.c.length;i++){ const tr=Math.max(D.h[i]-D.l[i],Math.abs(D.h[i]-D.c[i-1]),Math.abs(D.l[i]-D.c[i-1])); a=a==null?tr:(a*(n-1)+tr)/n; } return a; }
 function rsi(c,n){ if(c.length<=n) return null; let g=0,l=0; for(let i=1;i<=n;i++){ const d=c[i]-c[i-1]; if(d>0) g+=d; else l-=d; } g/=n; l/=n; for(let i=n+1;i<c.length;i++){ const d=c[i]-c[i-1]; g=(g*(n-1)+Math.max(d,0))/n; l=(l*(n-1)+Math.max(-d,0))/n; } return l===0?100:100-100/(1+g/l); }
 const tick=p=>p>=0?Math.round(p*20)/20:p;
@@ -154,7 +154,7 @@ function analyse(w){ const B=BARS[key(w)]; if(!B) return null; if(B.bad) return 
   // previous close for change %
   let pc=null; if(b5&&b5.t.length){ const days=[...new Set(b5.t.map(dayOf))], td=days[days.length-1]; for(let i=b5.t.length-1;i>=0;i--) if(dayOf(b5.t[i])!==td){ pc=b5.c[i]; break; } }
   if(pc==null&&TF==='D'&&n>1) pc=c[n-2]; if(pc==null&&b5&&b5.pc) pc=b5.pc;
-  const ltpLive=b5&&b5.c.length?b5.c[b5.c.length-1]:ltp;
+  const qf=B.q&&B.qAt&&(!B.at||B.qAt>=B.at-60000)&&B.q[0]>0, ltpLive=qf?B.q[0]:b5&&b5.c.length?b5.c[b5.c.length-1]:ltp; if(qf&&B.q[1]>0) pc=B.q[1];   // 10-second quote beats the last bar
   // VWAP of the latest session (intraday) / 20-bar average (daily)
   let ref; if(TF!=='D'&&b5){ const td=dayOf(b5.t[b5.t.length-1]); let pv=0,vv=0; for(let i=0;i<b5.t.length;i++) if(dayOf(b5.t[i])===td){ const tp=(b5.h[i]+b5.l[i]+b5.c[i])/3; pv+=tp*b5.v[i]; vv+=b5.v[i]; } ref=vv?pv/vv:null; }
   else ref=c.slice(-20).reduce((a,x)=>a+x,0)/Math.min(20,n);
@@ -219,9 +219,17 @@ async function refresh(only){ if(busy&&!only) return; busy=true;
   status(); }
 function status(){ const m=mkt(), any=Object.values(R).some(r=>r&&r.src==='LIVE'), snap=Object.values(R).some(r=>r&&r.src&&r.src!=='LIVE');
   $('dot').className='dot'+(m.open&&any?' live':''); $('src').textContent=(any?'LIVE':snap?'SNAPSHOT':Date.now()<quotaUntil?'LIVE FEED BUSY':'—')+' · '+m.txt;
-  $('upd').textContent=lastAt?'updated '+new Date(lastAt+19800000).toISOString().slice(11,19)+' IST':''; }
+  const la=Math.max(lastAt,lastQ||0); $('upd').textContent=la?'updated '+new Date(la+19800000).toISOString().slice(11,19)+' IST'+(lastQ&&Date.now()-lastQ<30000?' · quotes every 10 s':''):''; }
 setInterval(()=>{ $('clk').textContent=ist().toISOString().slice(11,19)+' IST'; },1000);
 (function loop(){ const m=mkt(); refresh(); setTimeout(loop,m.open?30000:300000); })();
+/* fast quotes: one call for the whole list every 10 s in market hours - price, day open/high/low and volume for the triggers */
+let qBusy=false;
+async function quick(){ if(qBusy||!W.length||document.hidden||!mkt().open||Date.now()<quotaUntil) return; qBusy=true;
+  try{ const j=await getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(W.map(w=>w.s+'.'+w.x).join(',')),12000);
+    if(j&&j.ok&&j.q){ const now=Date.now(); W.forEach(w=>{ const k=key(w), q=j.q[w.s+'.'+w.x]; if(q&&q[0]>0){ const B=BARS[k]||(BARS[k]={}); B.q=q; B.qAt=now; const r=analyse(w); if(r&&!r.bad&&!r.few){ const old=R[k]; if(old&&old.call&&old.call!==r.call) CALLAT[k]={t:now,was:old.call}; R[k]=r; } } }); lastQ=now; paint(); status(); }
+    else if(j&&j.error&&/too many times|quota/i.test(j.error)) quotaUntil=Date.now()+30*60000; }
+  catch(e){} finally{ qBusy=false; } }
+let lastQ=0; setInterval(quick,10000);
 
 /* ---------- add / delete / timeframe / share ---------- */
 $('addF').addEventListener('submit',e=>{ e.preventDefault(); const s=$('sym').value.trim().toUpperCase().replace(/\.(NS|BO)$/,'').replace(/[^A-Z0-9&_-]/g,''), x=$('exch').value; if(!s) return;
@@ -241,14 +249,16 @@ const CR=[['OL','O=L','Open = day low and trading above it'],['PC','>PC','Above 
  ['VU','VOL UP BO','Volume pace ≥ 2x, price above the previous close and breaking the 1-month high or the day high'],['VD','VOL DN BO','Volume pace ≥ 2x, price below the previous close and breaking the 1-month low or the day low']];
 const frac=()=>{ const n=ist(), m=n.getUTCHours()*60+n.getUTCMinutes(); return mkt().open?Math.max((m-555)/375,0.04):1; };
 function rsiOf(c){ return rsi(c,14); }
-function hits(w){ const B=BARS[key(w)]; if(!B||B.bad||!B.b5||!B.b5.t.length) return null; const b=B.b5, td=dayOf(b.t[b.t.length-1]);
-  let o=null,h=-1e18,l=1e18,v=0,p=b.c[b.c.length-1]; for(let i=0;i<b.t.length;i++) if(dayOf(b.t[i])===td){ if(o==null) o=b.o[i]; h=Math.max(h,b.h[i]); l=Math.min(l,b.l[i]); v+=b.v[i]; }
+function hits(w){ const B=BARS[key(w)]; if(!B||B.bad||((!B.b5||!B.b5.t.length)&&!B.q)) return null; const b=B.b5;
+  let td=b&&b.t.length?dayOf(b.t[b.t.length-1]):istDay(), o=null,h=-1e18,l=1e18,v=0,p=b&&b.c.length?b.c[b.c.length-1]:null; if(b) for(let i=0;i<b.t.length;i++) if(dayOf(b.t[i])===td){ if(o==null) o=b.o[i]; h=Math.max(h,b.h[i]); l=Math.min(l,b.l[i]); v+=b.v[i]; }
+  const Q=B.q; if(Q&&Q[0]>0&&Q[2]>0){ const qd=new Date((Q[7]+19800)*1000).toISOString().slice(0,10); if(qd>=td){ td=qd; p=Q[0]; o=Q[2]; h=Q[3]; l=Q[4]; v=Q[5]; } }   // live quote: day open/high/low/volume to the second
   const dd=B.dd; let pc=null,mh=null,ml=null,wh=null,wl=null,av=null,rs=null;
   if(dd&&dd.t.length>5){ const pr=[]; for(let i=0;i<dd.t.length;i++) if(dayOf(dd.t[i])<td) pr.push(i);   // completed sessions before today
     if(pr.length){ pc=dd.c[pr[pr.length-1]]; const m=pr.slice(-21), y=pr.slice(-250), a=pr.slice(-20);
       mh=Math.max(...m.map(i=>dd.h[i])); ml=Math.min(...m.map(i=>dd.l[i])); wh=Math.max(...y.map(i=>dd.h[i])); wl=Math.min(...y.map(i=>dd.l[i])); av=a.reduce((s,i)=>s+dd.v[i],0)/a.length; rs=rsiOf(pr.map(i=>dd.c[i]).concat([p])); } }
   if(pc==null){ for(let i=b.t.length-1;i>=0;i--) if(dayOf(b.t[i])!==td){ pc=b.c[i]; break; } }
   if(pc==null||o==null) return null;
+  if(pc==null&&Q&&Q[1]>0) pc=Q[1]; if(av==null&&Q&&Q[6]>0) av=Q[6];
   const pct=(p/pc-1)*100, pace=av?v/(av*frac()):null, rng=(h-l)/l*100, fo=(p/o-1)*100, H={};
   if(o<=l&&p>o) H.OL=1; if(p>pc) H.PC=1; if(pace!=null&&pace>=1.5) H.V15=1;
   if(pace!=null&&rs!=null&&mh!=null&&p>=50&&v>=350000&&pace>=1.5&&rng>=1.5&&fo>=2&&rs>55&&p>mh) H.BF=1;
