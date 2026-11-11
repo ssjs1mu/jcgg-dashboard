@@ -38,6 +38,16 @@ tr.buy td:nth-child(2){box-shadow:inset 3px 0 0 var(--up)}tr.sell td:nth-child(2
 .tag.bull{background:#0d4a34;color:#5dffbe}.tag.bear{background:#4d1430;color:#ff8fb8}
 .x{background:none;border:1px solid #4a5f80;color:#c7d2e0;border-radius:6px;width:26px;height:24px;cursor:pointer;font:700 13px Arial}.x:hover{background:#5a1a33;border-color:#c2416f;color:#fff}
 .fu{animation:fu 1s}.fd{animation:fd 1s}@keyframes fu{0%{background:#1a7a55}100%{background:transparent}}@keyframes fd{0%{background:#8a2149}100%{background:transparent}}
+.crit{max-width:1800px;margin:0 auto 6px;display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.crh{font:800 10.5px Inter,Arial,sans-serif;color:var(--gold);letter-spacing:.06em;margin-right:4px}
+.cb{border:1px solid #3a5476;background:#13213a;color:#8ea2bf;border-radius:7px;padding:4px 9px;font:800 11px Inter,Arial,sans-serif;cursor:pointer;display:inline-flex;gap:5px;align-items:center}
+.cb b{background:#0b1626;color:#fff;border-radius:9px;padding:0 6px;font-size:10.5px}
+.cb.hit{color:#d9ffe9;border-color:#1fae7c;background:#0f3a2b}.cb.hit.bear{color:#ffd9e6;border-color:#c2416f;background:#3e1426}
+.cb.gl{animation:cg 1.8s ease-in-out infinite}.cb.bear.gl{animation-name:cgb}
+.cb.fl{animation:cf .45s step-end infinite}
+@keyframes cg{50%{box-shadow:0 0 12px #35f0a8;border-color:#5dffbe}}@keyframes cgb{50%{box-shadow:0 0 12px #ff6b9d;border-color:#ff8fb8}}
+@keyframes cf{50%{background:#f2c14e;color:#1a1030;border-color:#f2c14e}}
+.cb.sel{outline:2px solid #fff;outline-offset:1px}.cb.clr{background:#1d3a5c;color:#cfe3ff}
 .empty{padding:26px;text-align:center;color:var(--mu)}
 .note{max-width:1800px;margin:10px auto 0;font-size:11.5px;color:var(--mu);line-height:1.55}
 .note b{color:#d8e2f0}
@@ -71,6 +81,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
  </form>
  <div class="st"><span><span class="dot" id="dot"></span><b id="src">—</b></span><span id="clk"></span><span id="upd"></span></div>
 </div>
+<div class="crit" id="crit"></div>
 <datalist id="uni"></datalist>
 <div class="msg" id="msg"></div>
 <div class="wrap"><table><thead><tr>
@@ -116,8 +127,7 @@ async function live(y,r,i){ if(Date.now()<quotaUntil) return null;
 async function snapBars(s){ if(!SNAP||Date.now()-SNAPAT>240000){ try{ SNAP=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/bars.json?x='+Math.floor(Date.now()/60000),20000); SNAPAT=Date.now(); }catch(e){} }
   const b=SNAP&&SNAP.bars&&SNAP.bars[s]; return b?{b,age:Math.max(0,Math.round((Date.now()-Date.parse(SNAP.ts))/60000))}:null; }
 async function fetchOne(w){ const k=key(w), y=w.s+'.'+w.x, B=BARS[k]||(BARS[k]={});
-  if(TF==='D'){ const d=await live(y,'1y','1d'); if(d&&d.bad){ B.bad=true; return; } if(d){ B.bd=d; B.src='LIVE'; B.at=Date.now(); B.bad=false; }
-    if(!B.b5||Date.now()-(B.at5||0)>300000){ const i=await live(y,'1d','5m'); if(i&&!i.bad){ B.b5=i; B.at5=Date.now(); } } return; }
+  if(!B.dd||B.ddDay!==istDay()){ const d=await live(y,'1y','1d'); if(d&&d.bad){ B.bad=true; return; } if(d){ B.dd=d; B.ddDay=istDay(); } }
   const i=await live(y,'5d','5m'); if(i&&i.bad){ B.bad=true; return; }
   if(i){ B.b5=i; B.src='LIVE'; B.at=B.at5=Date.now(); B.bad=false; return; }
   if(w.x==='NS'){ const s=await snapBars(w.s); if(s){ B.b5=s.b; B.src='SNAPSHOT · '+s.age+' min old'; B.at=Date.now(); B.bad=false; } } }
@@ -132,9 +142,12 @@ const tick=p=>p>=0?Math.round(p*20)/20:p;
 
 function analyse(w){ const B=BARS[key(w)]; if(!B) return null; if(B.bad) return {bad:true};
   const b5=B.b5; let D;
-  if(TF==='D'){ if(!B.bd) return null; D={t:B.bd.t.slice(),o:B.bd.o.slice(),h:B.bd.h.slice(),l:B.bd.l.slice(),c:B.bd.c.slice(),v:B.bd.v.slice()};
+  if(TF==='D'){ if(!B.dd) return null; const bd=B.dd; D={t:bd.t.slice(),o:bd.o.slice(),h:bd.h.slice(),l:bd.l.slice(),c:bd.c.slice(),v:bd.v.slice()};
     // use the intraday price for today's bar when the daily feed lags
-    if(b5&&b5.c.length){ const lt=b5.c[b5.c.length-1]; if(dayOf(D.t[D.t.length-1])===dayOf(b5.t[b5.t.length-1])) D.c[D.c.length-1]=lt; } }
+    if(b5&&b5.c.length){ const td=dayOf(b5.t[b5.t.length-1]); let o=null,h=-1e18,l=1e18,v=0; for(let i=0;i<b5.t.length;i++) if(dayOf(b5.t[i])===td){ if(o==null) o=b5.o[i]; h=Math.max(h,b5.h[i]); l=Math.min(l,b5.l[i]); v+=b5.v[i]; }
+      const lt=b5.c[b5.c.length-1], ld=dayOf(D.t[D.t.length-1]);
+      if(ld===td){ D.c[D.c.length-1]=lt; D.h[D.h.length-1]=Math.max(D.h[D.h.length-1],h); D.l[D.l.length-1]=Math.min(D.l[D.l.length-1],l); D.v[D.v.length-1]=Math.max(D.v[D.v.length-1],v); }
+      else if(ld<td){ D.t.push(b5.t[b5.t.length-1]); D.o.push(o); D.h.push(h); D.l.push(l); D.c.push(lt); D.v.push(v); } } }   // today's bar built from the live 5-min bars
   else { if(!b5) return null; D=aggr(b5,+TF); }
   const n=D.c.length; if(n<25) return {few:true};
   const c=D.c, e9=ema(c,9), e21=ema(c,21), L=n-1, ltp=c[L], A=atr(D,14), R14=rsi(c,14);
@@ -186,10 +199,10 @@ function rowHtml(w,r,i){ const k=key(w), ex=w.x==='BO'?'BSE':'NSE', del=`<button
    <td>${vt}</td><td>${fx(r.e9)}</td><td>${fx(r.e21)}</td>
    <td class="c"><span class="tag ${r.bull?'bull':'bear'}">${r.bull?'9 > 21 bull':'9 < 21 bear'}</span><span class="mu" style="font-size:10.5px">${xa}</span></td>
    <td class="c">${del}</td></tr>`; }
-function paint(){ const tb=$('tb');
+function paint(){ const tb=$('tb'); if(typeof critPaint==='function'&&!paint.inCrit){ paint.inCrit=1; try{ critPaint(); }finally{ paint.inCrit=0; } }
   if(!W.length){ tb.innerHTML='<tr><td colspan="16" class="empty">The watchlist is empty. Type a symbol above, choose the exchange and press <b>+ Add</b>.</td></tr>'; return; }
   const first={}; [...tb.rows].forEach(tr=>{ if(tr.dataset.k) first[tr.dataset.k]=tr.getBoundingClientRect().top; });
-  const order=W.map(w=>({w,r:R[key(w)]})).sort((a,b)=>((b.r&&b.r.conv!=null)?b.r.conv:-1)-((a.r&&a.r.conv!=null)?a.r.conv:-1)||(a.w.s<b.w.s?-1:1));
+  const order=W.filter(w=>!CF||(R[key(w)]&&R[key(w)].H&&R[key(w)].H[CF])).map(w=>({w,r:R[key(w)]})).sort((a,b)=>((b.r&&b.r.conv!=null)?b.r.conv:-1)-((a.r&&a.r.conv!=null)?a.r.conv:-1)||(a.w.s<b.w.s?-1:1));
   tb.innerHTML=order.map((o,i)=>rowHtml(o.w,o.r,i+1)).join('');
   // flash changed prices, glide rows to their new rank
   [...tb.rows].forEach(tr=>{ const k=tr.dataset.k, r=R[k]; if(!k) return; if(r&&r.ltp!=null&&PREV[k]!=null&&r.ltp!==PREV[k]){ const td=tr.querySelector('[data-f="ltp"]'); if(td) td.classList.add(r.ltp>PREV[k]?'fu':'fd'); } if(r&&r.ltp!=null) PREV[k]=r.ltp;
@@ -218,6 +231,41 @@ $('tb').addEventListener('click',e=>{ const b=e.target.closest('[data-del]'); if
 $('tf').addEventListener('change',()=>{ TF=$('tf').value; svj('jc_watch_tf',TF); Object.keys(R).forEach(k=>delete R[k]); paint(); refresh(); });
 $('shareB').addEventListener('click',()=>{ const u=location.origin+location.pathname+'#w='+W.map(w=>w.s+'.'+w.x).join(','); (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>{ $('msg').textContent='Link copied - open it on another device to load this list.'; },()=>{ prompt('Copy this link',u); }); });
 getJ('data/universe.json',15000).then(u=>{ $('uni').innerHTML=[...u.large,...u.midsmall].map(s=>`<option value="${s}">`).join(''); }).catch(()=>{});
+
+/* ---------- criteria buttons: glow the moment any watchlist stock meets one (same rules as the Trading terminal's heat-map and alerts) ---------- */
+const CR=[['OL','O=L','Open = day low (within 0.05%) and trading above it'],['PC','>PC','Above the previous close'],['V15','VOL>1.5','Volume pace at least 1.5x the 20-day average (adjusted for the time of day)'],
+ ['BF','BIG FISH','Price ≥ 50, day volume ≥ 3.5 lakh, volume pace ≥ 1.5x, day range ≥ 1.5%, ≥ +2% from open, daily RSI > 55, above the 1-month high'],
+ ['BS','BEAR FISH','Price ≥ 50, day volume ≥ 3.5 lakh, day range ≥ 1.5%, ≤ -1.5% from open, daily RSI < 40, below the 1-month low'],
+ ['DH','DH','At the day high and up at least 0.5%'],['DL','DL','At the day low and down at least 0.5%'],['MH','MH','Above the 1-month high'],['ML','ML','Below the 1-month low'],
+ ['WH','52WKH','At or above the 52-week high'],['WL','52WKL','At or below the 52-week low'],
+ ['VU','VOL UP BO','Volume pace ≥ 2x with price up ≥ 1% and breaking the 1-month high or the day high'],['VD','VOL DN BO','Volume pace ≥ 2x with price down ≥ 1% and breaking the 1-month low or the day low']];
+const frac=()=>{ const n=ist(), m=n.getUTCHours()*60+n.getUTCMinutes(); return mkt().open?Math.max((m-555)/375,0.04):1; };
+function rsiOf(c){ return rsi(c,14); }
+function hits(w){ const B=BARS[key(w)]; if(!B||B.bad||!B.b5||!B.b5.t.length) return null; const b=B.b5, td=dayOf(b.t[b.t.length-1]);
+  let o=null,h=-1e18,l=1e18,v=0,p=b.c[b.c.length-1]; for(let i=0;i<b.t.length;i++) if(dayOf(b.t[i])===td){ if(o==null) o=b.o[i]; h=Math.max(h,b.h[i]); l=Math.min(l,b.l[i]); v+=b.v[i]; }
+  const dd=B.dd; let pc=null,mh=null,ml=null,wh=null,wl=null,av=null,rs=null;
+  if(dd&&dd.t.length>5){ const pr=[]; for(let i=0;i<dd.t.length;i++) if(dayOf(dd.t[i])<td) pr.push(i);   // completed sessions before today
+    if(pr.length){ pc=dd.c[pr[pr.length-1]]; const m=pr.slice(-21), y=pr.slice(-250), a=pr.slice(-20);
+      mh=Math.max(...m.map(i=>dd.h[i])); ml=Math.min(...m.map(i=>dd.l[i])); wh=Math.max(...y.map(i=>dd.h[i])); wl=Math.min(...y.map(i=>dd.l[i])); av=a.reduce((s,i)=>s+dd.v[i],0)/a.length; rs=rsiOf(pr.map(i=>dd.c[i]).concat([p])); } }
+  if(pc==null){ for(let i=b.t.length-1;i>=0;i--) if(dayOf(b.t[i])!==td){ pc=b.c[i]; break; } }
+  if(pc==null||o==null) return null;
+  const pct=(p/pc-1)*100, pace=av?v/(av*frac()):null, rng=(h-l)/l*100, fo=(p/o-1)*100, H={};
+  if((o-l)/o*100<=0.05&&p>o) H.OL=1; if(p>pc) H.PC=1; if(pace!=null&&pace>=1.5) H.V15=1;
+  if(pace!=null&&rs!=null&&mh!=null&&p>=50&&v>=350000&&pace>=1.5&&rng>=1.5&&fo>=2&&rs>55&&p>mh) H.BF=1;
+  if(rs!=null&&ml!=null&&p>=50&&v>=350000&&rng>=1.5&&fo<=-1.5&&rs<40&&p<ml) H.BS=1;
+  if(p>=h*0.9995&&pct>=0.5) H.DH=1; if(p<=l*1.0005&&pct<=-0.5) H.DL=1;
+  if(mh!=null&&p>mh) H.MH=1; if(ml!=null&&p<ml) H.ML=1; if(wh!=null&&p>=wh) H.WH=1; if(wl!=null&&p<=wl) H.WL=1;
+  if(pace!=null&&pace>=2&&pct>=1&&((mh!=null&&p>mh)||(p>=h*0.999))) H.VU=1; if(pace!=null&&pace>=2&&pct<=-1&&((ml!=null&&p<ml)||(p<=l*1.001))) H.VD=1;
+  return {H,today:td===istDay(),pace,pct}; }
+let CF=''; const CPREV={}, CNEW={};
+function critPaint(){ const m=mkt(), by={}; CR.forEach(c=>by[c[0]]=[]);
+  W.forEach(w=>{ const r=hits(w); if(r){ R[key(w)]&&(R[key(w)].H=r.H); Object.keys(r.H).forEach(k=>by[k].push(w.s)); } });
+  $('crit').innerHTML='<span class="crh">'+(m.open?'LIVE HITS':'LAST SESSION')+'</span>'+CR.map(([k,lab,tip])=>{ const L=by[k], was=CPREV[k]||[], fresh=L.filter(s=>was.indexOf(s)<0);
+    if(fresh.length&&m.open&&CPREV[k]) CNEW[k]=Date.now(); CPREV[k]=L;
+    const cls='cb'+(L.length?' hit':'')+(L.length&&m.open?(CNEW[k]&&Date.now()-CNEW[k]<120000?' fl':' gl'):'')+(/BS|DL|ML|WL|VD/.test(k)?' bear':'')+(CF===k?' sel':'');
+    return `<button type="button" class="${cls}" data-c="${k}" title="${esc(tip)}${L.length?'\n'+L.join(', '):'\nNo stock in the watchlist meets this now'}">${lab}${L.length?`<b>${L.length}</b>`:''}</button>`; }).join('')+(CF?'<button type="button" class="cb clr" data-c="">✕ show all</button>':''); }
+$('crit').addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b) return; CF=CF===b.dataset.c?'':b.dataset.c; critPaint(); paint(); });
+
 paint();
 </script>
 </body></html>
