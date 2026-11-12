@@ -33,6 +33,14 @@ tr.fu td{animation:fu .9s}tr.fd td{animation:fd .9s}
 @keyframes fu{from{background:#3dffb4}}@keyframes fd{from{background:#ff6b9d}}
 .note{color:var(--mu);font:12px/1.5 "Segoe UI";max-width:1800px;margin:8px auto 0}
 @media(max-width:1000px){.grid{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))!important}}
+.wz{max-width:1800px;margin:12px auto 0;border:1px solid #a8873a;border-radius:12px;background:linear-gradient(160deg,#1d1808,#101c2e 30%);padding:10px 12px}
+.wzh{font:800 15px "Segoe UI";color:var(--gold);margin-bottom:8px}.wzh .mu,.mu{color:var(--mu);font:600 11.5px "Segoe UI"}
+.wzg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}@media(max-width:1000px){.wzg{grid-template-columns:1fr}}
+.wzc{border:1px solid var(--line);border-radius:9px;background:var(--card);overflow:hidden}.wzt{padding:6px 9px;background:#0f1d30;font:800 12px "Segoe UI";color:#9ee7ff;letter-spacing:.03em}
+.wz table{table-layout:auto}.wz th,.wz td{width:auto!important;text-align:right;padding:0 7px}.wz th:first-child,.wz td:first-child{text-align:left}.wz td{height:25px;font-size:12px}
+.wz td.u,.wz .u{color:var(--up)}.wz td.d,.wz .d{color:var(--dn)}.wz td.m{color:var(--mu)}
+.wzi{padding:7px 9px;font:12px/1.45 "Segoe UI";color:#d9e2ee;border-top:1px solid var(--line);background:#132036}.wzi b{color:var(--gold)}
+.wzr{margin-top:10px;padding:8px 12px;border-radius:9px;background:#132036;border:1px dashed #a8873a;font:12.5px/1.5 "Segoe UI";color:#d9e2ee}.wzr b{color:var(--gold)}.wzr ol{margin:4px 0 0 20px}
 </style>
 <style id="jcTheme">
 /* Light theme: one switch for the whole app. Implemented as a colour inversion of the finished page with hue kept, so every panel, table, chart and popup follows; media is flipped back. */
@@ -72,6 +80,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
  <label>Order index list by</label><select id="so"><option value="b">Day move: best first</option><option value="w">Day move: worst first</option><option value="n">Name</option></select>
  <button class="btn" id="au">Auto best + worst: OFF</button><span class="st" id="info"></span></div>
 <div class="grid" id="gr"></div>
+<div class="wz" id="wz"></div>
 <div class="note" id="nt"></div>
 <script>
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -130,7 +139,43 @@ function paint(){
       +'<div class="fx"><table>'+HEAD+D.rows.slice().sort((a,b)=>b.w-a.w).map(r=>rowH(r,0,key+'c')).join('')+'</table></div>';
   });
   const top=ord.slice().sort((a,b)=>AP[b].pct-AP[a].pct); $('info').textContent='Best today: '+top[0]+' '+sg(AP[top[0]].pct)+'% · Weakest: '+top[top.length-1]+' '+sg(AP[top[top.length-1]].pct)+'%';
+  try{ wzPaint(); }catch(e){ console.error(e); }
   $('nt').innerHTML='Open any panel dropdown to switch index (list shows each index day move; ≈ = computed from its stocks, otherwise the live index). Rows: gainers and decliners (top 5 each), index tile, then all stocks by weight in a 10-row window (scroll). Wt % = free-float shares x live price. Pts = stock weight x % move scaled to the index move. RVOL = volume vs 20-day average at this time of day (green above 1, red below). Sensex weights are estimated; Nifty 500, 200 and 100 are shown as listed by NSE.';
+}
+/* ---------- 💰 Wealth ideas from today's index movers (rule-based reading of the data on this page; not personal advice) ---------- */
+const BROAD=['NIFTY 50','NIFTY NEXT 50','NIFTY 100','NIFTY 200','NIFTY 500','NIFTY MIDCAP 50','NIFTY MIDCAP 100','NIFTY MIDCAP 150','NIFTY SMALLCAP 50','NIFTY SMALLCAP 100','NIFTY SMALLCAP 250','SENSEX'];
+let HS={}, HSat=0, WZat=0;
+async function hsLoad(){ if(Date.now()-HSat<300000) return; try{ const j=await J('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Math.floor(Date.now()/60000),20000); HS={}; (j.rows||[]).forEach(r=>{ HS[r[0]]={mh:r[10],ml:r[11],wh:r[12],wl:r[13],rsi:r[14]}; }); HSat=Date.now(); }catch(e){} }
+function sectorOf(s){ for(const n of Object.keys(CONS.indices)){ if(BROAD.includes(n)) continue; if(CONS.indices[n].rows.some(r=>r[0]===s)) return n.replace('NIFTY ',''); } return '–'; }
+function wzPaint(force){ if(!CONS||!Object.keys(AP).length) return; if(!force&&Date.now()-WZat<30000) return; WZat=Date.now(); hsLoad();
+  const pc=v=>`<span class="${v>=0?'u':'d'}">${sg(v)}%</span>`;
+  // 1) where money is flowing: sector indices by move, breadth and volume
+  const sec=Object.keys(AP).filter(n=>!BROAD.includes(n)&&AP[n].n>=8).map(n=>{ const D=AP[n], up=D.rows.filter(r=>r.pct>0).length, rv=D.rows.filter(r=>r.rv!=null), arv=rv.length?rv.reduce((a,r)=>a+r.rv,0)/rv.length:null, br=up/D.rows.length*100;
+    const flow=D.pct>=0.5&&br>=60&&(arv==null||arv>=1)?['🟢 Money flowing in','u']:D.pct<=-0.5&&br<=40?['🔴 Money leaving','d']:['⚪ Mixed','m']; return {n,pct:D.pct,br,arv,flow}; }).sort((a,b)=>b.pct-a.pct);
+  const lead=sec.filter(x=>x.flow[1]==='u').slice(0,4).map(x=>x.n), lag=sec.filter(x=>x.flow[1]==='d').slice(-3).map(x=>x.n);
+  // size: large vs mid vs small
+  const sz=['NIFTY 50','NIFTY MIDCAP 100','NIFTY SMALLCAP 100'].filter(n=>AP[n]).map(n=>[n,AP[n].pct]);
+  // 2) leaders in leading sectors: up, volume above normal, at 1-month high / near 52-week high, RSI not overheated
+  const seen={}, leaders=[]; lead.forEach(n=>AP[n].rows.forEach(r=>{ if(seen[r.s]) return; const h=HS[r.s]||{}; const nearH=h.wh?(r.p/h.wh-1)*100:null;
+    if(r.pct>0&&r.rv!=null&&r.rv>=1.2&&((h.mh&&r.p>=h.mh)||(nearH!=null&&nearH>=-3))&&(h.rsi==null||h.rsi<=75)){ seen[r.s]=1; leaders.push({s:r.s,sec:n.replace('NIFTY ',''),pct:r.pct,rv:r.rv,nearH,rsi:h.rsi}); } }));
+  leaders.sort((a,b)=>b.rv*b.pct-a.rv*a.pct);
+  // 3) heavyweights moving the Nifty
+  const N=AP['NIFTY 50'], heavy=N?N.rows.filter(r=>r.pts!=null).sort((a,b)=>Math.abs(b.pts)-Math.abs(a.pts)).slice(0,6):[];
+  // 4) quality on sale: index heavyweights (≥1% weight in Nifty 100) far below their 52-week high and oversold
+  const H100=AP['NIFTY 100'], sale=H100?H100.rows.filter(r=>r.w>=1).map(r=>{ const h=HS[r.s]||{}; return {s:r.s,w:r.w,pct:r.pct,off:h.wh?(r.p/h.wh-1)*100:null,rsi:h.rsi}; }).filter(x=>x.off!=null&&x.off<=-15&&(x.rsi==null||x.rsi<45)).sort((a,b)=>a.off-b.off).slice(0,8):[];
+  const T=(head,rows,empty)=>`<table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.join(''):`<tr><td colspan="${head.length}" class="mu">${empty}</td></tr>`}</tbody></table>`;
+  $('wz').innerHTML=`<div class="wzh">💰 How to build wealth from today's index movers <span class="mu">rule-based reading of the live data on this page · ideas to study, not personal advice · ${ist().toISOString().slice(11,16)} IST</span></div>
+  <div class="wzg">
+   <div class="wzc"><div class="wzt">1 · Where the money is flowing (sector rotation)</div>${T(['Sector index','Day %','Breadth','Avg RVOL','Read'],sec.slice(0,6).concat(sec.length>6?sec.slice(-3):[]).map(x=>`<tr><td>${x.n.replace('NIFTY ','')}</td><td>${pc(x.pct)}</td><td>${x.br.toFixed(0)}% up</td><td>${x.arv==null?'–':x.arv.toFixed(2)}</td><td class="${x.flow[1]}">${x.flow[0]}</td></tr>`),'loading…')}
+    <div class="wzi">💡 Wealth is built by staying with sectors where money keeps coming in day after day. ${lead.length?`Today: <b>${lead.map(n=>n.replace('NIFTY ','')).join(', ')}</b>.`:'No sector has broad, volume-backed buying yet today.'} ${lag.length?`Avoid fresh buying in <b>${lag.map(n=>n.replace('NIFTY ','')).join(', ')}</b> until they stop falling.`:''} ${sz.length?'Size: '+sz.map(([n,v])=>n.replace('NIFTY ','')+' '+sg(v)+'%').join(' · ')+'.':''}</div></div>
+   <div class="wzc"><div class="wzt">2 · Leaders in the leading sectors (momentum compounders)</div>${T(['Stock','Sector','Day %','RVOL','vs 52W high','RSI'],leaders.slice(0,8).map(x=>`<tr><td>${x.s}</td><td>${x.sec}</td><td>${pc(x.pct)}</td><td>${x.rv.toFixed(2)}</td><td>${x.nearH==null?'–':sg(x.nearH)+'%'}</td><td>${x.rsi==null?'–':x.rsi.toFixed(0)}</td></tr>`),lead.length?'No stock in the leading sectors is at a 1-month high with strong volume right now.':'Waiting for a sector with money flowing in.')}
+    <div class="wzi">💡 Up with volume ≥1.2× normal, at a 1-month high or within 3% of the 52-week high, RSI not above 75. Leaders tend to keep leading: build the position in 2–3 steps on pullbacks, keep a stop below the last swing low, add only while it holds its highs.</div></div>
+   <div class="wzc"><div class="wzt">3 · Heavyweights moving the Nifty today</div>${T(['Stock','Weight %','Day %','Nifty points'],heavy.map(r=>`<tr><td>${r.s}</td><td>${r.w.toFixed(2)}</td><td>${pc(r.pct)}</td><td class="${r.pts>=0?'u':'d'}">${sg(r.pts)}</td></tr>`),'loading…')}
+    <div class="wzi">💡 These few names decide where the index — and every index fund / SIP — goes. When the top weights rise together with the sectors above, an index SIP or ETF compounds with the least effort; when they fall while the rest rises, the move is narrow and less reliable.</div></div>
+   <div class="wzc"><div class="wzt">4 · Quality on sale (long-term accumulation watch)</div>${T(['Stock','Nifty 100 wt %','Day %','Below 52W high','RSI'],sale.map(x=>`<tr><td>${x.s}</td><td>${x.w.toFixed(2)}</td><td>${pc(x.pct)}</td><td class="d">${sg(x.off)}%</td><td>${x.rsi==null?'–':x.rsi.toFixed(0)}</td></tr>`),'No Nifty 100 heavyweight is 15%+ below its 52-week high with RSI under 45 today.')}
+    <div class="wzi">💡 Large, liquid companies 15%+ below their 52-week high and oversold. Wealth is often made buying quality when it is out of favour — but only in stages (e.g. 3–4 tranches over weeks) and after the fall slows; never all at once.</div></div>
+  </div>
+  <div class="wzr"><b>Five habits that turn these readings into wealth</b><ol><li>Own the leaders of the leading sectors; cut the laggards early.</li><li>Buy in steps, never all at once; add only to what is working.</li><li>Risk 1–2% of capital per idea; a stop-loss is the price of staying in the game.</li><li>Keep a core SIP in a broad index fund — the heavyweights above do the compounding for you.</li><li>Let winners run with a trailing stop; time in the trend, not timing, builds wealth.</li></ol></div>`;
 }
 (async function(){
   $('cn').value=NP; $('so').value=SO;
