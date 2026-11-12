@@ -6,7 +6,7 @@
 <style>
 :root{--bg:#0e1621;--card:#16243a;--line:#2d4260;--tx:#f1f5fb;--mu:#a9b8cc;--gold:#e0cd96;--up:#35f0a8;--dn:#ff6b9d;--av:#f2c14e}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:linear-gradient(180deg,#0e1621,#0a111a);color:var(--tx);font:13px/1.35 "Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;padding:8px 10px 60px;-webkit-font-smoothing:antialiased}
+body{background:linear-gradient(180deg,var(--bg0,#0e1621),var(--bg1,#0a111a));background-attachment:fixed;transition:background 2s;color:var(--tx);font:13px/1.35 "Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;padding:8px 10px 60px;-webkit-font-smoothing:antialiased}
 .top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;max-width:1800px;margin:0 auto 6px;padding-bottom:6px;border-bottom:1px solid var(--line)}.tnav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .top h1{font:400 44px/1 "Brush Script MT","Segoe Script",cursive;color:var(--gold);margin:0;text-align:center;white-space:nowrap;text-shadow:0 0 18px rgba(224,205,150,.25)}
 .sw{display:inline-block;padding:5px 13px;border-radius:999px;background:linear-gradient(180deg,#ffd35c,#d9a21c);color:#1a1030;font:800 12px "Segoe UI",sans-serif;text-decoration:none}
@@ -52,7 +52,9 @@ tr.buy td:nth-child(2){box-shadow:inset 3px 0 0 var(--up)}tr.sell td:nth-child(2
 table.rbt{min-width:1100px}table.rbt td{white-space:normal;text-align:left;vertical-align:top;font-size:12.5px}table.rbt th{text-align:left}
 .ex2{font-weight:800}.ex2.up{color:var(--up)}.ex2.dn{color:var(--dn)}.ex2.nt{color:var(--av)}
 .app{max-width:1800px;margin:0 auto;display:grid;grid-template-columns:200px minmax(0,1fr);gap:12px;align-items:start}
-.tiles{display:flex;flex-direction:column;gap:10px;position:sticky;top:8px;perspective:700px}
+.tiles{display:flex;flex-direction:column;gap:10px;position:sticky;top:8px;perspective:700px;max-height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--m1,#2fd0ff) transparent;padding:10px 8px 14px;margin:-2px -4px 0;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 40px rgba(0,0,0,.35),0 0 28px var(--mglow,rgba(47,208,255,.12)),inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:cloud 7s ease-in-out infinite}
+@keyframes cloud{50%{transform:translateY(-3px);box-shadow:0 16px 46px rgba(0,0,0,.38),0 0 36px var(--mglow,rgba(47,208,255,.16)),inset 0 1px 0 rgba(255,255,255,.14)}}
+.tiles::-webkit-scrollbar{width:6px}.tiles::-webkit-scrollbar-thumb{background:var(--m1,#2fd0ff);border-radius:6px}
 .tile{position:relative;text-align:left;border:1px solid #3a5476;border-radius:14px;padding:12px 12px 11px 50px;cursor:pointer;color:#e8eef8;
  background:linear-gradient(145deg,#22385a,#132238 60%,#0e1a2c);box-shadow:0 6px 0 #0a1320,0 10px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
  transform:rotateY(8deg) translateZ(0);transform-origin:left center;transition:transform .25s,box-shadow .25s,border-color .25s}
@@ -65,7 +67,7 @@ table.rbt{min-width:1100px}table.rbt td{white-space:normal;text-align:left;verti
 @keyframes tnw{50%{border-color:var(--av);box-shadow:0 6px 0 #0a1320,0 0 18px rgba(242,193,78,.75),inset 0 1px 0 rgba(255,255,255,.12)}}
 .pn{display:none;animation:pin .3s ease-out}.pn.on{display:block}@keyframes pin{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
 .pn .bar,.pn .crit,.pn .msg,.pn .wrap,.pn .rb,.pn .note{max-width:none}
-@media(max-width:820px){.app{grid-template-columns:1fr}.tiles{flex-direction:row;overflow-x:auto;position:static;padding:2px 2px 8px;perspective:none}
+@media(max-width:820px){.app{grid-template-columns:1fr}.tiles{flex-direction:row;overflow-x:auto;overflow-y:hidden;position:sticky;top:0;z-index:20;max-height:none;padding:6px 6px 8px;margin:0 0 6px;perspective:none;animation:none}
  .tile{flex:0 0 auto;transform:none;padding:9px 10px 8px 40px;min-width:140px}.tile i{font-size:19px;left:10px}.tile:hover{transform:none}.tile.on{transform:translateY(3px)}}
 .tile.hn{background:linear-gradient(145deg,#4a3a12,#2a2036 60%,#151a2c);border-color:#a8873a}
 .hncard{display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-radius:14px;padding:14px 16px;border:1px solid #3a5476;background:linear-gradient(145deg,#1d3252,#121f33);box-shadow:0 8px 0 #0a1320,0 12px 24px rgba(0,0,0,.45)}
@@ -161,6 +163,19 @@ table.rpt{width:100%;min-width:0!important}table.rpt th{text-align:left;width:38
 .bml{display:flex;flex-direction:column;line-height:1.1}.bml em{font:900 11px Inter,Arial,sans-serif;font-style:normal;letter-spacing:.06em;color:var(--nc)}.bml small{font:700 9.5px Inter,Arial,sans-serif;color:#fff;opacity:.9}
 .bmf.z0{--nc:#ff4fa3;--gl:rgba(255,60,150,.45);background:linear-gradient(135deg,#5a0f2e,#a3125a 60%,#6a1040)}.bmf.z1{--nc:#ffa03c;--gl:rgba(255,150,40,.45);background:linear-gradient(135deg,#5a2a0f,#a8501a 60%,#703010)}.bmf.z2{--nc:#fff04d;--gl:rgba(255,235,60,.4);background:linear-gradient(135deg,#3a3a12,#6b6a1c 60%,#4a4a14)}.bmf.z3{--nc:#3dffb4;--gl:rgba(40,255,180,.45);background:linear-gradient(135deg,#0e4a3a,#12805f 60%,#0b5a45)}.bmf.z4{--nc:#1dffe6;--gl:rgba(30,255,230,.5);background:linear-gradient(135deg,#064d3f,#00a37a 60%,#0a6a60)}
 .bmt{display:grid;grid-template-columns:repeat(2,auto);gap:3px}.bmc{display:flex;gap:5px;align-items:baseline;justify-content:space-between;padding:1px 7px;border-radius:7px;border:1px solid;font:700 10.5px Inter,Arial,sans-serif;white-space:nowrap}.bmc i{font-style:normal;font-size:9px;letter-spacing:.06em;color:#a9e6ff;text-transform:uppercase}.bmc b{font:900 11.5px ui-monospace,Consolas,monospace}.bmc.g{border-color:#1d7a55;background:#0f3527;color:#5dffbe}.bmc.r{border-color:#a3325a;background:#3a1424;color:#ff8fb8}
+/* market mood: the page breathes with the market (from the barometer's Fear & Greed zone) */
+html{--m1:#2fd0ff;--m2:#7a5cff;--mglow:rgba(47,208,255,.14);--bg0:#0e1621;--bg1:#0a111a}
+html[data-mood="0"]{--m1:#8f7bff;--m2:#ff6fb5;--mglow:rgba(143,123,255,.20);--bg0:#141030;--bg1:#0b0a1c}
+html[data-mood="1"]{--m1:#ffb15c;--m2:#ff7a8a;--mglow:rgba(255,170,90,.18);--bg0:#1d1418;--bg1:#0f0b12}
+html[data-mood="2"]{--m1:#5cc8ff;--m2:#e0cd96;--mglow:rgba(92,200,255,.16);--bg0:#0f1826;--bg1:#0a111a}
+html[data-mood="3"]{--m1:#35f0a8;--m2:#5cc8ff;--mglow:rgba(53,240,168,.18);--bg0:#0b1c1c;--bg1:#081211}
+html[data-mood="4"]{--m1:#1dffe6;--m2:#ffd35c;--mglow:rgba(29,255,230,.22);--bg0:#062024;--bg1:#071214}
+body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;background:radial-gradient(38% 32% at 18% 22%,var(--m1),transparent 70%),radial-gradient(34% 30% at 82% 30%,var(--m2),transparent 70%),radial-gradient(40% 34% at 55% 88%,var(--m1),transparent 72%);opacity:.13;filter:blur(30px);animation:aur 26s ease-in-out infinite alternate;transition:opacity 2s}
+@keyframes aur{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(3%,-2%) rotate(4deg)}100%{transform:translate(-3%,2%) rotate(-3deg)}}
+.top{border-bottom-color:color-mix(in srgb,var(--m1) 45%,transparent)!important}
+.hbr{display:flex;flex-direction:column;align-items:center;gap:3px}.mood{font:700 11.5px Inter,Arial,sans-serif;color:var(--m1);background:color-mix(in srgb,var(--m1) 12%,transparent);border:1px solid color-mix(in srgb,var(--m1) 40%,transparent);border-radius:999px;padding:2px 12px;white-space:nowrap;transition:color 2s,background 2s}
+@media(max-width:1100px){.hbr{grid-column:1/-1;grid-row:1}}@media(max-width:700px){.hbr{grid-row:auto}.mood{white-space:normal;text-align:center}}
+@media(prefers-reduced-motion:reduce){body::before,.tiles{animation:none}}
 .empty{padding:26px;text-align:center;color:var(--mu)}
 .note{max-width:1800px;margin:10px auto 0;font-size:11.5px;color:var(--mu);line-height:1.55}
 .note b{color:#d8e2f0}
@@ -181,7 +196,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
   function st(n){ z=Math.min(1.5,Math.max(.8,Math.round((z+n)*100)/100)); try{ localStorage.setItem('jc_zoom',z); }catch(e){} ap(); }
   d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
 </head><body>
-<div class="top"><div class="bmw" id="bmW"><div class="bmz">🌡 <b>MARKET BAROMETER</b><span class="mu">loading…</span></div></div><h1>Joshi's Corner</h1>
+<div class="top"><div class="bmw" id="bmW"><div class="bmz">🌡 <b>MARKET BAROMETER</b><span class="mu">loading…</span></div></div><div class="hbr"><h1>Joshi's Corner</h1><span class="mood" id="mood">🌤 reading the market mood…</span></div>
  <nav class="tnav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw on" href="watchlist.html">WATCHLIST</a></nav></div>
 <div class="tgbar" id="tgBar"><span class="tgh" title="Stocks whose heat-map or alert trigger fired today and is still holding - confirmed by volume pace ≥ 1.5x, price still at or beyond the trigger price, in the strong part of the day range, on two consecutive live updates. Click a button for the live chart.">⚡ TRIGGERED</span><span class="tgr" id="tgU"></span><span class="tgr" id="tgD"></span><span class="tgs" id="tgS">waiting for live prices…</span></div>
 <div class="nwt" id="nwt" title="Live market news - click a headline for details"><b class="nwl">📰 LIVE NEWS</b><div class="nwv"><div class="nwr" id="nwr">loading headlines…</div></div><span class="nwu" id="nwu"></span></div>
@@ -753,6 +768,7 @@ function ixPaint(){ const el=$('ixT'); if(!el) return; let sig='', bear=0, bull=
   const m=IXat?Math.max(0,Math.round((Date.now()-IXat)/60000)):null;
   el.innerHTML=`<div class="rbh"><b>🌐 Indices &amp; global cues</b> <span class="mu">${esc(IXsrc||'loading…')}${m==null?'':' · '+(m<1?'<1':m)+' min old'} · rows tinted by effect on Indian equities: crude, US dollar, US bond yield and VIX rising = <span class="dn">bearish red</span>, falling = <span class="up">green</span>; deeper colour = stronger move</span></div>
    <div class="wrap"><table class="rbt"><thead><tr><th>Index / cue</th><th>LTP</th><th>Change</th><th>Chg %</th><th>Chart</th><th>Effect on Indian market</th><th>Strength</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  if(nifty!=null&&!document.documentElement.dataset.mood) setMood(nifty<=-1.2?0:nifty<=-0.3?1:nifty<0.3?2:nifty<1.2?3:4,null);
   tileSig('ix',sig,`${nifty==null?'':'Nifty <b class="'+(nifty>=0?'up':'dn')+'">'+sgn(nifty)+'%</b> · '}<span class="up">${bull} support</span> · <span class="dn">${bear} drag</span>`); }
 setTimeout(ixPc,1200); setInterval(ixPc,1800000); setTimeout(ixLoad,600);
 (function ixs(){ setTimeout(async()=>{ if(!document.hidden) await ixLoad(); ixs(); }, mkt().open?20000:120000); })();
@@ -890,6 +906,8 @@ function trgPaint(open,liveOk){ const L=Object.values(TG.m).filter(g=>g.shown&&g
 /* ---------- 🌡 Market barometer (moved from the terminal) in the header: own Fear & Greed score from India VIX, breadth,
    1-month highs vs lows and Nifty's move (not an official index), plus advance/decline, average move, day and 1-month highs/lows ---------- */
 const clampB=(x,a,b)=>Math.max(a,Math.min(b,x));
+const MOODS=[['💎','Extreme fear','Fear is on sale - quality gets cheap, buy in small steps 🙏'],['🌥','Fearful','Clouds pass - protect capital, pick your spots calmly'],['⚖️','Balanced','Calm market - let the stocks tell their own story'],['🌤','Cheerful','Markets are smiling - ride the trend, trail your stops 🌿'],['☀️','Euphoric','Sunshine everywhere - book some profits, stay humble ✨']];
+function setMood(z,fg){ if(document.documentElement.dataset.mood!==String(z)) document.documentElement.dataset.mood=z; const m=MOODS[z], el=$('mood'); if(el){ el.textContent=`${m[0]} Market mood: ${m[1]}${fg!=null?' ('+Math.round(fg)+')':''} · ${m[2]}`; el.title='From the Market barometer (Fear & Greed score). The page colours follow the mood.'; } }
 function baro(){ const el=$('bmW'); if(!el) return; const rows=todayRows().filter(r=>r.pc&&r.p);
   if(rows.length<50){ el.innerHTML=`<div class="bmz">🌡 <b>MARKET BAROMETER</b><span class="mu">${wRest()?'starts fresh at 09:15':'waiting for live prices…'}</span></div>`; return; }
   let adv=0,dec=0,h1=0,l1=0,h52=0,l52=0,nh=0,nl=0,sum=0;
@@ -901,6 +919,7 @@ function baro(){ const el=$('bmW'); if(!el) return; const rows=todayRows().filte
   // macro drag: crude, dollar, USD/INR, US yield, VIX rising hard
   const bad=IXC.filter(a=>a[3]).filter(([s,,,,thr])=>{ const q=IXQ[s]; return q&&q.pc&&(q.p/q.pc-1)*100>=thr*0.4; }).length;
   const wx=fg>=75?['🔥','Overheated · avoid chasing']:fg>=55?['⚠️','Getting risky · tighten stops']:fg>=45?['⚖️','Balanced · stock-specific']:fg>=25?['🛒','Opportunity building · stagger buys']:['💎','Opportunity · accumulate in stages']; if(fg<45&&bad>=2) wx[1]+=' · wait, macro adverse';
+  setMood(z,fg);
   const ch=(l,v,g)=>`<span class="bmc ${g?'g':'r'}"><i>${l}</i><b>${v}</b></span>`;
   el.innerHTML=`<div class="bmf z${z}" title="Market barometer · own score (not an official index) from: ${comp.map(c=>c[0]).join(' · ')}&#10;52-week highs / lows: ${h52} / ${l52} · ${n} stocks&#10;Stance is a contrarian read: more greed = more risk, more fear = more opportunity"><span class="bmi">${wx[0]}</span><span class="bms"><small>FEAR &amp; GREED</small><b>${fg.toFixed(0)}</b></span><span class="bml"><em>${lab}</em><small>${wx[1]}</small></span></div>
    <div class="bmt">${ch('Adv / Dec',adv+' / '+dec,ap>=50)}${ch('Avg move',(avg>=0?'+':'')+avg.toFixed(2)+'%',avg>=0)}${ch('Day H / L',nh+' / '+nl,nh>=nl)}${ch('1M H / L',h1+' / '+l1,h1>=l1)}</div>`; }
