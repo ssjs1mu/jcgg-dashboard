@@ -305,7 +305,7 @@ function rbPaint(){ const box=$('rbox'); if(!box) return;
   const dd=d=>new Date(d+'T00:00:00Z').toUTCString().slice(0,11).replace(',','');
   // results today: reaction counts only after the expected time
   const tRows=RB.today.map(r=>{ const p=live(r), base=r.pre&&r.pre.close, mv=p&&base?(p/base-1)*100:null, due=r.tm==='after'?m>=930:r.tm==='before'?true:m>=555;
-    const post=due&&r.tm!=='after'?mv:null, [et,ed]=liveExp(r,post);
+    const post=due&&r.tm!=='after'&&mv!=null&&(Math.abs(mv)>=3||m>=930)?mv:null, [et,ed]=liveExp(r,post);   /* before the close only a 3%+ move is read as the result being out */
     return `<tr><td><span class="sym">${esc(r.s)}</span></td><td>${timeCell(r)}</td><td>${preCell(r.pre)}</td><td>${p?fx(p):'–'} <span class="${cls(mv)}">${pc2(mv)}</span><br><span class="mu" style="font-size:10.5px">${r.tm==='after'?(m>=930?'result due now - reaction shows tomorrow':'result expected after the close'):due?'move since the pre-result close':'awaiting result'}</span></td><td>${expCell(et,ed)}</td><td>${histCell(r)}</td><td class="c">${addBtn(r.s)}</td></tr>`; }).join('');
   const pRows=RB.prev.map(r=>{ const p=live(r)||r.last, base=r.pre&&r.pre.close, post=p&&base?(p/base-1)*100:r.post, [et,ed]=liveExp(r,post);
     return `<tr><td><span class="sym">${esc(r.s)}</span></td><td>${timeCell(r)}</td><td>${preCell(r.pre)}</td><td>${fx(p)} <b class="${cls(post)}">${pc2(post)}</b><br><span class="mu" style="font-size:10.5px">vs the last close before the result${live(r)?' · live':''}</span></td><td>${expCell(et,ed)}</td><td>${histCell(r)}</td><td class="c">${addBtn(r.s)}</td></tr>`; }).join('');
