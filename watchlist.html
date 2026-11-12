@@ -649,7 +649,7 @@ trkLoad(); setInterval(trkLoad,10*60000);
  const stop=()=>{ try{ hls&&hls.destroy(); }catch(e){} hls=null; try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} };
  async function start(){ on=true; go.style.display='none'; st.textContent='connecting…'; stop();
   try{ const [,r]=await Promise.all([lib(),fetch(TOK,{cache:'no-store'})]); if(!r.ok) throw new Error('token '+r.status); let tk=String((await r.json()).video_token||''); if(!tk) throw new Error('no token'); if(tk[0]!=='?') tk='?akes='+tk;
-   if(window.Hls&&Hls.isSupported()){ hls=new Hls({maxBufferLength:12,liveSyncDuration:8,liveMaxLatencyDuration:14,startLevel:0,enableWorker:true}); hls.loadSource(SRC+tk); hls.attachMedia(v); hls.on(Hls.Events.ERROR,(e,d)=>{ if(d&&d.fatal) fail(d.details); }); }
+   if(window.Hls&&Hls.isSupported()){ hls=new Hls({maxBufferLength:10,backBufferLength:6,liveSyncDuration:6,liveMaxLatencyDuration:12,maxLiveSyncPlaybackRate:1.5,liveDurationInfinity:true,startLevel:0,enableWorker:true}); window.WTVH=hls; hls.loadSource(SRC+tk); hls.attachMedia(v); hls.on(Hls.Events.ERROR,(e,d)=>{ if(d&&d.fatal) fail(d.details); }); }
    else if(v.canPlayType('application/vnd.apple.mpegurl')) v.src=SRC+tk; else throw new Error('browser cannot play this stream');
    v.play().catch(()=>{}); fails=0; st.innerHTML='<span style="color:#3dffb4">● LIVE</span>'; if(ch) ch.postMessage({t:'play',me}); svj('jc_wl_tv',1);
   }catch(e){ fail(String(e.message||e)); } }
@@ -659,6 +659,11 @@ trkLoad(); setInterval(trkLoad,10*60000);
  const mute=()=>{ v.muted=!v.muted; if(!v.muted) v.play().catch(()=>{}); $('tvMu').textContent=v.muted?'🔇':'🔊'; }; $('tvMu').onclick=mute; v.onclick=mute;
  $('tvPi').onclick=async()=>{ if(!on) await start(); try{ if(document.pictureInPictureElement) await document.exitPictureInPicture(); else await v.requestPictureInPicture(); }catch(e){ st.textContent='pop-out not available here'; } };
  if(ch) ch.onmessage=e=>{ if(e.data&&e.data.t==='play'&&e.data.me!==me&&on) off('playing in another tab'); };
+ /* stay at the live edge: after a pause, a hidden tab or a slow network the player can fall minutes behind - jump back to live */
+ const edge=()=>{ if(!hls) return; const lp=hls.liveSyncPosition; if(lp!=null&&isFinite(lp)&&v.currentTime<lp-8){ v.currentTime=lp; } if(v.paused&&on) v.play().catch(()=>{}); };
+ const lag=()=>{ const pd=hls&&hls.playingDate; return pd?Math.round((Date.now()-pd.getTime())/1000):null; };
+ setInterval(()=>{ if(!on||!hls) return; edge(); const L=lag(); if(L!=null&&L>=0&&L<3600) st.innerHTML='<span style="color:'+(L<=25?'#3dffb4':L<=60?'#ffd24a':'#ff8f9a')+'">● LIVE</span> <span title="How far the picture is behind the clock (the channel itself is usually 10-25 s behind)">⏱ '+L+' s</span>'; if(L!=null&&L>90){ fails=0; start(); } },10000);
+ document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&on) edge(); }); v.addEventListener('play',()=>setTimeout(edge,300));
  setInterval(()=>{ if(!on||!hls||v.paused||document.hidden) return; if(Math.abs(v.currentTime-last)<0.01){ if(++stall>=2){ stall=0; fails=0; start(); } } else stall=0; last=v.currentTime; },20000);
  setInterval(()=>{ if(on&&!document.hidden) start(); },50*60000);
  // auto-start if it was on last time - but not when this page is opened inside the terminal (its popped-out TV is already playing)
