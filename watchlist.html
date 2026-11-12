@@ -75,12 +75,12 @@ table.rbt{min-width:1100px}table.rbt td{white-space:normal;text-align:left;verti
 .hng span{display:block;font-size:11px}.hng b{display:block;font:800 17px Inter,Arial,sans-serif}.hng small{display:block;font-size:10px}
 /* side by side */
 .mb{border:1px dashed #4f6a90;background:#0e1a2c;color:#9ee7ff;border-radius:10px;padding:7px 9px;font:800 11.5px Inter,Arial,sans-serif;cursor:pointer;text-align:left}.mb.on{border-style:solid;border-color:#2fd0ff;background:#123049}.mb b{color:#5dffbe}
-.pnl.multi{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:10px;align-items:start}
-.pnl.multi .pn{border:1px solid #2d4260;border-radius:12px;padding:8px;background:#0f1a2b;max-height:calc(100vh - 90px);overflow:auto}
+.pnl.multi{display:grid;grid-template-columns:repeat(min(var(--n),2),minmax(0,1fr));gap:10px;align-items:stretch}
+.pnl.multi .pn{border:1px solid #2d4260;border-radius:12px;padding:8px;background:#0f1a2b;height:calc(100vh - 80px);overflow:auto}
+.pnl.multi.two-rows .pn{height:calc((100vh - 90px) / 2)}
 .pnl.multi table{min-width:0!important}.pnl.multi .note,.pnl.multi .bar .st,.pnl.multi #shareB,.pnl.multi .hng,.pnl.multi .rbh .mu{display:none}
 .pnl.multi td{white-space:nowrap!important}
-@media(max-width:1100px){.pnl.multi{grid-template-columns:repeat(min(var(--n),2),minmax(0,1fr))}}
-@media(max-width:820px){.pnl.multi{grid-template-columns:1fr}}
+@media(max-width:820px){.pnl.multi{grid-template-columns:1fr}.pnl.multi .pn,.pnl.multi.two-rows .pn{height:auto;max-height:70vh}}
 .pnl.multi .hns{font-size:18px}.pnl.multi .hncard{padding:8px 10px}.pnl.multi .bar input{width:110px}
 .pnl.multi tbody tr{cursor:pointer}.pnl.multi tbody tr:hover td{background:#1b2c46}.pnl.multi td,.pnl.multi th{padding:5px 5px;font-size:12px}
 .pnl.multi #p_wl table th,.pnl.multi #p_wl table td{display:none}
@@ -108,6 +108,12 @@ table.rbt{min-width:1100px}table.rbt td{white-space:normal;text-align:left;verti
 .pph{font:800 15px Inter,Arial,sans-serif;color:var(--gold);margin:0 30px 8px 0}.ppx{position:absolute;right:10px;top:8px;background:#1d3a5c;border:1px solid #2f5a85;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;font:700 14px Arial}
 .pn.inpop{display:block!important;max-height:none!important;border:0!important;padding:0!important}
 table.rpt{width:100%;min-width:0!important}table.rpt th{text-align:left;width:38%;color:#9ee7ff;position:static;cursor:default}table.rpt td{text-align:left;white-space:normal}
+.tvb{border:1px solid #a8873a;border-radius:14px;padding:6px;background:linear-gradient(145deg,#2a2210,#121c2c);box-shadow:0 6px 0 #0a1320,0 10px 18px rgba(0,0,0,.45)}
+.tvh{display:flex;justify-content:space-between;align-items:center;font:800 11px Inter,Arial,sans-serif;color:var(--gold);padding:0 2px 4px}.tvh span{color:var(--mu);font-weight:600}
+.tvv{position:relative;aspect-ratio:16/9;background:#000;border-radius:9px;overflow:hidden}.tvv video{width:100%;height:100%;display:block;cursor:pointer}
+.tvgo{position:absolute;inset:0;margin:auto;width:max-content;height:max-content;border:0;border-radius:18px;padding:7px 12px;font:800 12px Inter,Arial,sans-serif;background:#d81f26;color:#fff;cursor:pointer}
+.tvc{display:flex;gap:4px;margin-top:5px}.tvc button{flex:1;border:1px solid #3a5476;background:#13213a;color:#e8eef8;border-radius:7px;padding:3px 0;cursor:pointer;font:700 12px Arial}
+@media(max-width:820px){.tvb{flex:0 0 220px}}
 .empty{padding:26px;text-align:center;color:var(--mu)}
 .note{max-width:1800px;margin:10px auto 0;font-size:11.5px;color:var(--mu);line-height:1.55}
 .note b{color:#d8e2f0}
@@ -131,7 +137,10 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
  <a class="sw" href="trading.html">TRADING TERMINAL</a><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw on" href="watchlist.html">WATCHLIST</a></div>
 <div class="app">
 <nav class="tiles" id="tiles" aria-label="Sections">
- <button type="button" class="mb" id="multiB" title="Open up to 4 sections side by side (stocks as rows, click a row for details); a 5th opens as a popup">▣ Side by side</button>
+ <div class="tvb" id="tvBadge"><div class="tvh"><b>📺 LIVE TV</b><span id="tvSt">Zee Business</span></div>
+  <div class="tvv"><video id="wtv" playsinline muted></video><button type="button" id="tvGo" class="tvgo" title="Play Zee Business live">▶ Watch live</button></div>
+  <div class="tvc"><button type="button" id="tvMu" title="Sound on / off">🔇</button><button type="button" id="tvRe" title="Reconnect">↻</button><button type="button" id="tvPi" title="Pop out (stays on top, keeps playing while you use the tiles)">⧉</button><button type="button" id="tvOff" title="Stop">■</button></div></div>
+ <button type="button" class="mb" id="multiB" title="Open up to 4 sections as a 2 x 2 square (stocks as rows, click a row for details); a 5th opens as a popup">▣ 2 × 2 view</button>
  <button type="button" class="tile hn" data-p="hn"><i>💎</i><b>High Net-worth Trade</b><small id="ts_hn">–</small></button>
  <button type="button" class="tile" data-p="tk"><i>📒</i><b>HNT Tracker</b><small id="ts_tk">–</small></button>
  <button type="button" class="tile" data-p="wl"><i>📋</i><b>Watchlist</b><small id="ts_wl">live calls</small></button>
@@ -541,16 +550,39 @@ function trkPaint(){ if(!$('trkT')) return; if(!TRK){ $('trkT').innerHTML='<div 
 }
 trkLoad(); setInterval(trkLoad,10*60000);
 
+/* ---------- 📺 Live TV badge: the same official Zee Business stream as the Trading terminal; only one TV plays across open tabs ---------- */
+(function(){ const v=$('wtv'), go=$('tvGo'), st=$('tvSt'); const TOK='https://03nwj0csy5.execute-api.ap-south-1.amazonaws.com/prod/cf-token', SRC='https://dwby15d04agvq.cloudfront.net/index.m3u8', LIB='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js';
+ let hls=null, on=false, fails=0, last=-1, stall=0; const ch=window.BroadcastChannel?new BroadcastChannel('jc-tv'):null, me='w'+Math.random().toString(36).slice(2);
+ const lib=()=>window.Hls?Promise.resolve():new Promise((ok,no)=>{ const e=document.createElement('script'); e.src=LIB; e.onload=ok; e.onerror=()=>no(new Error('player blocked')); document.head.appendChild(e); });
+ const stop=()=>{ try{ hls&&hls.destroy(); }catch(e){} hls=null; try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} };
+ async function start(){ on=true; go.style.display='none'; st.textContent='connecting…'; stop();
+  try{ const [,r]=await Promise.all([lib(),fetch(TOK,{cache:'no-store'})]); if(!r.ok) throw new Error('token '+r.status); let tk=String((await r.json()).video_token||''); if(!tk) throw new Error('no token'); if(tk[0]!=='?') tk='?akes='+tk;
+   if(window.Hls&&Hls.isSupported()){ hls=new Hls({maxBufferLength:12,liveSyncDuration:8,liveMaxLatencyDuration:14,startLevel:0,enableWorker:true}); hls.loadSource(SRC+tk); hls.attachMedia(v); hls.on(Hls.Events.ERROR,(e,d)=>{ if(d&&d.fatal) fail(d.details); }); }
+   else if(v.canPlayType('application/vnd.apple.mpegurl')) v.src=SRC+tk; else throw new Error('browser cannot play this stream');
+   v.play().catch(()=>{}); fails=0; st.innerHTML='<span style="color:#3dffb4">● LIVE</span>'; if(ch) ch.postMessage({t:'play',me}); svj('jc_wl_tv',1);
+  }catch(e){ fail(String(e.message||e)); } }
+ function fail(why){ fails++; stop(); if(fails>=3){ on=false; go.style.display=''; go.textContent='▶ Retry'; st.textContent='not reachable ('+why+')'; return; } st.textContent='retrying '+fails+'/3…'; setTimeout(start,3000*fails); }
+ function off(msg){ on=false; stop(); go.style.display=''; go.textContent='▶ Watch live'; st.textContent=msg||'Zee Business'; }
+ go.onclick=start; $('tvRe').onclick=()=>{ fails=0; start(); }; $('tvOff').onclick=()=>{ off(); svj('jc_wl_tv',0); };
+ const mute=()=>{ v.muted=!v.muted; if(!v.muted) v.play().catch(()=>{}); $('tvMu').textContent=v.muted?'🔇':'🔊'; }; $('tvMu').onclick=mute; v.onclick=mute;
+ $('tvPi').onclick=async()=>{ if(!on) await start(); try{ if(document.pictureInPictureElement) await document.exitPictureInPicture(); else await v.requestPictureInPicture(); }catch(e){ st.textContent='pop-out not available here'; } };
+ if(ch) ch.onmessage=e=>{ if(e.data&&e.data.t==='play'&&e.data.me!==me&&on) off('playing in another tab'); };
+ setInterval(()=>{ if(!on||!hls||v.paused||document.hidden) return; if(Math.abs(v.currentTime-last)<0.01){ if(++stall>=2){ stall=0; fails=0; start(); } } else stall=0; last=v.currentTime; },20000);
+ setInterval(()=>{ if(on&&!document.hidden) start(); },50*60000);
+ // auto-start if it was on last time - but not when this page is opened inside the terminal (its popped-out TV is already playing)
+ if(ldj('jc_wl_tv',0)&&window.top===window) start();
+})();
+
 /* ---------- tiles: left menu, right panel; a tile blinks NEW when its section changed since you last looked ---------- */
 let PANEL=ldj('jc_wl_panel','wl'); const SEEN=ldj('jc_wl_seen',{}), SIG={};
 /* side-by-side mode: up to 4 sections open at once in compact form; a 5th opens as a popup */
 let MULTI=!!ldj('jc_wl_multi',0), OPEN=ldj('jc_wl_open',['hn','wl']), POP=null;
 const isOpen=p=>MULTI?(OPEN.indexOf(p)>=0||POP===p):p===PANEL;
 function seen(p){ if(SIG[p]!=null){ SEEN[p]=SIG[p]; svj('jc_wl_seen',SEEN); } const t=document.querySelector('.tile[data-p="'+p+'"]'); if(t) t.classList.remove('nw'); }
-function layout(){ const main=document.querySelector('.pnl'); main.classList.toggle('multi',MULTI); main.style.setProperty('--n',MULTI?Math.max(1,OPEN.length):1);
+function layout(){ const main=document.querySelector('.pnl'); main.classList.toggle('multi',MULTI); main.style.setProperty('--n',MULTI?Math.max(1,OPEN.length):1); main.classList.toggle('two-rows',MULTI&&OPEN.length>2);
   document.querySelectorAll('.pn').forEach(x=>{ const p=x.id.slice(2); x.classList.toggle('on',MULTI?OPEN.indexOf(p)>=0:p===PANEL); if(MULTI) x.style.order=OPEN.indexOf(p); else x.style.order=''; });
   document.querySelectorAll('.tile').forEach(t=>t.classList.toggle('on',isOpen(t.dataset.p)));
-  $('multiB').classList.toggle('on',MULTI); $('multiB').innerHTML=MULTI?'▣ Side by side <b>ON</b> · '+OPEN.length+'/4':'▣ Side by side'; }
+  $('multiB').classList.toggle('on',MULTI); $('multiB').innerHTML=MULTI?'▣ 2 × 2 view <b>ON</b> · '+OPEN.length+'/4':'▣ 2 × 2 view'; }
 function show(p){ if(!MULTI){ PANEL=p; svj('jc_wl_panel',p); seen(p); layout(); return; }
   const i=OPEN.indexOf(p);
   if(i>=0){ if(OPEN.length>1) OPEN.splice(i,1); }            // click an open tile to close it (one always stays)
