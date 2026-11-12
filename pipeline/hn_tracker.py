@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """High Net-worth Trade tracker -> hntrack.json (branch `hntrack`).
 
-record: once per trading day, between 10:15 and 12:30 IST (first run that finds a fresh feed), take the TOP PICK of the High Net-worth Trade screen
-        from the live heat-map feed (heat.json, refreshed every 5 minutes) with exactly the page's rules
-        (watchlist calls are per-browser, so the tracked pick uses the scanners only).
+record: EVERY recommendation of the High Net-worth Trade screen (the 15 set-ups the page lists), all session long
+        (09:20-15:20 IST, a run every ~10 minutes), stamped with the date and time it first appeared, its rank and whether it was
+        the top pick; one entry per stock and side per day. Exactly the page's rules on the live heat-map feed
+        (watchlist calls are per-browser, so tracked picks use the scanners only).
 update: follow every open pick on 5-minute Yahoo bars from the minute it was recorded:
         TARGET or STOP, whichever is touched first (if one bar touches both, the stop is counted - conservative),
         sessions taken, best price reached (how close it came), exit after 20 sessions at the close if neither.
@@ -81,23 +82,30 @@ def pick(rows, frac):
     return C
 
 
-def bars5(sym):
-    u = 'https://query1.finance.yahoo.com/v8/finance/chart/%s.NS?range=60d&interval=5m&includePrePost=false' % urllib.parse.quote(sym)
+BC = {}
+
+
+def bars5(sym, rng='60d'):
+    if (sym, rng) in BC:
+        return BC[(sym, rng)]
+    u = 'https://query1.finance.yahoo.com/v8/finance/chart/%s.NS?range=%s&interval=5m&includePrePost=false' % (urllib.parse.quote(sym), rng)
     x = getj(u)['chart']['result'][0]; q = x['indicators']['quote'][0]
     out = []
     for i, t in enumerate(x.get('timestamp') or []):
         if None in (q['high'][i], q['low'][i], q['close'][i]):
             continue
         out.append((t, q['high'][i], q['low'][i], q['close'][i]))
+    BC[(sym, rng)] = out
     return out
 
 
-def follow(tr):
-    B = bars5(tr['s'])
+def follow(tr, now):
+    age = (now.timestamp() - tr['ts']) / 86400
+    B = bars5(tr['s'], '5d' if age < 3 else '1mo' if age < 25 else '60d')
     t0 = tr['ts']; d = tr['d']; best = tr['entry']; best_day = None
-    days = []
+    days = []; nb = 0      # nb = 5-minute bars in the market since the entry (duration in market minutes)
     for t, h, l, c in B:
-        if t < t0:
+        if t + 300 <= t0:      # bar closed before the pick was made
             continue
         day = dt.datetime.fromtimestamp(t, IST).strftime('%Y-%m-%d')
         if not days or days[-1] != day:
@@ -107,14 +115,16 @@ def follow(tr):
         hit_tg = h >= tr['target'] if d > 0 else l <= tr['target']
         if (d > 0 and h > best) or (d < 0 and l < best):
             best = h if d > 0 else l; best_day = n
+        nb += 1
+        ex = dict(exit_date=day, exit_time=dt.datetime.fromtimestamp(t + 300, IST).strftime('%H:%M'), days=n, best=round(best, 2), best_day=best_day, mins=nb * 5)
         if hit_stop:
-            return dict(status='STOP', exit=tr['stop'], exit_date=day, days=n, best=round(best, 2), best_day=best_day, both=hit_tg)
+            return dict(status='STOP', exit=tr['stop'], both=hit_tg, **ex)
         if hit_tg:
-            return dict(status='TARGET', exit=tr['target'], exit_date=day, days=n, best=round(best, 2), best_day=best_day)
+            return dict(status='TARGET', exit=tr['target'], **ex)
         if n >= MAX_SESSIONS:
-            return dict(status='EXPIRED', exit=round(c, 2), exit_date=day, days=n, best=round(best, 2), best_day=best_day)
+            return dict(status='EXPIRED', exit=round(c, 2), **ex)
     last = B[-1] if B else None
-    return dict(status='OPEN', last=round(last[3], 2) if last else None, last_date=days[-1] if days else None, days=len(days) - 1 if days else 0, best=round(best, 2), best_day=best_day)
+    return dict(status='OPEN', last=round(last[3], 2) if last else None, last_date=days[-1] if days else None, days=len(days) - 1 if days else 0, best=round(best, 2), best_day=best_day, mins=nb * 5)
 
 
 def main():
@@ -127,31 +137,32 @@ def main():
     fest = getj('https://raw.githubusercontent.com/ssjs1mu/jc-stock-analyst/main/data/festivals.json')
     hol = {x['date'] for x in fest.get('days', []) if x.get('trading_holiday')}
     trading = now.weekday() < 5 and today not in hol
-    # record today's pick
-    if trading and 615 <= mm <= 750 and not any(t['date'] == today for t in T['trades']) and today not in T.get('none', []):
+    # record every recommendation of the screen (first appearance, time-stamped)
+    if trading and 560 <= mm <= 920:
         heat = json.load(open(os.environ['HEAT'])) if os.environ.get('HEAT') else getj('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x=%d' % now.timestamp())
         hts = dt.datetime.fromisoformat(heat['ts'].replace('Z', '+00:00'))
         age = (now - hts).total_seconds() / 60
         rows = [r for r in heat['rows'] if r[9] == today]
         if age <= 20 and len(rows) > 200:
             frac = max(((hts.astimezone(IST).hour * 60 + hts.astimezone(IST).minute) - 555) / 375, 0.04)
-            C = pick(rows, frac)
-            if C:
-                c = C[0]; c.pop('score')
-                c.update(date=today, time=hts.astimezone(IST).strftime('%H:%M'), ts=int(hts.timestamp()), status='OPEN', alt=[x['s'] + ' ' + x['side'] for x in C[1:4]])
-                T['trades'].append(c)
-                T['log'].append('%s %s: recorded %s %s at %.2f' % (today, c['time'], c['s'], c['side'], c['entry']))
-            else:
-                T.setdefault('none', []).append(today)
-                T['log'].append('%s: no set-up passed the filters' % today)
+            have = {(t['date'], t['s'], t['side']) for t in T['trades']}
+            new = []
+            for rank, c in enumerate(pick(rows, frac)[:15], 1):
+                if (today, c['s'], c['side']) in have:
+                    continue
+                c.pop('score')
+                c.update(date=today, time=hts.astimezone(IST).strftime('%H:%M'), ts=int(hts.timestamp()), status='OPEN', rank=rank, top=rank == 1)
+                T['trades'].append(c); new.append('%s %s #%d' % (c['s'], c['side'], rank))
+            if new:
+                T['log'].append('%s %s: recorded %s' % (today, hts.astimezone(IST).strftime('%H:%M'), ', '.join(new)))
         else:
-            T['log'].append('%s %02d:%02d: heat feed %.0f min old / %d rows - pick not recorded this run' % (today, now.hour, now.minute, age, len(rows)))
+            T['log'].append('%s %02d:%02d: heat feed %.0f min old / %d rows - nothing recorded this run' % (today, now.hour, now.minute, age, len(rows)))
     # follow open picks
     for tr in T['trades']:
         if tr['status'] in ('TARGET', 'STOP', 'EXPIRED'):
             continue
         try:
-            tr.update(follow(tr))
+            tr.update(follow(tr, now))
         except Exception as e:
             T['log'].append('%s: %s not updated (%s)' % (today, tr['s'], e))
     # returns
@@ -169,8 +180,11 @@ def main():
                     'expired': sum(1 for t in closed if t['status'] == 'EXPIRED'),
                     'net_sum': round(sum(t['ret'] for t in closed), 2), 'net_compound': round((eq - 1) * 100, 2),
                     'avg': round(sum(t['ret'] for t in closed) / len(closed), 2) if closed else None,
-                    'open_mtm': round(sum(t['ret'] or 0 for t in T['trades'] if t['status'] == 'OPEN'), 2)}
-    T['updated'] = now.isoformat(timespec='seconds'); T['log'] = T['log'][-60:]
+                    'open_mtm': round(sum(t['ret'] or 0 for t in T['trades'] if t['status'] == 'OPEN'), 2),
+                    'avg_mins_target': round(sum(t.get('mins') or 0 for t in closed if t['status'] == 'TARGET') / max(1, sum(1 for t in closed if t['status'] == 'TARGET'))),
+                    'avg_mins_stop': round(sum(t.get('mins') or 0 for t in closed if t['status'] == 'STOP') / max(1, sum(1 for t in closed if t['status'] == 'STOP'))),
+                    'top_picks': sum(1 for t in T['trades'] if t.get('top', True))}
+    T['updated'] = now.isoformat(timespec='seconds'); T['log'] = T['log'][-120:]
     json.dump(T, open(os.environ.get('OUT', '/tmp/hntrack.json'), 'w'), indent=1)
     print(json.dumps(T['summary']), '|', T['log'][-3:])
 

@@ -3,7 +3,7 @@ name: Ticker (free self-running clock for the live feeds)
 # GitHub's own schedules are often skipped (the heat-map's 5-minute schedule ran about twice a day).
 # This clock lives inside GitHub: it loops for ~5h50m and, on trading-day hours (IST, Mon-Fri):
 #   * every 5 minutes 09:10-15:40  -> starts the heat-map feed
-#   * 10:20, 10:55, 11:25, 15:45   -> starts the High Net-worth Trade tracker
+#   * every 10 minutes 09:25-15:25 and 15:45 -> starts the High Net-worth Trade tracker (records every recommendation)
 #   * every 10 minutes 08:00-16:00 -> starts the market-news feed (Watchlist news ticker)
 # Just before its own limit it starts the next clock; a sparse schedule restarts the chain if it ever breaks.
 on:
@@ -35,7 +35,8 @@ jobs:
             if [ "$dow" -le 5 ]; then
               if [ "$hm" -ge 910 ] && [ "$hm" -le 1540 ]; then gh workflow run heatmap.yml --ref main || true; fi
               n=$((n+1)); if [ "$hm" -ge 800 ] && [ "$hm" -le 1600 ] && [ $((n % 2)) -eq 1 ]; then gh workflow run news.yml --ref main || true; fi
-              for t in 1020 1055 1125 1545; do
+              if [ "$hm" -ge 925 ] && [ "$hm" -le 1525 ] && [ $((n % 2)) -eq 0 ]; then gh workflow run hntrack.yml --ref main || true; fi
+              for t in 1545; do
                 if [ "$hm" -ge "$t" ] && [ "$hm" -lt $((t+5)) ] && [ "$last" != "$t" ]; then gh workflow run hntrack.yml --ref main || true; last=$t; fi
               done
             fi

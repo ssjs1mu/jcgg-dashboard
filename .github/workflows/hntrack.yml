@@ -1,12 +1,13 @@
 name: High Net-worth Trade tracker
-# Records the day's top pick (10:15-12:30 IST) and follows every open pick to target / stop on 5-minute bars.
+# Records EVERY High Net-worth Trade recommendation (09:20-15:20 IST, time-stamped) and follows each to target / stop on 5-minute bars.
+# Started every ~10 minutes in market hours by ticker.yml; the schedules below are backups.
 # Published to the `hntrack` branch (no Pages rebuild); the Watchlist page reads it.
 on:
   workflow_dispatch:
   schedule:
-    - cron: '50 4 * * 1-5'     # 10:20 IST - record
-    - cron: '25 5 * * 1-5'     # 10:55 IST - record (backup if the first run is delayed)
-    - cron: '55 5 * * 1-5'     # 11:25 IST - record (second backup)
+    - cron: '50 4 * * 1-5'     # 10:20 IST - backup
+    - cron: '55 6 * * 1-5'     # 12:25 IST - backup
+    - cron: '55 8 * * 1-5'     # 14:25 IST - backup
     - cron: '15 10 * * 1-5'    # 15:45 IST - follow
     - cron: '30 14 * * 1-5'    # 20:00 IST - follow
 permissions:
@@ -28,8 +29,10 @@ jobs:
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch -q origin hntrack 2>/dev/null && git show FETCH_HEAD:hntrack.json > /tmp/old.json 2>/dev/null || echo '{}' > /tmp/old.json
           H=$(TZ=Asia/Kolkata date +%H%M)
-          if [ "$((10#$H))" -ge 1015 ] && [ "$((10#$H))" -le 1230 ]; then   # recording window: build a fresh market snapshot here, not a possibly stale one
-            OUT=/tmp/heat.json OUT_BARS=/tmp/b.json OUT_STK=/tmp/s.json OUT_TRK=/tmp/t.json python pipeline/heatmap.py && export HEAT=/tmp/heat.json || true
+          if [ "$((10#$H))" -ge 920 ] && [ "$((10#$H))" -le 1520 ]; then   # recording window: use the 5-minute feed if fresh, else build one here
+            AGE=$(python3 -c "import json,urllib.request,datetime as d;j=json.load(urllib.request.urlopen('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json',timeout=20));print(int((d.datetime.now(d.timezone.utc)-d.datetime.fromisoformat(j['ts'].replace('Z','+00:00'))).total_seconds()//60))" 2>/dev/null || echo 999)
+            echo "published heat feed is $AGE min old"
+            if [ "$AGE" -gt 12 ]; then OUT=/tmp/heat.json OUT_BARS=/tmp/b.json OUT_STK=/tmp/s.json OUT_TRK=/tmp/t.json python pipeline/heatmap.py && export HEAT=/tmp/heat.json || true; fi
           fi
           OLD=/tmp/old.json OUT=/tmp/hntrack.json python pipeline/hn_tracker.py
           test -s /tmp/hntrack.json
