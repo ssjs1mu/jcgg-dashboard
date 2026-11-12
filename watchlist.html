@@ -138,6 +138,10 @@ table.rpt{width:100%;min-width:0!important}table.rpt th{text-align:left;width:38
 #ixT tr td{transition:background .6s}.ixb{display:inline-block;height:7px;border-radius:4px;vertical-align:middle;margin-right:6px}
 .nwp a.go{display:inline-block;margin:8px 0;background:#d81f26;color:#fff;border-radius:8px;padding:6px 12px;font:800 13px Inter,Arial,sans-serif;text-decoration:none}.nwp .ttl{font:800 17px/1.35 Inter,Arial,sans-serif;color:#fff;margin:4px 0 6px}.nwp ul{list-style:none;padding:0;margin:6px 0 0;max-height:46vh;overflow:auto}.nwp li{padding:5px 2px;border-top:1px solid #22344f;cursor:pointer;font-size:13px}.nwp li:hover{color:var(--gold)}.nwp li i{font-style:normal;color:var(--gold);font-weight:800;margin-right:6px}
 @media(max-width:820px){.nwt{margin:0 6px 6px}}
+.pnh{display:none}.pnl.multi .pn.on:not(.inpop)>.pnh{display:flex;align-items:center;gap:6px;position:sticky;top:-8px;z-index:3;margin:-8px -8px 6px;padding:5px 8px;background:#16263f;border-bottom:1px solid #2d4260;border-radius:12px 12px 0 0;cursor:grab;user-select:none}
+.pnh b{flex:1;font:800 12.5px Inter,Arial,sans-serif;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pnh .gr{color:var(--mu);font-size:14px;letter-spacing:-2px}
+.pnh button{border:1px solid #3a5476;background:#13213a;color:#e8eef8;border-radius:6px;width:24px;height:22px;padding:0;cursor:pointer;font:800 12px Arial}.pnh button.cx{background:#5a1f2c;border-color:#a0364c}.pnh button:hover{border-color:var(--gold)}
+.pnl.multi .pn.drag{opacity:.45}.pnl.multi .pn.over{outline:2px dashed var(--gold);outline-offset:-2px}
 .empty{padding:26px;text-align:center;color:var(--mu)}
 .note{max-width:1800px;margin:10px auto 0;font-size:11.5px;color:var(--mu);line-height:1.55}
 .note b{color:#d8e2f0}
@@ -621,10 +625,24 @@ let PANEL=ldj('jc_wl_panel','wl'); const SEEN=ldj('jc_wl_seen',{}), SIG={};
 let MULTI=!!ldj('jc_wl_multi',0), OPEN=ldj('jc_wl_open',['hn','wl']), POP=null;
 const isOpen=p=>MULTI?(OPEN.indexOf(p)>=0||POP===p):p===PANEL;
 function seen(p){ if(SIG[p]!=null){ SEEN[p]=SIG[p]; svj('jc_wl_seen',SEEN); } const t=document.querySelector('.tile[data-p="'+p+'"]'); if(t) t.classList.remove('nw'); }
-function layout(){ const main=document.querySelector('.pnl'); main.classList.toggle('multi',MULTI); main.style.setProperty('--n',MULTI?Math.max(1,OPEN.length):1); main.classList.toggle('two-rows',MULTI&&OPEN.length>2);
+function layout(){ pnHead(); const main=document.querySelector('.pnl'); main.classList.toggle('multi',MULTI); main.style.setProperty('--n',MULTI?Math.max(1,OPEN.length):1); main.classList.toggle('two-rows',MULTI&&OPEN.length>2);
   document.querySelectorAll('.pn').forEach(x=>{ const p=x.id.slice(2); x.classList.toggle('on',MULTI?OPEN.indexOf(p)>=0:p===PANEL); if(MULTI) x.style.order=OPEN.indexOf(p); else x.style.order=''; });
   document.querySelectorAll('.tile').forEach(t=>t.classList.toggle('on',isOpen(t.dataset.p))); $('tvBadge').classList.toggle('on',isOpen('tv')); if(typeof tvPlace==='function') tvPlace();
   $('multiB').classList.toggle('on',MULTI); $('multiB').innerHTML=MULTI?'▣ 2 × 2 view <b>ON</b> · '+OPEN.length+'/4':'▣ 2 × 2 view'; }
+/* 2 x 2 view: every open section gets a title bar - drag it onto another section to swap places, ◀ ▶ to move, ✕ to close */
+function pnHead(){ document.querySelectorAll('.pnl .pn').forEach(sec=>{ if(sec.querySelector(':scope>.pnh')) return; const p=sec.id.slice(2), t=p==='tv'?'📺 Live TV':((document.querySelector('.tile[data-p="'+p+'"]')||{}).innerText||p).split('\n').slice(0,2).join(' ');
+  const h=document.createElement('div'); h.className='pnh'; h.draggable=true; h.title='Drag onto another section to swap places'; h.innerHTML=`<span class="gr">⋮⋮</span><b>${esc(t)}</b><button type="button" data-mv="-1" title="Move earlier">◀</button><button type="button" data-mv="1" title="Move later">▶</button><button type="button" class="cx" data-cx="1" title="Close this section">✕</button>`; sec.prepend(h); }); }
+function mvSec(p,to){ const i=OPEN.indexOf(p); if(i<0||to<0||to>=OPEN.length||to===i) return; OPEN.splice(i,1); OPEN.splice(to,0,p); svj('jc_wl_open',OPEN); layout(); }
+function swapSec(a,b){ const i=OPEN.indexOf(a), j=OPEN.indexOf(b); if(i<0||j<0||i===j) return; OPEN[i]=b; OPEN[j]=a; svj('jc_wl_open',OPEN); layout(); }
+function closeSec(p){ const i=OPEN.indexOf(p); if(i<0) return; OPEN.splice(i,1); if(!OPEN.length){ MULTI=false; svj('jc_wl_multi',0); OPEN=[p]; PANEL=p; } svj('jc_wl_open',OPEN); layout(); }
+(function(){ const main=document.querySelector('.pnl'); let dragP=null;
+  main.addEventListener('click',e=>{ const b=e.target.closest('.pnh button'); if(!b||!MULTI) return; e.stopPropagation(); const p=b.closest('.pn').id.slice(2);
+    if(b.dataset.cx) closeSec(p); else mvSec(p,OPEN.indexOf(p)+(+b.dataset.mv)); },true);
+  main.addEventListener('dragstart',e=>{ const h=e.target.closest&&e.target.closest('.pnh'); if(!h||!MULTI) return; dragP=h.parentNode.id.slice(2); h.parentNode.classList.add('drag'); try{ e.dataTransfer.setData('text/plain',dragP); e.dataTransfer.effectAllowed='move'; }catch(x){} });
+  main.addEventListener('dragover',e=>{ if(!dragP) return; const sec=e.target.closest('.pn.on'); if(!sec) return; e.preventDefault(); main.querySelectorAll('.pn.over').forEach(x=>x!==sec&&x.classList.remove('over')); if(sec.id.slice(2)!==dragP) sec.classList.add('over'); });
+  main.addEventListener('drop',e=>{ if(!dragP) return; e.preventDefault(); const sec=e.target.closest('.pn.on'); if(sec) swapSec(dragP,sec.id.slice(2)); });
+  main.addEventListener('dragend',()=>{ dragP=null; main.querySelectorAll('.pn.drag,.pn.over').forEach(x=>x.classList.remove('drag','over')); });
+})();
 function show(p){ if(!MULTI){ PANEL=p; svj('jc_wl_panel',p); seen(p); layout(); return; }
   const i=OPEN.indexOf(p);
   if(i>=0){ if(OPEN.length>1) OPEN.splice(i,1); }            // click an open tile to close it (one always stays)
