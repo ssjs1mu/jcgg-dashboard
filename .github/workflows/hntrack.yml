@@ -1,0 +1,32 @@
+name: High Net-worth Trade tracker
+# Records the day's top pick (10:15-12:30 IST) and follows every open pick to target / stop on 5-minute bars.
+# Published to the `hntrack` branch (no Pages rebuild); the Watchlist page reads it.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '50 4 * * 1-5'     # 10:20 IST - record
+    - cron: '25 5 * * 1-5'     # 10:55 IST - record (backup if the first run is delayed)
+    - cron: '55 5 * * 1-5'     # 11:25 IST - record (second backup)
+    - cron: '15 10 * * 1-5'    # 15:45 IST - follow
+    - cron: '30 14 * * 1-5'    # 20:00 IST - follow
+permissions:
+  contents: write
+concurrency:
+  group: hntrack
+  cancel-in-progress: false
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Record / follow and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch -q origin hntrack 2>/dev/null && git show FETCH_HEAD:hntrack.json > /tmp/old.json 2>/dev/null || echo '{}' > /tmp/old.json
+          OLD=/tmp/old.json OUT=/tmp/hntrack.json python pipeline/hn_tracker.py
+          test -s /tmp/hntrack.json
+          b=$(git hash-object -w /tmp/hntrack.json); t=$(printf '100644 blob %s\thntrack.json\n' "$b" | git mktree); c=$(git commit-tree "$t" -m "hntrack $(date -u +%FT%TZ)"); git push -q -f origin "$c":refs/heads/hntrack
