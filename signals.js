@@ -98,9 +98,21 @@
   .jcs .en{color:#2fd0ff}.jcs .sl{color:#ff5c7a}.jcs .tg{color:#35f0a8}.jcs .m{font-size:10.5px;color:#9fb0c6;margin-top:5px}
   .jcs .a{display:flex;gap:6px;margin-top:7px}.jcs .a button,.jcs .a a{flex:1;text-align:center;border:1px solid #3a5476;background:#13213a;color:#fff;border-radius:8px;padding:4px 0;font:800 11.5px Inter,Arial;cursor:pointer;text-decoration:none}.jcs .a .c{background:#e0cd96;color:#1a1030;border-color:#e0cd96}
   .jcs .x{position:absolute;top:6px;right:8px;border:0;background:none;color:#9fb0c6;font-size:15px;cursor:pointer}
-  #jcSigB{position:fixed;left:12px;bottom:12px;z-index:2147481000;border:1px solid #e0cd96;background:#1a1408;color:#e0cd96;border-radius:999px;padding:6px 12px;font:800 12px Inter,Arial;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.5);display:none}
+  .jcs table,#jcSigL table{table-layout:auto!important}.jcs th,.jcs td,#jcSigL th,#jcSigL td{width:auto!important;overflow:visible!important;text-overflow:clip!important;height:auto!important;text-align:left!important;background:none}
+  .jcs.k{color:#1b2333;border-width:2px;box-shadow:0 14px 34px rgba(0,0,0,.45)}
+  .jcs.k .h{color:#1b2333}.jcs.k .h i{color:#4a5568}.jcs.k .n span,.jcs.k .w,.jcs.k .m{color:#3c4659}.jcs.k th{color:#5a6478}.jcs.k .x{color:#4a5568}
+  .jcs.k .en{color:#0a5fa8}.jcs.k .sl{color:#c0143c}.jcs.k .tg{color:#0b7a4b}.jcs.k table{background:rgba(255,255,255,.55);border-radius:8px}
+  .jcs.k .a button,.jcs.k .a a{background:#fff;color:#1b2333;border-color:rgba(0,0,0,.18)}.jcs.k .a .c{background:#1b2333;color:#fff;border-color:#1b2333}
+  .jcs.k .n em{color:#fff}.jcs.k.b .n em{background:#0b7a4b}.jcs.k.s .n em{background:#c0143c}
+  .jcs .tagk{font-size:10.5px;font-weight:900;letter-spacing:.05em;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.08)}
+  .jcs.LEADER{background:linear-gradient(145deg,#dcfce7,#bbf7d0);border-color:#16a34a}
+  .jcs.LAGGARD{background:linear-gradient(145deg,#ffe4e6,#fecdd3);border-color:#e11d48}
+  .jcs.HEAVY{background:linear-gradient(145deg,#e0f2fe,#bae6fd);border-color:#0284c7}
+  .jcs.BOUNCE{background:linear-gradient(145deg,#ede9fe,#ddd6fe);border-color:#7c3aed}
+  .jcs.MIX{background:linear-gradient(145deg,#fef9c3,#fde68a);border-color:#ca8a04}
+  #jcSigB{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:2147481000;border:1px solid #e0cd96;background:#1a1408;color:#e0cd96;border-radius:999px;padding:6px 12px;font:800 12px Inter,Arial;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.5);display:none}
   #jcSigB.on{display:block}#jcSigB.nw{animation:jcsB 1s ease-in-out 6}@keyframes jcsB{50%{background:#e0cd96;color:#1a1030}}
-  #jcSigL{position:fixed;left:12px;bottom:52px;z-index:2147481001;width:min(560px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:#0f1a2b;border:1px solid #e0cd96;border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.6);padding:8px 10px;display:none;font:12px Inter,"Segoe UI",Arial,sans-serif;color:#eef3fb}
+  #jcSigL{position:fixed;left:50%;transform:translateX(-50%);bottom:52px;z-index:2147481001;width:min(820px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:#0f1a2b;border:1px solid #e0cd96;border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.6);padding:8px 10px;display:none;font:12px Inter,"Segoe UI",Arial,sans-serif;color:#eef3fb}
   #jcSigL.on{display:block}#jcSigL table{width:100%;border-collapse:collapse}#jcSigL th{font:800 10px Inter,Arial;color:#9fb0c6;text-align:left;padding:3px;border-bottom:1px solid #2d4260;position:sticky;top:-8px;background:#0f1a2b}#jcSigL td{padding:3px;border-bottom:1px solid #1d2c44;font:700 12px ui-monospace,Consolas,monospace;white-space:nowrap}
   #jcSigL .B{color:#35f0a8}#jcSigL .S{color:#ff6b9d}#jcSigL .hd{display:flex;justify-content:space-between;align-items:center;color:#e0cd96;font-weight:900;margin-bottom:6px}#jcSigL .hd button{border:0;background:none;color:#9fb0c6;font-size:15px;cursor:pointer}
   @media(prefers-reduced-motion:reduce){.jcs{animation:none}}`;
@@ -110,8 +122,9 @@
   const shown=new Set(ld('jc_sig_shown_'+day(),[]));
   const tm=t=>new Date(t+19800000).toISOString().slice(11,16);
   const chartHref=s=>IS_WL?'#':'watchlist.html#chart='+encodeURIComponent(s);
-  function card(x){ const el=document.createElement('div'); el.className='jcs '+(x.side==='BUY'?'b':'s');
-    el.innerHTML=`<button class="x" title="Dismiss">✕</button><div class="h">⚡ DAY-TRADE CALL · INDEX MOVERS <i>${tm(x.t)} IST</i></div>
+  const KC={'Sector leader':['LEADER','🟢 SECTOR LEADER'],'Sector laggard':['LAGGARD','🔴 SECTOR LAGGARD'],'Index heavyweight':['HEAVY','🏋 INDEX HEAVYWEIGHT'],'Quality bounce':['BOUNCE','💜 QUALITY BOUNCE']};
+  function card(x){ const el=document.createElement('div'), ks=(x.src||[]).map(k=>KC[k]).filter(Boolean), cls=ks.length>1?'MIX':ks.length?ks[0][0]:'MIX'; el.className='jcs k '+cls+' '+(x.side==='BUY'?'b':'s');
+    el.innerHTML=`<button class="x" title="Dismiss">✕</button><div class="h"><span class="tagk">${ks.length?ks.map(k=>k[1]).join(" + "):"⚡ DAY-TRADE CALL"}</span><i>${tm(x.t)} IST</i></div>
      <div class="n"><b>${esc(x.s)}</b><em>${x.side}</em><span>${x.ch>=0?'+':''}${x.ch}% today · vol ${x.pace}x</span></div><div class="w">${x.src.map(esc).join(' · ')}</div>
      <table><tr><th>ENTRY</th><th>EXIT / SL</th><th>T1</th><th>T2</th></tr><tr><td class="en">${fx(x.en)}</td><td class="sl">${fx(x.sl)}</td><td class="tg">${fx(x.t1)}</td><td class="tg">${fx(x.t2)}</td></tr></table>
      <div class="m">Risk ${x.risk}% · reward ${x.room}% · R:R ${x.rr} : 1 · exit by 15:15 if neither is hit · rule-based, not advice</div>
@@ -126,8 +139,8 @@
     S.list.slice().reverse().forEach(x=>{ if(shown.has(x.k)) return; shown.add(x.k); if(Date.now()-x.t<20*60000){ box.appendChild(card(x)); n++; } });
     sv('jc_sig_shown_'+day(),[...shown]); while(box.children.length>3) box.firstChild.remove();
     if(n){ beep(); bell.classList.remove('nw'); void bell.offsetWidth; bell.classList.add('nw'); } paintBell(S); }
-  function paintBell(S){ S=S||ld(SK(),{list:[]}); const k=S.list.length; bell.classList.toggle('on',k>0); bell.textContent='⚡ '+k+' day-trade signal'+(k===1?'':'s')+' today';
-    L.innerHTML=`<div class="hd">⚡ Today's day-trade signals <button type="button" title="Close">✕</button></div><table><tr><th>Time</th><th>Stock</th><th>Side</th><th>Entry</th><th>Exit / SL</th><th>T1</th><th>T2</th><th>R:R</th><th>Why</th></tr>${S.list.map(x=>`<tr><td>${tm(x.t)}</td><td><b>${esc(x.s)}</b></td><td class="${x.side[0]}">${x.side}</td><td>${fx(x.en)}</td><td>${fx(x.sl)}</td><td>${fx(x.t1)}</td><td>${fx(x.t2)}</td><td>${x.rr}</td><td style="font-family:Inter,Arial;white-space:normal">${x.src.map(esc).join(' · ')}</td></tr>`).join('')}</table><div style="color:#9fb0c6;margin-top:6px">Calls from the Index movers readings 1–4 (sector money flow → leaders / laggards, heavyweights driving the Nifty, quality bounce) as they appear, 09:25–14:45 IST. All are tracked in the 📒 HNT tracker on the Watchlist page. Rule-based ideas, not personal advice; exit day trades by 15:15.</div>`;
+  function paintBell(S){ S=S||ld(SK(),{list:[]}); const k=S.list.length; bell.classList.toggle('on',k>0); bell.textContent='⚡ Missed a popup? '+k+' call'+(k===1?'':'s')+' today';
+    L.innerHTML=`<div class="hd">⚡ Today's day-trade signals <button type="button" title="Close">✕</button></div><table><tr><th>#</th><th>Time</th><th>Trigger</th><th>Stock</th><th>Side</th><th>Entry</th><th>Exit / SL</th><th>T1</th><th>T2</th><th>R:R</th></tr>${S.list.map((x,j)=>`<tr><td>${S.list.length-j}</td><td>${tm(x.t)}</td><td style="font-family:Inter,Arial">${(x.src||[]).map(k=>(KC[k]||[0,k])[1]).join(' + ')}</td><td><b>${esc(x.s)}</b></td><td class="${x.side[0]}">${x.side}</td><td>${fx(x.en)}</td><td>${fx(x.sl)}</td><td>${fx(x.t1)}</td><td>${fx(x.t2)}</td><td>${x.rr}</td></tr>`).join('')}</table><div style="color:#9fb0c6;margin-top:6px">Calls from the Index movers readings 1–4 (sector money flow → leaders / laggards, heavyweights driving the Nifty, quality bounce) as they appear, 09:25–14:45 IST. All are tracked in the 📒 HNT tracker on the Watchlist page. Rule-based ideas, not personal advice; exit day trades by 15:15.</div>`;
     L.querySelector('button').onclick=()=>L.classList.remove('on'); }
   bell.onclick=()=>{ paintBell(); L.classList.toggle('on'); };
   // a new day starts clean
