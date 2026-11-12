@@ -282,7 +282,7 @@ def main():
                 if hit[0] == B[0][0] and ((d > 0 and B[0][2] > en * 1.015) or (d < 0 and B[0][1] < en * 0.985)):
                     skips[c['s']] = 'gapped past the trigger by more than 1.5% - not chased'; continue
                 T['trades'].append({'s': c['s'], 'side': c['side'], 'd': d, 'entry': en, 'stop': c['stop'], 't1': c['t1'], 'target': c['t2'], 't3': c['t3'],
-                                    'risk': c['risk'], 'date': today, 'time': hit[1], 'ts': hit[0], 'status': 'OPEN', 'src_kind': 'PLAN', 'src': c.get('why', [])[:4],
+                                    'risk': c['risk'], 'date': today, 'time': hit[1], 'ts': hit[0], 'status': 'OPEN', 'src_kind': 'PLAN', 'src': c.get('why', []),
                                     'plan_from': PL.get('from')})
                 T['log'].append('%s %s: next-day plan %s %s triggered at %.2f' % (today, hit[1], c['s'], c['side'], en))
             T['plan_skip'] = {k: T['plan_skip'][k] for k in sorted(T['plan_skip'])[-10:]}
