@@ -850,7 +850,7 @@ $('alCfg').addEventListener('click',e=>{ if(e.target.id==='pxAdd'){ const sy=$('
   const u=e.target.closest('u[data-i]'); if(u){ CFG.px.splice(+u.dataset.i,1); svj('jcal_cfg',CFG); alCfgPaint(); } });
 
 /* every market refresh (once a minute) feeds the heat map and the alerts */
-const _mlPaint=mlPaint; mlPaint=function(){ _mlPaint.apply(this,arguments); try{ hmPaint(); }catch(e){ console.error(e); } try{ alRun(); }catch(e){ console.error(e); } try{ trgRun(); }catch(e){ console.error(e); } };
+const _mlPaint=mlPaint; mlPaint=function(){ _mlPaint.apply(this,arguments); try{ hmPaint(); }catch(e){ console.error(e); } try{ alRun(); }catch(e){ console.error(e); } try{ trgRun(); }catch(e){ console.error(e); } try{ baro(); }catch(e){} };
 setInterval(()=>{ if(!OLH.rows.length){ hmPaint(); alPaint(); } },5000); setTimeout(()=>{ hmPaint(); alPaint(); },300); setInterval(()=>{ try{ trgRun(); }catch(e){} },60000);
 
 /* ---------- ⚡ TRIGGERED bar (moved from the terminal): stocks whose heat-map or alert trigger fired today and is still holding.
