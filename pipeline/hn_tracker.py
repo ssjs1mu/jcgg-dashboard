@@ -129,7 +129,7 @@ def main():
     trading = now.weekday() < 5 and today not in hol
     # record today's pick
     if trading and 615 <= mm <= 750 and not any(t['date'] == today for t in T['trades']) and today not in T.get('none', []):
-        heat = getj('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x=%d' % now.timestamp())
+        heat = json.load(open(os.environ['HEAT'])) if os.environ.get('HEAT') else getj('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x=%d' % now.timestamp())
         hts = dt.datetime.fromisoformat(heat['ts'].replace('Z', '+00:00'))
         age = (now - hts).total_seconds() / 60
         rows = [r for r in heat['rows'] if r[9] == today]
