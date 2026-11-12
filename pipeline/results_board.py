@@ -170,7 +170,7 @@ def main():
                                'pre': pre, 'hist': H, 'post': post, 'exp': ex_txt, 'ed': ex_dir, 'mv': mv,
                                'last': round(B[-1][4], 2), 'lastd': B[-1][0]})
     rows['upcoming'].sort(key=lambda r: (r['date'], r['s']))
-    json.dump({'updated': now.isoformat(timespec='seconds'), 'today': today, 'prev': prev, 'source': 'NSE event calendar (via jc-stock-analyst results.json, updated %s) + Yahoo daily prices' % res.get('updated', '?'),
+    json.dump({'updated': now.isoformat(timespec='seconds'), 'd_today': today, 'd_prev': prev, 'source': 'NSE event calendar (via jc-stock-analyst results.json, updated %s) + Yahoo daily prices' % res.get('updated', '?'),
                'missing_prices': miss, **rows}, open(OUT, 'w'), separators=(',', ':'))
     print('price errors (first 3):', ERR)
     print('results board: %d upcoming, %d today, %d previous day (%d without prices)' % (len(rows['upcoming']), len(rows['today']), len(rows['prev']), miss))

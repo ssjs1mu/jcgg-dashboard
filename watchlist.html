@@ -48,6 +48,9 @@ tr.buy td:nth-child(2){box-shadow:inset 3px 0 0 var(--up)}tr.sell td:nth-child(2
 @keyframes cg{50%{box-shadow:0 0 12px #35f0a8;border-color:#5dffbe}}@keyframes cgb{50%{box-shadow:0 0 12px #ff6b9d;border-color:#ff8fb8}}
 @keyframes cf{50%{background:#f2c14e;color:#1a1030;border-color:#f2c14e}}
 .cb.sel{outline:2px solid #fff;outline-offset:1px}.cb.clr{background:#1d3a5c;color:#cfe3ff}
+.rb{max-width:1800px;margin:14px auto 0}.rbh{margin:12px 0 5px;font-size:13px}.rbh b{color:var(--gold);font:800 14px Inter,Arial,sans-serif;letter-spacing:.02em}
+table.rbt{min-width:1100px}table.rbt td{white-space:normal;text-align:left;vertical-align:top;font-size:12.5px}table.rbt th{text-align:left}
+.ex2{font-weight:800}.ex2.up{color:var(--up)}.ex2.dn{color:var(--dn)}.ex2.nt{color:var(--av)}
 .empty{padding:26px;text-align:center;color:var(--mu)}
 .note{max-width:1800px;margin:10px auto 0;font-size:11.5px;color:var(--mu);line-height:1.55}
 .note b{color:#d8e2f0}
@@ -90,6 +93,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
  <th title="Entry at the current price">Entry</th><th title="Exit / stop-loss: beyond EMA 21 and at least 1 ATR away">Exit (SL)</th><th title="1 x risk">T1</th><th title="2 x risk">T2</th><th title="3 x risk">T3</th>
  <th title="Average volume of the last 3 bars against the 20 bars before (Rise above 1.15x, Fall below 0.85x)">Volume</th><th title="Exponential moving average, 9 bars">EMA 9</th><th title="Exponential moving average, 21 bars">EMA 21</th>
  <th title="EMA 9 above (bull) or below (bear) EMA 21; cross age in bars">9 / 21</th><th title="Remove from the watchlist"></th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="rb" id="rbox"></div>
 <div class="note"><b>How the call is made.</b> On the chosen timeframe: EMA 9 vs EMA 21 and a fresh cross, the slope of EMA 21, price vs EMA 9, price vs today's VWAP (Daily: vs 20-day average), RSI 14, and whether volume is rising with the move. Their agreement gives a score from -100 to +100; <b>BUY</b> at +45 or more, <b>SELL</b> at -45 or less, otherwise <b>AVOID</b>. Conviction is the size of that score. Entry is the current price; the exit (stop-loss) sits beyond EMA 21 and at least one ATR away; T1/T2/T3 are 1, 2 and 3 times that risk. Prices and triggers update every 10 seconds in market hours (bars and EMAs every 30 seconds) (every 5 minutes otherwise) and the table re-sorts itself by conviction. The list is kept in this browser; use <b>Share list</b> to open it elsewhere. Rule-based screen for information only, not investment advice.</div>
 <script>
 'use strict';
@@ -276,6 +280,44 @@ function critPaint(){ const m=mkt(), by={}; CR.forEach(c=>by[c[0]]=[]);
     const cls='cb'+(L.length?' hit':'')+(L.length&&m.open?(CNEW[k]&&Date.now()-CNEW[k]<120000?' fl':' gl'):'')+(/BS|DL|ML|WL|VD/.test(k)?' bear':'')+(CF===k?' sel':'');
     return `<button type="button" class="${cls}" data-c="${k}" title="${esc(tip)}${L.length?'\n'+L.join(', '):'\nNo stock in the watchlist meets this now'}">${lab}${L.length?`<b>${L.length}</b>`:''}</button>`; }).join('')+(CF?'<button type="button" class="cb clr" data-c="">✕ show all</button>':''); }
 $('crit').addEventListener('click',e=>{ const b=e.target.closest('[data-c]'); if(!b) return; CF=CF===b.dataset.c?'':b.dataset.c; critPaint(); paint(); });
+
+
+/* ---------- results tables: upcoming / today / previous trading day (data: NSE event calendar + Yahoo prices, built by .github/workflows/results.yml) ---------- */
+let RB=null; const RQ={};
+async function rbLoad(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/results/results_board.json?x='+Math.floor(Date.now()/600000),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/results_board.json?ref=results']){
+    try{ const j=await getJ(u,20000); RB=j.content?JSON.parse(atob(j.content.replace(/\n/g,''))):j; break; }catch(e){} }
+  rbPaint(); rbLive(true); }
+async function rbLive(force){ if(!RB||(!force&&(!mkt().open||document.hidden))) return; const S=[...RB.today,...RB.prev].map(r=>r.s+'.NS'); if(!S.length) return;
+  try{ const j=await getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(S.join(',')),15000); if(j&&j.q){ Object.keys(j.q).forEach(k=>{ RQ[k.replace(/\.NS$/,'')]=j.q[k]; }); rbPaint(); } }catch(e){} }
+const pc2=v=>v==null||!isFinite(v)?'–':(v>=0?'+':'')+v.toFixed(2)+'%';
+const cls=v=>v==null?'mu':v>=0?'up':'dn';
+function preCell(p){ if(!p) return '<span class="mu">not enough history</span>'; const c=/up/i.test(p.label)?'up':/down/i.test(p.label)?'dn':'mu';
+  return `<b class="${c}">${p.label}</b> <span class="mu">5d</span> <span class="${cls(p.d5)}">${pc2(p.d5)}</span> <span class="mu">20d</span> <span class="${cls(p.d20)}">${pc2(p.d20)}</span> <span class="mu">RSI ${p.rsi==null?'–':p.rsi.toFixed(0)}</span>`; }
+function histCell(r){ if(!r.n) return '<span class="mu">no past data</span>'; const up=r.hist.filter(h=>h.r>0).length;
+  return `<span title="${r.hist.map(h=>h.date+' '+h.tm+' '+pc2(h.r)).join('\n')}">${up} of ${r.n} up · avg ±${r.mv}%</span>`; }
+function timeCell(r){ return `${r.timing}${r.n?` <span class="mu">(est. from ${r.tmn} of ${r.n} past)</span>`:''}`; }
+function liveExp(r,post){ if(post==null) return [r.exp,r.ed]; if(post>=3) return ['Up - follow-through likely','up']; if(post<=-3) return ['Down - further weakness likely','dn']; return ['Muted - prior trend likely to continue ('+(r.pre?r.pre.label.toLowerCase():'n/a')+')','nt']; }
+const expCell=(t,d)=>`<span class="ex2 ${d}">${t}</span>`;
+const addBtn=s=>W.some(w=>w.s===s&&w.x==='NS')?'<span class="mu" title="In your watchlist">✓</span>':`<button class="x" style="width:auto;padding:0 6px" data-addr="${esc(s)}" title="Add ${esc(s)} to the watchlist">+</button>`;
+function rbPaint(){ const box=$('rbox'); if(!box) return;
+  if(!RB){ box.innerHTML='<div class="empty">Loading the results calendar…</div>'; return; }
+  const now=ist(), m=now.getUTCHours()*60+now.getUTCMinutes(), live=r=>{ const q=RQ[r.s]; return q&&q[0]>0?q[0]:null; };
+  const dd=d=>new Date(d+'T00:00:00Z').toUTCString().slice(0,11).replace(',','');
+  // results today: reaction counts only after the expected time
+  const tRows=RB.today.map(r=>{ const p=live(r), base=r.pre&&r.pre.close, mv=p&&base?(p/base-1)*100:null, due=r.tm==='after'?m>=930:r.tm==='before'?true:m>=555;
+    const post=due&&r.tm!=='after'?mv:null, [et,ed]=liveExp(r,post);
+    return `<tr><td><span class="sym">${esc(r.s)}</span></td><td>${timeCell(r)}</td><td>${preCell(r.pre)}</td><td>${p?fx(p):'–'} <span class="${cls(mv)}">${pc2(mv)}</span><br><span class="mu" style="font-size:10.5px">${r.tm==='after'?(m>=930?'result due now - reaction shows tomorrow':'result expected after the close'):due?'move since the pre-result close':'awaiting result'}</span></td><td>${expCell(et,ed)}</td><td>${histCell(r)}</td><td class="c">${addBtn(r.s)}</td></tr>`; }).join('');
+  const pRows=RB.prev.map(r=>{ const p=live(r)||r.last, base=r.pre&&r.pre.close, post=p&&base?(p/base-1)*100:r.post, [et,ed]=liveExp(r,post);
+    return `<tr><td><span class="sym">${esc(r.s)}</span></td><td>${timeCell(r)}</td><td>${preCell(r.pre)}</td><td>${fx(p)} <b class="${cls(post)}">${pc2(post)}</b><br><span class="mu" style="font-size:10.5px">vs the last close before the result${live(r)?' · live':''}</span></td><td>${expCell(et,ed)}</td><td>${histCell(r)}</td><td class="c">${addBtn(r.s)}</td></tr>`; }).join('');
+  const uRows=RB.upcoming.map(r=>`<tr><td>${dd(r.date)}</td><td><span class="sym">${esc(r.s)}</span></td><td>${timeCell(r)}</td><td>${preCell(r.pre)}</td><td>${histCell(r)}</td><td>${expCell(r.exp,r.ed)}</td><td class="c">${addBtn(r.s)}</td></tr>`).join('');
+  const T=(title,sub,head,rows,n)=>`<div class="rbh"><b>${title}</b> <span class="mu">${n} stock${n===1?'':'s'} · ${sub}</span></div><div class="wrap"><table class="rbt"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows||`<tr><td colspan="${head.length}" class="empty">None in the Nifty 500 list</td></tr>`}</tbody></table></div>`;
+  box.innerHTML=T('Results today',dd(RB.d_today||istDay()),['Stock','Expected timing','Before result (trend)','After result (live)','Expected trend','Past reactions',''],tRows,RB.today.length)
+   +T('Results on the previous trading day','reaction today · '+dd(RB.d_prev||istDay()),['Stock','Timing','Before result (trend)','After result','Expected trend','Past reactions',''],pRows,RB.prev.length)
+   +T('Upcoming results','next 14 days',['Date','Stock','Expected timing','Before result (trend so far)','Past reactions','Expected trend',''],uRows,RB.upcoming.length)
+   +`<div class="note" style="margin-top:6px">Result dates: ${esc(RB.source)} · built ${esc(RB.updated.replace('T',' ').slice(0,16))} IST. <b>Expected timing</b> is estimated from how the stock reacted to its last results (NSE publishes dates only). <b>Expected trend</b>: once out, a move of 3% or more either way is read as follow-through, smaller moves as muted; before the result, 3 of 4 or more past reactions in one direction gives a bias, a 20-day run of 8% or more into results flags sell-on-news risk and an 8% fall a relief-bounce chance, otherwise two-sided. Rule-based, for information only, not investment advice.</div>`;
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-addr]'); if(!b) return; const s=b.dataset.addr; if(!W.some(w=>w.s===s&&w.x==='NS')){ const w={s,x:'NS'}; W.push(w); svj('jc_watch',W); paint(); refresh(w); rbPaint(); } });
+rbLoad(); setInterval(rbLive,30000); setInterval(rbLoad,15*60000);
 
 paint();
 </script>
