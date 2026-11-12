@@ -1052,6 +1052,8 @@ function nwPop(i){ const L=NWS&&NWS.L, n=L&&L[i]; if(!n) return; const ago=Math.
 document.addEventListener('click',e=>{ const a=e.target.closest('[data-nw]'); if(!a) return; e.preventDefault(); nwPop(+a.dataset.nw); });
 nwLoad(); (function nwt(){ setTimeout(async()=>{ if(!document.hidden) await nwLoad(); nwt(); },60000); })();
 
+/* open a live chart from a signal popup on another page: watchlist.html#chart=SYMBOL */
+(function(){ const m=location.hash.match(/chart=([A-Z0-9&_.-]+)/i); if(m){ history.replaceState(null,'',location.pathname); setTimeout(()=>chOpen(decodeURIComponent(m[1])+'.NS',decodeURIComponent(m[1])),300); } })();
 /* open a section from a link, e.g. watchlist.html#p=hm (used by the terminal) */
 (function(){ const m=location.hash.match(/p=([a-z]{2,3})\b/); if(m&&$('p_'+m[1])){ history.replaceState(null,'',location.pathname); if(MULTI){ if(OPEN.indexOf(m[1])<0) show(m[1]); } else show(m[1]); } })();
 
@@ -1170,4 +1172,5 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   window.addEventListener('beforeunload',e=>{ if(popped()){ e.preventDefault(); e.returnValue=''; } });
 })();
 </script>
+<script src="signals.js?v=1"></script>
 </body></html>
