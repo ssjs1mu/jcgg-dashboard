@@ -67,6 +67,12 @@ table.rbt{min-width:1100px}table.rbt td{white-space:normal;text-align:left;verti
 .pn .bar,.pn .crit,.pn .msg,.pn .wrap,.pn .rb,.pn .note{max-width:none}
 @media(max-width:820px){.app{grid-template-columns:1fr}.tiles{flex-direction:row;overflow-x:auto;position:static;padding:2px 2px 8px;perspective:none}
  .tile{flex:0 0 auto;transform:none;padding:9px 10px 8px 40px;min-width:140px}.tile i{font-size:19px;left:10px}.tile:hover{transform:none}.tile.on{transform:translateY(3px)}}
+.tile.hn{background:linear-gradient(145deg,#4a3a12,#2a2036 60%,#151a2c);border-color:#a8873a}
+.hncard{display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-radius:14px;padding:14px 16px;border:1px solid #3a5476;background:linear-gradient(145deg,#1d3252,#121f33);box-shadow:0 8px 0 #0a1320,0 12px 24px rgba(0,0,0,.45)}
+.hncard.u{border-color:#1fae7c}.hncard.d{border-color:#c2416f}
+.hnl{min-width:220px}.hns{font:800 26px Inter,Arial,sans-serif;margin:4px 0;display:flex;align-items:center;gap:8px}
+.hng{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;flex:1}.hng div{background:#0b1626;border:1px solid #22344f;border-radius:10px;padding:7px 9px}
+.hng span{display:block;font-size:11px}.hng b{display:block;font:800 17px Inter,Arial,sans-serif}.hng small{display:block;font-size:10px}
 .empty{padding:26px;text-align:center;color:var(--mu)}
 .note{max-width:1800px;margin:10px auto 0;font-size:11.5px;color:var(--mu);line-height:1.55}
 .note b{color:#d8e2f0}
@@ -90,6 +96,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
  <a class="sw" href="trading.html">TRADING TERMINAL</a><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw on" href="watchlist.html">WATCHLIST</a></div>
 <div class="app">
 <nav class="tiles" id="tiles" aria-label="Sections">
+ <button type="button" class="tile hn" data-p="hn"><i>💎</i><b>High Net-worth Trade</b><small id="ts_hn">–</small></button>
  <button type="button" class="tile" data-p="wl"><i>📋</i><b>Watchlist</b><small id="ts_wl">live calls</small></button>
  <button type="button" class="tile" data-p="ol"><i>🟢</i><b>Open = Low</b><small id="ts_ol">–</small></button>
  <button type="button" class="tile" data-p="oh"><i>🔴</i><b>Open = High</b><small id="ts_oh">–</small></button>
@@ -101,6 +108,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
  <button type="button" class="tile" data-p="how"><i>ℹ️</i><b>How it works</b><small>rules &amp; sources</small></button>
 </nav>
 <main class="pnl">
+<section class="pn" id="p_hn"><div class="rb" id="hnT"><div class="empty">Loading live prices…</div></div></section>
 <section class="pn" id="p_wl">
 <div class="bar">
  <form id="addF" autocomplete="off">
@@ -422,10 +430,50 @@ function mlPaint(){ if(!$('olT')) return; const rows=OLH.rows, open=mkt().open, 
     $(ML[id].el).innerHTML=head+tbl;
     if(typeof tileSig==='function') tileSig(id,day+'|'+all.map(r=>r.k+(r.mk?'*':'')).sort().join(','),`${all.length} stocks · <span class="${bear?'dn':'up'}">${marked} ${id==='ol'?'above PC':id==='oh'?'below PC':'now'}</span>`);
   });
+  mlPaintAll();
 }
+function mlPaintAll(){ try{ hnPaint(OLH.rows); }catch(e){} }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-mf]'); if(b){ const [id,k]=b.dataset.mf.split('|'); MF[id]=MF[id]===k?'':k; mlPaint(); return; }
   const a=e.target.closest('[data-addw]'); if(!a) return; const [s,x]=a.dataset.addw.split('|'); if(!W.some(w=>w.s===s&&w.x===x)){ const w={s,x}; W.push(w); svj('jc_watch',W); paint(); refresh(w); mlPaint(); } });
 setTimeout(()=>olhScan(true),800); setInterval(()=>olhScan(false),60000);
+
+
+/* ---------- 💎 High Net-worth Trade Today: picks the best money-making set-up from all the scanners above.
+   Candidates: Big Fish, Tail Fish, Open = Low above prev close, Open = High below prev close, volume breakouts, and watchlist calls with conviction ≥ 60.
+   For each: entry = live price, stop = the day's structure (open / day low for longs, open / day high for shorts),
+   target = the next real level in the way (1-month high/low, then 52-week high/low; past the 52-week level: 2 x risk),
+   room = distance to that target. Ranked by reward-to-risk, boosted by how many scanners agree and by volume pace.
+   Only trades with risk ≤ 3%, reward ≥ 1.5 x risk and volume pace ≥ 1.5x qualify. ---------- */
+function hnPick(rows){ const C=[];
+  rows.forEach(r=>{ const H=r.H||{}, longSrc=[], shortSrc=[];
+    if(H.BF) longSrc.push('Big Fish'); if(H.OL&&r.p>r.pc) longSrc.push('Open = Low'); if(H.VU) longSrc.push('Vol up breakout'); if(H.MH) longSrc.push('1-month high'); if(H.WH) longSrc.push('52-week high');
+    if(H.BS) shortSrc.push('Tail Fish'); if(H.OH&&r.p<r.pc) shortSrc.push('Open = High'); if(H.VD) shortSrc.push('Vol down breakout'); if(H.ML) shortSrc.push('1-month low'); if(H.WL) shortSrc.push('52-week low');
+    const core=s=>s.some(x=>/Fish|Open|breakout/.test(x));
+    [[1,longSrc],[-1,shortSrc]].forEach(([d,src])=>{ if(!src.length||!core(src)||r.pace==null||r.pace<1.5) return;
+      const p=r.p, stop=d>0?Math.max(r.l,r.o<p?r.o:r.l)*0.998:Math.min(r.h,r.o>p?r.o:r.h)*1.002, risk=Math.abs(p-stop)/p*100;
+      if(risk<=0.15||risk>3) return;
+      const lv=d>0?[[r.mh,'1-month high'],[r.wh,'52-week high']].filter(x=>x[0]&&x[0]>p*1.003).sort((a,b)=>a[0]-b[0]):[[r.ml,'1-month low'],[r.wl,'52-week low']].filter(x=>x[0]&&x[0]<p*0.997).sort((a,b)=>b[0]-a[0]);
+      let tg=lv.length?lv[0]:[p+d*2*Math.abs(p-stop),d>0?'past all highs: 2 x risk':'past all lows: 2 x risk'];
+      const reach=1.5*(r.h-r.l);   /* today's trade: no target beyond 1.5 x the range the stock has already shown today */
+      if(Math.abs(tg[0]-p)>reach) tg=[p+d*reach,'1.5 x today\'s range'+(lv.length?' (then '+lv[0][1]+' '+fx(lv[0][0])+')':'')];
+      const room=Math.abs(tg[0]-p)/p*100, rr=room/risk; if(rr<1.5) return;
+      C.push({s:r.s,x:r.x,d,p,stop,tg:tg[0],tgN:tg[1],room,risk,rr,pace:r.pace,ch:r.ch,src,score:room*(1+0.25*(src.length-1))*Math.min(r.pace,4)/4*Math.min(rr,3)/3}); }); });   /* biggest reachable move first, backed by agreement, volume and reward-to-risk */
+  W.forEach(w=>{ const r=R[key(w)]; if(!r||!r.lv||r.conv<60||C.some(c=>c.s===w.s)) return; const d=r.call==='BUY'?1:-1, risk=Math.abs(r.lv.en-r.lv.sl)/r.lv.en*100, room=Math.abs(r.lv.t3-r.lv.en)/r.lv.en*100;
+    if(risk>3) return; C.push({s:w.s,x:w.x==='BO'?'BSE':'NSE',d,p:r.ltp,stop:r.lv.sl,tg:r.lv.t3,tgN:'watchlist T3',room,risk,rr:room/risk,pace:r.vr||1,ch:r.chg,src:['Watchlist '+r.call+' '+r.conv],score:room*(r.conv/100)*Math.min(room/risk,3)/3}); });
+  return C.sort((a,b)=>b.score-a.score); }
+let HN_TOP='';
+function hnPaint(rows){ if(!$('hnT')) return; const L=hnPick(rows), open=mkt().open, t=L[0];
+  const side=c=>c.d>0?'<span class="call BUY">BUY</span>':'<span class="call SELL">SELL</span>';
+  const card=t?`<div class="hncard ${t.d>0?'u':'d'}"><div class="hnl"><span class="mu">TOP PICK · ${esc(OLH.src)}${open?'':' · '+esc(mkt().txt)}</span><div class="hns">${esc(t.s)} <span class="ex">${t.x}</span> ${side(t)}</div><div class="mu">${t.src.map(esc).join(' · ')}</div></div>
+     <div class="hng"><div><span class="mu">Entry</span><b>${fx(t.p)}</b></div><div><span class="mu">Stop</span><b class="dn">${fx(t.stop)}</b></div><div><span class="mu">Target</span><b class="${t.d>0?'up':'dn'}">${fx(t.tg)}</b><small class="mu">${esc(t.tgN)}</small></div>
+     <div><span class="mu">Room</span><b class="${t.d>0?'up':'dn'}">${t.room.toFixed(2)}%</b></div><div><span class="mu">Risk</span><b>${t.risk.toFixed(2)}%</b></div><div><span class="mu">Reward : risk</span><b>${t.rr.toFixed(1)} : 1</b></div><div><span class="mu">Volume pace</span><b>${t.pace.toFixed(1)}x</b></div></div></div>`
+    :`<div class="empty">${rows.length?'No set-up passes the filters right now (risk ≤ 3%, reward ≥ 1.5 × risk, volume pace ≥ 1.5x).':'Loading live prices…'}</div>`;
+  const tbl=L.length>1?`<div class="wrap" style="margin-top:8px"><table class="rbt"><thead><tr><th>#</th><th>Stock</th><th>Side</th><th>From scanners</th><th>LTP</th><th>Stop</th><th>Target</th><th>Room</th><th>Risk</th><th>R : R</th><th>Vol pace</th><th>Chg %</th><th></th></tr></thead><tbody>${
+    L.slice(0,15).map((c,i)=>`<tr class="${c.d>0?'buy':'sell'}"><td class="mu">${i+1}</td><td><span class="sym">${esc(c.s)}</span><span class="ex">${c.x}</span></td><td>${side(c)}</td><td style="white-space:normal">${c.src.map(esc).join(' · ')}</td><td>${fx(c.p)}</td><td class="dn">${fx(c.stop)}</td><td class="${c.d>0?'up':'dn'}">${fx(c.tg)} <span class="mu" style="font-size:10.5px">${esc(c.tgN)}</span></td><td class="${c.d>0?'up':'dn'}"><b>${c.room.toFixed(2)}%</b></td><td>${c.risk.toFixed(2)}%</td><td><b>${c.rr.toFixed(1)}</b></td><td>${c.pace.toFixed(1)}x</td><td class="${c.ch>=0?'up':'dn'}">${c.ch==null?'–':(c.ch>=0?'+':'')+c.ch.toFixed(2)+'%'}</td><td class="c">${W.some(w=>w.s===c.s)?'<span style="color:var(--gold)">★</span>':`<button class="x" style="width:auto;padding:0 6px" data-addw="${esc(c.s)}|${c.x==='BSE'?'BO':'NS'}" title="Add to the watchlist">+</button>`}</td></tr>`).join('')}</tbody></table></div>`:'';
+  $('hnT').innerHTML=`<div class="rbh"><b>💎 High Net-worth Trade Today</b> <span class="mu">${L.length} set-up${L.length===1?'':'s'} qualify · picked from Big Fish, Tail Fish, Open = Low / High, volume breakouts and your watchlist calls</span></div>${card}${tbl}
+   <div class="note" style="margin-top:8px">How it is picked: entry is the live price; the stop sits just beyond the day's structure (open or day low for a buy, open or day high for a sell); the target is the next real level in the way (1-month high/low, then 52-week high/low; already past them = 2 × risk), but never more than 1.5 × the range the stock has already moved today, so it stays reachable today. Ranked by that room to move, raised when more scanners agree, when volume runs faster and when reward-to-risk is better. Only risk ≤ 3%, reward ≥ 1.5 × risk and volume pace ≥ 1.5x qualify. A rule-based screen of live data, not a promise of profit and not investment advice - always use the stop.</div>`;
+  if(typeof tileSig==='function') tileSig('hn',t?t.s+t.d:'none',t?`<b class="${t.d>0?'up':'dn'}">${esc(t.s)} ${t.d>0?'BUY':'SELL'}</b> · room ${t.room.toFixed(1)}% · R:R ${t.rr.toFixed(1)}`:'no set-up yet');
+}
 
 /* ---------- tiles: left menu, right panel; a tile blinks NEW when its section changed since you last looked ---------- */
 let PANEL=ldj('jc_wl_panel','wl'); const SEEN=ldj('jc_wl_seen',{}), SIG={};
@@ -437,6 +485,7 @@ function tileSig(p,sig,sub){ if(sub!=null){ const el=$('ts_'+p); if(el) el.inner
   if(SEEN[p]==null){ SEEN[p]=sig; svj('jc_wl_seen',SEEN); return; }       // first visit: nothing is "new" yet
   const t=document.querySelector('.tile[data-p="'+p+'"]'); if(t) t.classList.toggle('nw',SEEN[p]!==sig); }
 function tileUpd(){
+  if(OLH.rows.length&&!tileUpd.inHn){ tileUpd.inHn=1; try{ hnPaint(OLH.rows); }catch(e){} tileUpd.inHn=0; }
   // watchlist: a call changed, or a stock newly met a criterion
   const rs=W.map(w=>R[key(w)]).filter(r=>r&&r.call), nb=rs.filter(r=>r.call==='BUY').length, ns=rs.filter(r=>r.call==='SELL').length;
   const hitSig=Object.keys(CPREV).sort().map(k=>k+':'+(CPREV[k]||[]).slice().sort().join('+')).join('|');
