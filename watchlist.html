@@ -618,7 +618,7 @@ function hnPaint(rows){ if(!$('hnT')) return; const L=hnPick(rows), open=mkt().o
 
 /* ---------- 📒 High Net-worth Trade tracker (recorded and followed on GitHub every trading day: pipeline/hn_tracker.py) ---------- */
 let TRK=null;
-async function trkLoad(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/hntrack/hntrack.json?x='+Math.floor(Date.now()/300000),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/hntrack.json?ref=hntrack']){
+async function trkLoad(){ for(const u of ['https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/hntrack.json?ref=hntrack','https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/hntrack/hntrack.json?x='+Math.floor(Date.now()/300000)]){   /* API first: no CDN delay */
     try{ const j=await getJ(u,20000); TRK=j.content?JSON.parse(atob(j.content.replace(/\n/g,''))):j; break; }catch(e){} } trkPaint(); }
 function trkPaint(){ if(!$('trkT')) return; if(!TRK){ $('trkT').innerHTML='<div class="empty">Loading the tracker…</div>'; return; }
   const T=(TRK.trades||[]).slice().reverse(), S=TRK.summary||{}, wr=S.closed?Math.round(100*S.targets/S.closed):null;
