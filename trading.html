@@ -260,7 +260,15 @@ const fmt=(v,dp)=>Number(v).toFixed(dp);
 const sg=(v,dp)=>(v>0?'+':v<0?'-':'')+fmt(Math.abs(v),dp);
 const ist=()=>new Date(Date.now()+19800000);
 const istMin=()=>{const d=ist();return d.getUTCHours()*60+d.getUTCMinutes()};
-const indiaOpen=()=>{const d=ist().getUTCDay();return d>0&&d<6&&istMin()>=555&&istMin()<=930};
+const indiaOpen=()=>{const d=ist().getUTCDay();return d>0&&d<6&&!JCHOL[ist().toISOString().slice(0,10)]&&istMin()>=555&&istMin()<=930};
+/* NSE trading holidays (shared list in the Stock Analyst repo) */
+const JCHOL={}; fetch('https://raw.githubusercontent.com/ssjs1mu/jc-stock-analyst/main/data/festivals.json?x='+new Date().toISOString().slice(0,10)).then(r=>r.json()).then(j=>{ (j.days||[]).forEach(d=>{ if(d.trading_holiday) JCHOL[d.date]=d.name; }); }).catch(()=>{});
+/* heat map, alerts and the triggered bar are wiped at 6 PM and start fresh at 09:15 on the next trading day */
+const isTradeDay=d=>{ const w=new Date(d+'T00:00:00Z').getUTCDay(); return w>0&&w<6&&!JCHOL[d]; };
+function restMode(){ const d=istDay(), m=istMin(); return !isTradeDay(d)||m<555||m>=1080; }
+function nextSession(){ let t=Date.now()+19800000, d=new Date(t).toISOString().slice(0,10); if(!(isTradeDay(d)&&istMin()<555)){ do{ t+=86400000; d=new Date(t).toISOString().slice(0,10); }while(!isTradeDay(d)); }
+  const nd=new Date(d+'T00:00:00Z'); return (d===istDay()?'today':nd.toUTCString().slice(0,11).replace(',',''))+' 09:15 IST'; }
+const restMsg=what=>`<div style="padding:18px 10px;text-align:center;color:#93a1b5;font:600 12.5px Inter,Segoe UI,sans-serif">${what} cleared ${istMin()>=1080&&isTradeDay(istDay())?'at 6 PM':'for the day'} · starts fresh ${nextSession()}${JCHOL[istDay()]?' (today: '+esc(JCHOL[istDay()])+')':''}</div>`;
 /* ---- trend engine: day change, position in the day's range, slope of the latest bars, fresh high/low ---- */
 function trend(r,inv){
   const sp=(r.sp||[]).filter(v=>v!=null), p=r.p, pc=r.pc, chg=pc?(p/pc-1)*100:0;
@@ -391,13 +399,15 @@ async function loadBarsCache(){
     Object.assign(BARS,j.bars); barsTs=Date.parse(j.ts); }catch(e){} }
 function callFor(x,r){ const b=BARS[x.sy]; if(b){ try{ const A=analyse(b,15); if(A){ const sd=sideOf(A); const cl=buildCall(x.p,levelsOf(A),A.e[50],sd.side); cl.src='bars'; cl.strong=sd.strong; cl.vchg=A.vchg; cl.vw=A.vwap!=null&&A.cmp>A.vwap; cl.e9=A.e[9]!=null&&A.e[21]!=null&&A.e[9]>A.e[21]; return cl; } }catch(e){} } const cl=rowCall(x,r); cl.src='day range'; return cl; }
 function heatPaint(){
+  if(restMode()){ $('hmg').innerHTML=restMsg('Heat map'); $('hmc').textContent='MATCH 0'; $('hms').textContent='clean slate'; HM.out=[]; return; }
   const ol=$('fOL').checked, up=$('fUP').checked, vm=+$('fV').value, pace=$('fPC').checked, grp=$('fG').value, lim=+$('fN').value, today=istDay(), f=frac();
   const out=[]; HM.rows.forEach(r=>{
-    const [sy,g,p,pc,o,h,l,v,av,d]=r; if(grp&&g!==grp) return; if(!pc||!o) return;
+    const [sy,g,p,pc,o,h,l,v,av,d]=r; if(grp&&g!==grp) return; if(!pc||!o) return; if(d!==today) return;   /* fresh each trading day: nothing from an earlier session */
     const live=(d===today), pct=(p/pc-1)*100, cOL=live&&(o-l)/o*100<=0.05, cOH=live&&(h-o)/o*100<=0.05, cDN=live&&p<pc, cUP=live&&p>pc, vx=av?v/av:0, vpace=av?v/(av*f):0, cV=live&&(pace?vpace:vx)>=vm;
     const need=(ol?1:0)+(up?1:0)+1, got=(ol&&cOL?1:0)+(up&&cUP?1:0)+(cV?1:0);
     out.push({sy,g,p,pct,vx,vpace,cOL,cUP,cV,live,full:live&&got===need,got,need,r,bear:live&&cOH&&cDN&&cV});
   });
+  if(!out.length){ $('hmg').innerHTML='<div style="padding:18px 10px;text-align:center;color:#93a1b5;font:600 12.5px Inter,Segoe UI,sans-serif">Fresh session · waiting for the first live prices of today</div>'; $('hmc').textContent='MATCH 0'; $('hms').textContent=(HM.src||'loading…'); HM.out=[]; return; }
   const bfs=BFS(), bss=BSS(); out.forEach(x=>{ x.bf=bfs[x.sy]||0; x.bs=bss[x.sy]||0; });
 
   out.forEach(x=>{ x.cl=callFor(x,x.r); CALLS[x.sy]=x.cl; x.cl.pri=0; });
@@ -467,6 +477,7 @@ function alRun(){
   AL.first=false; alPaint();
 }
 function alPaint(){
+  if(restMode()){ $('alt').innerHTML=restMsg('Alerts'); $('alc').textContent='0 today'; $('als').textContent='alerts fire 09:15–15:30 IST on trading days'; return; }
   const fl=AL.filter, rows=AL.list.filter(x=>!fl||x.ty===fl), isNew=(i)=>i<AL.list.length-AL.seen&&AL.seen>0&&Date.now()-AL.list[i].t<8000;
   const counts={}; AL.list.forEach(x=>counts[x.ty]=(counts[x.ty]||0)+1);
   $('alc').textContent=`${AL.list.length} today`+(Object.keys(counts).length?' · '+Object.keys(counts).map(k=>({DH:'DayH',DL:'DayL',MH:'1M-H',ML:'1M-L',WH:'52W-H',WL:'52W-L',VB:'Vol',PV:'Brk',OL:'O=L',OH:'O=H',GP:'Gap',PX:'Px',BF:'🐟 BigFish',BS:'🔻 FishShort'}[k])+' '+counts[k]).join(' · '):'');
@@ -501,6 +512,7 @@ const TBULL={DH:1,MH:1,WH:1,PV:1,OL:1,BF:1}, TBEAR={DL:1,ML:1,WL:1,OH:1,BS:1};
 function trgLoad(){ const d=istDay(); if(TG.day===d) return; TG.day=d; const j=ldj('jctg_'+d,null); TG.m=(j&&j.m)||{}; TG.faded=(j&&j.faded)||0; }
 function trgSave(){ svj('jctg_'+TG.day,{m:TG.m,faded:TG.faded}); }
 function trgRun(){
+  if(restMode()){ $('trgU').innerHTML=''; $('trgD').innerHTML=''; $('trgS').textContent='cleared · starts fresh '+nextSession(); return; }
   trgLoad(); const today=istDay(), fresh=!!HM.ts&&HM.ts!==TG.lastTs, open=indiaOpen(), liveOk=HM.src==='LIVE'||(HM.src==='SNAPSHOT'&&Date.now()-HM.ts<7*60000);
   if(fresh) TG.lastTs=HM.ts;
   const rows={}; HM.rows.forEach(r=>{ if(r[9]===today) rows[r[0]]=r; });
