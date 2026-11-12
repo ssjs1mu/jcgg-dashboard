@@ -93,6 +93,8 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
  <button type="button" class="tile" data-p="wl"><i>📋</i><b>Watchlist</b><small id="ts_wl">live calls</small></button>
  <button type="button" class="tile" data-p="ol"><i>🟢</i><b>Open = Low</b><small id="ts_ol">–</small></button>
  <button type="button" class="tile" data-p="oh"><i>🔴</i><b>Open = High</b><small id="ts_oh">–</small></button>
+ <button type="button" class="tile" data-p="bf"><i>🐟</i><b>Big Fish</b><small id="ts_bf">–</small></button>
+ <button type="button" class="tile" data-p="bs"><i>🦈</i><b>Tail Fish</b><small id="ts_bs">–</small></button>
  <button type="button" class="tile" data-p="rt"><i>📢</i><b>Results today</b><small id="ts_rt">–</small></button>
  <button type="button" class="tile" data-p="rp"><i>🌙</i><b>Yesterday's results</b><small id="ts_rp">–</small></button>
  <button type="button" class="tile" data-p="ru"><i>📅</i><b>Upcoming results</b><small id="ts_ru">–</small></button>
@@ -124,6 +126,8 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
 </section>
 <section class="pn" id="p_ol"><div class="rb" id="olT"></div></section>
 <section class="pn" id="p_oh"><div class="rb" id="ohT"></div></section>
+<section class="pn" id="p_bf"><div class="rb" id="bfT"></div></section>
+<section class="pn" id="p_bs"><div class="rb" id="bsT"></div></section>
 <section class="pn" id="p_rt"><div class="rb" id="rbT"></div></section>
 <section class="pn" id="p_rp"><div class="rb" id="rbP"></div></section>
 <section class="pn" id="p_ru"><div class="rb" id="rbU"></div></section>
@@ -284,7 +288,7 @@ getJ('data/universe.json',15000).then(u=>{ $('uni').innerHTML=[...u.large,...u.m
 /* ---------- criteria buttons: glow the moment any watchlist stock meets one (same rules as the Trading terminal's heat-map and alerts) ---------- */
 const CR=[['OL','O=L','Open = day low (exactly)'],['OH','O=H','Open = day high (exactly)'],['PC','>PC','Above the previous close'],['V15','VOL>1.5','Volume pace at least 1.5x the 20-day average (adjusted for the time of day)'],
  ['BF','BIG FISH','Price ≥ 50, day volume ≥ 3.5 lakh, volume pace ≥ 1.5x, day range ≥ 1.5%, ≥ +2% from open, daily RSI > 55, above the 1-month high'],
- ['BS','BEAR FISH','Price ≥ 50, day volume ≥ 3.5 lakh, day range ≥ 1.5%, ≤ -1.5% from open, daily RSI < 40, below the 1-month low'],
+ ['BS','TAIL FISH','Price ≥ 50, day volume ≥ 3.5 lakh, day range ≥ 1.5%, ≤ -1.5% from open, daily RSI < 40, below the 1-month low'],
  ['DH','DH','Price at the day high (above the previous close)'],['DL','DL','Price at the day low (below the previous close)'],['MH','MH','Above the 1-month high'],['ML','ML','Below the 1-month low'],
  ['WH','52WKH','At or above the 52-week high'],['WL','52WKL','At or below the 52-week low'],
  ['VU','VOL UP BO','Volume pace ≥ 2x, price above the previous close and breaking the 1-month high or the day high'],['VD','VOL DN BO','Volume pace ≥ 2x, price below the previous close and breaking the 1-month low or the day low']];
@@ -361,37 +365,66 @@ rbLoad(); setInterval(rbLive,30000); setInterval(rbLoad,15*60000);
 
 
 
-/* ---------- Open = Low / Open = High lists for the Nifty 500 + your watchlist (same rule as the O=L / O=H buttons) ---------- */
-function eq2(a,b){ return a!=null&&b!=null&&Math.round(a*100)===Math.round(b*100); }   // exact to the paisa: one tick away = no longer equal
-let OLH={rows:[],at:0,src:''}, UNI=null;
-async function olhScan(force){ if(!force&&(!mkt().open||document.hidden)) return; if(Date.now()<quotaUntil) return;
-  try{ if(!UNI) UNI=await getJ('data/universe.json',15000);
+/* ---------- market lists: Open = Low, Open = High, Big Fish, Tail Fish (Big Fish short) for the Nifty 500 + your watchlist.
+   Live quotes every minute; 1-month / 52-week levels and RSI from the heat-map snapshot (refreshed every 4 min).
+   Every list has the same LIVE HITS buttons as the watchlist, with the same rules, so a stock lights the same button everywhere. ---------- */
+function eq2(a,b){ return a!=null&&b!=null&&Math.round(a*100)===Math.round(b*100); }
+let OLH={rows:[],at:0,src:''}, UNI=null, STAT={}, SBF={}, SBS={}, STAT_AT=0;
+async function statLoad(){ if(Date.now()-STAT_AT<240000) return; try{ const j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Math.floor(Date.now()/60000),20000);
+    STAT={}; (j.rows||[]).forEach(r=>{ STAT[r[0]]=[r[10],r[11],r[12],r[13],r[14]]; }); const td=new Date(Date.parse(j.ts)+19800000).toISOString().slice(0,10)===istDay(); SBF=td?(j.bf||{}):{}; SBS=td?(j.bs||{}):{}; STAT_AT=Date.now(); return j; }catch(e){ return null; } }
+async function olhScan(force){ if(!force&&(!mkt().open||document.hidden)) return;
+  const snap=await statLoad();
+  if(Date.now()>=quotaUntil){ try{ if(!UNI) UNI=await getJ('data/universe.json',15000);
     const set=new Set([...UNI.large,...UNI.midsmall].map(s=>s+'.NS')); W.forEach(w=>set.add(w.s+'.'+w.x)); const all=[...set], parts=[];
     for(let i=0;i<all.length;i+=250) parts.push(all.slice(i,i+250));
     const rs=await Promise.all(parts.map(p=>getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.join(',')),30000).catch(()=>null)));
-    const rows=[]; rs.forEach(j=>{ if(j&&j.ok&&j.q) Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]>0&&q[1]>0&&q[2]>0) rows.push({k,s:k.replace(/\.(NS|BO)$/,''),x:/\.BO$/.test(k)?'BSE':'NSE',p:q[0],pc:q[1],o:q[2],h:q[3],l:q[4],v:q[5],av:q[6],t:q[7]}); }); });
-    if(rows.length>50){ OLH={rows,at:Date.now(),src:'LIVE'}; olhPaint(); return; }
-  }catch(e){}
-  try{ const j=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Math.floor(Date.now()/60000),20000);   // fallback: the heat-map snapshot
-    const rows=(j.rows||[]).map(r=>({k:r[0]+'.NS',s:r[0],x:'NSE',p:r[2],pc:r[3],o:r[4],h:r[5],l:r[6],v:r[7],av:r[8],t:Date.parse(j.ts)/1000}));
-    if(rows.length){ OLH={rows,at:Date.parse(j.ts),src:'SNAPSHOT · '+Math.round((Date.now()-Date.parse(j.ts))/60000)+' min old'}; olhPaint(); } }catch(e){}
+    const rows=[]; rs.forEach(j=>{ if(j&&j.ok&&j.q) Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]>0&&q[1]>0&&q[2]>0){ const s=k.replace(/\.(NS|BO)$/,''), st=STAT[s]||[];
+      rows.push({k,s,x:/\.BO$/.test(k)?'BSE':'NSE',p:q[0],pc:q[1],o:q[2],h:q[3],l:q[4],v:q[5],av:q[6],t:q[7],mh:st[0],ml:st[1],wh:Math.max(st[2]||0,q[8]||0)||null,wl:(st[3]&&q[9])?Math.min(st[3],q[9]):(st[3]||q[9]||null),rs:st[4]}); } }); });
+    if(rows.length>50){ OLH={rows,at:Date.now(),src:'LIVE'}; mlPaint(); return; } }catch(e){} }
+  const j=snap||await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Math.floor(Date.now()/60000),20000).catch(()=>null);   // fallback: heat-map snapshot
+  if(j&&j.rows){ const rows=j.rows.map(r=>({k:r[0]+'.NS',s:r[0],x:'NSE',p:r[2],pc:r[3],o:r[4],h:r[5],l:r[6],v:r[7],av:r[8],t:Date.parse(j.ts)/1000,mh:r[10],ml:r[11],wh:r[12],wl:r[13],rs:r[14]}));
+    OLH={rows,at:Date.parse(j.ts),src:'SNAPSHOT · '+Math.round((Date.now()-Date.parse(j.ts))/60000)+' min old'}; mlPaint(); }
 }
-function olhPaint(){ if(!$('olT')) return; const rows=OLH.rows, inW=r=>W.some(w=>w.s===r.s&&(w.x==='BO')===(r.x==='BSE'));
-  const pace=r=>r.av?r.v/(r.av*frac()):null;
-  const ol=rows.filter(r=>eq2(r.o,r.l)).map(r=>Object.assign(r,{mk:r.p>r.pc})).sort((a,b)=>(b.mk-a.mk)||((b.p/b.pc)-(a.p/a.pc)));
-  const oh=rows.filter(r=>eq2(r.o,r.h)).map(r=>Object.assign({},r,{mk:r.p<r.pc})).sort((a,b)=>(b.mk-a.mk)||((a.p/a.pc)-(b.p/b.pc)));
-  const day=rows.length?new Date((rows[0].t+19800)*1000).toISOString().slice(0,10):'', live=OLH.src==='LIVE'&&mkt().open;
-  const head=(kind)=>`<div class="rbh"><b>${kind==='L'?'Open = Low':'Open = High'}</b> <span class="mu">${(kind==='L'?ol:oh).length} stocks · ${kind==='L'?(ol.filter(r=>r.mk).length+' above previous close'):(oh.filter(r=>r.mk).length+' below previous close')} · ${esc(OLH.src||'loading…')}${live?'':' · '+(mkt().txt)} · ${day}</span></div>`;
-  const tbl=(L,kind)=>`<div class="wrap"><table class="rbt"><thead><tr><th>#</th><th>Stock</th><th>LTP</th><th>Chg %</th><th>Open</th><th>${kind==='L'?'Day low':'Day high'}</th><th>${kind==='L'?'Above prev close':'Below prev close'}</th><th>From open</th><th>Volume pace</th><th></th></tr></thead><tbody>${
-    L.length?L.map((r,i)=>{ const ch=(r.p/r.pc-1)*100, fo=(r.p/r.o-1)*100, pz=pace(r);
-      return `<tr class="${r.mk?(kind==='L'?'buy':'sell'):''}"><td class="mu">${i+1}</td><td><span class="sym">${esc(r.s)}</span><span class="ex">${r.x}</span>${inW(r)?' <span title="In your watchlist" style="color:var(--gold)">★</span>':''}</td><td>${fx(r.p)}</td><td class="${ch>=0?'up':'dn'}">${(ch>=0?'+':'')+ch.toFixed(2)}%</td><td>${fx(r.o)}</td><td>${fx(kind==='L'?r.l:r.h)}</td>
-        <td>${r.mk?`<span class="tag ${kind==='L'?'bull':'bear'}">✓ ${kind==='L'?'above':'below'} ${fx(r.pc)}</span>`:`<span class="mu">no · prev ${fx(r.pc)}</span>`}</td><td class="${fo>=0?'up':'dn'}">${(fo>=0?'+':'')+fo.toFixed(2)}%</td><td>${pz==null?'–':`<span class="${pz>=1.5?'vol up':'mu'}">${pz.toFixed(1)}x</span>`}</td><td class="c">${inW(r)?'':`<button class="x" style="width:auto;padding:0 6px" data-addw="${esc(r.s)}|${r.x==='BSE'?'BO':'NS'}" title="Add to the watchlist">+</button>`}</td></tr>`; }).join('')
-    :`<tr><td colspan="10" class="empty">${rows.length?'No stock meets this right now':'Loading live prices…'}</td></tr>`}</tbody></table></div>`;
-  $('olT').innerHTML=head('L')+tbl(ol,'L'); $('ohT').innerHTML=head('H')+tbl(oh,'H');
-  if(typeof tileSig==='function'){ tileSig('ol',day+'|'+ol.map(r=>r.k+(r.mk?'+':'')).sort().join(','),`${ol.length} stocks · <span class="up">${ol.filter(r=>r.mk).length} above PC</span>`);
-    tileSig('oh',day+'|'+oh.map(r=>r.k+(r.mk?'-':'')).sort().join(','),`${oh.length} stocks · <span class="dn">${oh.filter(r=>r.mk).length} below PC</span>`); }
+/* the same 15 criteria as the watchlist buttons, from one market row */
+function critOf(r){ const {p,pc,o,h,l,v,av,mh,ml,wh,wl,rs}=r, pace=av?v/(av*frac()):null, rng=l?(h-l)/l*100:0, fo=(p/o-1)*100, H={};
+  if(eq2(o,l)) H.OL=1; if(eq2(o,h)) H.OH=1; if(p>pc) H.PC=1; if(pace!=null&&pace>=1.5) H.V15=1;
+  if(pace!=null&&rs!=null&&mh!=null&&p>=50&&v>=350000&&pace>=1.5&&rng>=1.5&&fo>=2&&rs>55&&p>mh) H.BF=1;
+  if(rs!=null&&ml!=null&&p>=50&&v>=350000&&rng>=1.5&&fo<=-1.5&&rs<40&&p<ml) H.BS=1;
+  if(p>=h&&p>pc) H.DH=1; if(p<=l&&p<pc) H.DL=1; if(mh!=null&&p>mh) H.MH=1; if(ml!=null&&p<ml) H.ML=1; if(wh!=null&&p>=wh) H.WH=1; if(wl!=null&&p<=wl) H.WL=1;
+  if(pace!=null&&pace>=2&&p>pc&&((mh!=null&&p>mh)||p>=h)) H.VU=1; if(pace!=null&&pace>=2&&p<pc&&((ml!=null&&p<ml)||p<=l)) H.VD=1;
+  return H; }
+const ML={ol:{t:'Open = Low',el:'olT'},oh:{t:'Open = High',el:'ohT'},bf:{t:'🐟 Big Fish',el:'bfT'},bs:{t:'🔻 Tail Fish (Big Fish short)',el:'bsT'}}, MF={}, MPREV={}, MNEW={};
+function mlPaint(){ if(!$('olT')) return; const rows=OLH.rows, open=mkt().open, inW=r=>W.some(w=>w.s===r.s&&(w.x==='BO')===(r.x==='BSE'));
+  rows.forEach(r=>{ r.H=critOf(r); r.pace=r.av?r.v/(r.av*frac()):null; r.ch=(r.p/r.pc-1)*100; r.fo=(r.p/r.o-1)*100; });
+  const L={ ol:rows.filter(r=>r.H.OL).map(r=>Object.assign({},r,{mk:r.p>r.pc,mkT:'above prev close'})).sort((a,b)=>(b.mk-a.mk)||(b.ch-a.ch)),
+    oh:rows.filter(r=>r.H.OH).map(r=>Object.assign({},r,{mk:r.p<r.pc,mkT:'below prev close'})).sort((a,b)=>(b.mk-a.mk)||(a.ch-b.ch)),
+    bf:rows.filter(r=>r.H.BF||SBF[r.s]).map(r=>Object.assign({},r,{mk:!!r.H.BF,mkT:'meets Big Fish now',tr:SBF[r.s]})).sort((a,b)=>(b.mk-a.mk)||(b.ch-a.ch)),
+    bs:rows.filter(r=>r.H.BS||SBS[r.s]).map(r=>Object.assign({},r,{mk:!!r.H.BS,mkT:'meets Tail Fish now',tr:SBS[r.s]})).sort((a,b)=>(b.mk-a.mk)||(a.ch-b.ch)) };
+  const day=rows.length?new Date((rows[0].t+19800)*1000).toISOString().slice(0,10):'';
+  Object.keys(ML).forEach(id=>{ const all=L[id], f=MF[id]||'', show=f?all.filter(r=>r.H[f]):all, bear=id==='oh'||id==='bs';
+    // the same LIVE HITS buttons, counted over this list
+    const by={}; CR.forEach(c=>by[c[0]]=all.filter(r=>r.H[c[0]]).map(r=>r.s)); const prev=MPREV[id]||{};
+    const btns='<span class="crh">'+(open&&OLH.src==='LIVE'?'LIVE HITS':'HITS · '+esc(OLH.src))+'</span>'+CR.map(([k,lab,tip])=>{ const S=by[k], was=prev[k];
+      if(was&&open&&S.some(s=>was.indexOf(s)<0)) (MNEW[id]=MNEW[id]||{})[k]=Date.now();
+      const nw=MNEW[id]&&MNEW[id][k]&&Date.now()-MNEW[id][k]<120000;
+      return `<button type="button" class="cb${S.length?' hit':''}${S.length&&open?(nw?' fl':' gl'):''}${/BS|DL|ML|WL|VD|OH/.test(k)?' bear':''}${f===k?' sel':''}" data-mf="${id}|${k}" title="${esc(tip)}${S.length?'\n'+S.slice(0,40).join(', ')+(S.length>40?' …':''):'\nNo stock in this list meets this now'}">${lab}${S.length?`<b>${S.length}</b>`:''}</button>`; }).join('')+(f?`<button type="button" class="cb clr" data-mf="${id}|">✕ show all</button>`:'');
+    MPREV[id]=by;
+    const marked=all.filter(r=>r.mk).length;
+    const head=`<div class="rbh"><b>${ML[id].t}</b> <span class="mu">${all.length} stocks · ${marked} ${id==='ol'?'above':id==='oh'?'below':'meeting the rule'}${id==='ol'||id==='oh'?' previous close':' now'} · ${esc(OLH.src||'loading…')}${open?'':' · '+mkt().txt} · ${day}</span></div><div class="crit" style="margin:4px 0 6px">${btns}</div>`;
+    const tbl=`<div class="wrap"><table class="rbt"><thead><tr><th>#</th><th>Stock</th><th>LTP</th><th>Chg %</th><th>Open</th><th>Day low</th><th>Day high</th><th>${id==='bf'||id==='bs'?'Status':ML[id].t.indexOf('Low')>0?'Above prev close':'Below prev close'}</th><th>From open</th><th>Volume pace</th><th>Hits</th><th></th></tr></thead><tbody>${
+      show.length?show.map((r,i)=>`<tr class="${r.mk?(bear?'sell':'buy'):''}"><td class="mu">${i+1}</td><td><span class="sym">${esc(r.s)}</span><span class="ex">${r.x}</span>${inW(r)?' <span title="In your watchlist" style="color:var(--gold)">★</span>':''}</td>
+        <td>${fx(r.p)}</td><td class="${r.ch>=0?'up':'dn'}">${(r.ch>=0?'+':'')+r.ch.toFixed(2)}%</td><td>${fx(r.o)}</td><td>${fx(r.l)}</td><td>${fx(r.h)}</td>
+        <td>${r.mk?`<span class="tag ${bear?'bear':'bull'}">✓ ${r.mkT}${id==='ol'||id==='oh'?' '+fx(r.pc):''}</span>`:(r.tr?`<span class="mu">fired ${esc(r.tr[0])} at ${fx(r.tr[1])} · not holding now</span>`:`<span class="mu">no · prev ${fx(r.pc)}</span>`)}${r.mk&&r.tr?` <span class="mu">since ${esc(r.tr[0])} at ${fx(r.tr[1])}</span>`:''}</td>
+        <td class="${r.fo>=0?'up':'dn'}">${(r.fo>=0?'+':'')+r.fo.toFixed(2)}%</td><td>${r.pace==null?'–':`<span class="${r.pace>=1.5?'vol up':'mu'}">${r.pace.toFixed(1)}x</span>`}</td>
+        <td style="white-space:normal;max-width:220px">${CR.filter(c=>r.H[c[0]]).map(c=>`<span class="tag ${/BS|DL|ML|WL|VD|OH/.test(c[0])?'bear':'bull'}" style="margin:1px">${c[1]}</span>`).join('')}</td>
+        <td class="c">${inW(r)?'':`<button class="x" style="width:auto;padding:0 6px" data-addw="${esc(r.s)}|${r.x==='BSE'?'BO':'NS'}" title="Add to the watchlist">+</button>`}</td></tr>`).join('')
+      :`<tr><td colspan="12" class="empty">${rows.length?(f?'No stock in this list meets that button now':'No stock meets this right now'):'Loading live prices…'}</td></tr>`}</tbody></table></div>`;
+    $(ML[id].el).innerHTML=head+tbl;
+    if(typeof tileSig==='function') tileSig(id,day+'|'+all.map(r=>r.k+(r.mk?'*':'')).sort().join(','),`${all.length} stocks · <span class="${bear?'dn':'up'}">${marked} ${id==='ol'?'above PC':id==='oh'?'below PC':'now'}</span>`);
+  });
 }
-document.addEventListener('click',e=>{ const b=e.target.closest('[data-addw]'); if(!b) return; const [s,x]=b.dataset.addw.split('|'); if(!W.some(w=>w.s===s&&w.x===x)){ const w={s,x}; W.push(w); svj('jc_watch',W); paint(); refresh(w); olhPaint(); } });
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-mf]'); if(b){ const [id,k]=b.dataset.mf.split('|'); MF[id]=MF[id]===k?'':k; mlPaint(); return; }
+  const a=e.target.closest('[data-addw]'); if(!a) return; const [s,x]=a.dataset.addw.split('|'); if(!W.some(w=>w.s===s&&w.x===x)){ const w={s,x}; W.push(w); svj('jc_watch',W); paint(); refresh(w); mlPaint(); } });
 setTimeout(()=>olhScan(true),800); setInterval(()=>olhScan(false),60000);
 
 /* ---------- tiles: left menu, right panel; a tile blinks NEW when its section changed since you last looked ---------- */
