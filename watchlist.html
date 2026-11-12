@@ -97,6 +97,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
 <div class="app">
 <nav class="tiles" id="tiles" aria-label="Sections">
  <button type="button" class="tile hn" data-p="hn"><i>💎</i><b>High Net-worth Trade</b><small id="ts_hn">–</small></button>
+ <button type="button" class="tile" data-p="tk"><i>📒</i><b>HNT Tracker</b><small id="ts_tk">–</small></button>
  <button type="button" class="tile" data-p="wl"><i>📋</i><b>Watchlist</b><small id="ts_wl">live calls</small></button>
  <button type="button" class="tile" data-p="ol"><i>🟢</i><b>Open = Low</b><small id="ts_ol">–</small></button>
  <button type="button" class="tile" data-p="oh"><i>🔴</i><b>Open = High</b><small id="ts_oh">–</small></button>
@@ -109,6 +110,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
 </nav>
 <main class="pnl">
 <section class="pn" id="p_hn"><div class="rb" id="hnT"><div class="empty">Loading live prices…</div></div></section>
+<section class="pn" id="p_tk"><div class="rb" id="trkT"></div></section>
 <section class="pn" id="p_wl">
 <div class="bar">
  <form id="addF" autocomplete="off">
@@ -474,6 +476,32 @@ function hnPaint(rows){ if(!$('hnT')) return; const L=hnPick(rows), open=mkt().o
    <div class="note" style="margin-top:8px">How it is picked: entry is the live price; the stop sits just beyond the day's structure (open or day low for a buy, open or day high for a sell); the target is the next real level in the way (1-month high/low, then 52-week high/low; already past them = 2 × risk), but never more than 1.5 × the range the stock has already moved today, so it stays reachable today. Ranked by that room to move, raised when more scanners agree, when volume runs faster and when reward-to-risk is better. Only risk ≤ 3%, reward ≥ 1.5 × risk and volume pace ≥ 1.5x qualify. A rule-based screen of live data, not a promise of profit and not investment advice - always use the stop.</div>`;
   if(typeof tileSig==='function') tileSig('hn',t?t.s+t.d:'none',t?`<b class="${t.d>0?'up':'dn'}">${esc(t.s)} ${t.d>0?'BUY':'SELL'}</b> · room ${t.room.toFixed(1)}% · R:R ${t.rr.toFixed(1)}`:'no set-up yet');
 }
+
+
+/* ---------- 📒 High Net-worth Trade tracker (recorded and followed on GitHub every trading day: pipeline/hn_tracker.py) ---------- */
+let TRK=null;
+async function trkLoad(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/hntrack/hntrack.json?x='+Math.floor(Date.now()/300000),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/hntrack.json?ref=hntrack']){
+    try{ const j=await getJ(u,20000); TRK=j.content?JSON.parse(atob(j.content.replace(/\n/g,''))):j; break; }catch(e){} } trkPaint(); }
+function trkPaint(){ if(!$('trkT')) return; if(!TRK){ $('trkT').innerHTML='<div class="empty">Loading the tracker…</div>'; return; }
+  const T=(TRK.trades||[]).slice().reverse(), S=TRK.summary||{}, wr=S.closed?Math.round(100*S.targets/S.closed):null;
+  const dd=d=>d?new Date(d+'T00:00:00Z').toUTCString().slice(5,16):'–', sg=v=>v==null?'–':(v>=0?'+':'')+v.toFixed(2)+'%';
+  const st=t=>t.status==='TARGET'?'<span class="tag bull">🎯 TARGET</span>':t.status==='STOP'?'<span class="tag bear">🛑 STOP-LOSS</span>':t.status==='EXPIRED'?'<span class="tag" style="background:#2a3446;color:#c7d2e0">⌛ CLOSED AT 20 DAYS</span>':'<span class="tag" style="background:#3a3420;color:#f2c14e">● OPEN</span>';
+  const days=n=>n==null?'–':n===0?'same day':n+' day'+(n>1?'s':'');
+  const cards=[['Picks',S.picks||0],['🎯 Targets first',S.targets||0],['🛑 Stop-loss first',S.stops||0],['Open',S.open||0],['Win rate',wr==null?'–':wr+'%'],['Net return (sum)',sg(S.net_sum)],['Compounded',sg(S.net_compound)],['Open trades now',sg(S.open_mtm)]]
+    .map(([a,b])=>`<div><span class="mu">${a}</span><b class="${/Net|Compounded|Open trades/.test(a)?(parseFloat(b)>=0?'up':'dn'):''}">${b}</b></div>`).join('');
+  $('trkT').innerHTML=`<div class="rbh"><b>📒 High Net-worth Trade tracker</b> <span class="mu">one recommendation per trading day (the top pick between 10:15 and 12:30 IST) · followed on 5-minute bars · updated ${esc((TRK.updated||'').replace('T',' ').slice(0,16))} IST</span></div>
+   <div class="hng" style="margin:6px 0 8px">${cards}</div>
+   <div class="wrap"><table class="rbt"><thead><tr><th>Date</th><th>Time</th><th>Stock</th><th>Side</th><th>Entry</th><th>Stop</th><th>Target</th><th>Result</th><th>Reached in</th><th>Exit</th><th>Best price reached</th><th>Missed target by</th><th>Return</th><th>From scanners</th></tr></thead><tbody>${
+   T.length?T.map(t=>`<tr class="${t.status==='TARGET'?'buy':t.status==='STOP'?'sell':''}"><td>${dd(t.date)}</td><td>${esc(t.time)}</td><td><span class="sym">${esc(t.s)}</span></td><td><span class="call ${t.side}">${t.side}</span></td>
+     <td>${fx(t.entry)}</td><td class="dn">${fx(t.stop)}</td><td class="up">${fx(t.target)}</td><td>${st(t)}</td><td>${t.status==='OPEN'?days(t.days)+' so far':days(t.days)}${t.exit_date?' <span class="mu">('+dd(t.exit_date)+')</span>':''}</td>
+     <td>${t.status==='OPEN'?(t.last?fx(t.last)+' <span class="mu">now</span>':'–'):fx(t.exit)}</td><td>${fx(t.best)}${t.best_day!=null?' <span class="mu">'+days(t.best_day)+'</span>':''}</td>
+     <td>${t.status==='STOP'&&t.missed_by!=null?`<b>${fx(t.missed_by)}</b> pts <span class="mu">(${(t.missed_by/t.entry*100).toFixed(2)}%) · came closest ${days(t.best_day)}, stop hit ${days(t.days)}</span>`:t.status==='OPEN'?`<span class="mu">${fx(Math.abs(t.target-t.best))} pts to go</span>`:'–'}</td>
+     <td class="${t.ret>=0?'up':'dn'}"><b>${sg(t.ret)}</b>${t.status==='OPEN'?' <span class="mu">open</span>':''}</td><td style="white-space:normal;font-size:11.5px" class="mu">${(t.src||[]).map(esc).join(' · ')}</td></tr>`).join('')
+   :'<tr><td colspan="14" class="empty">The first pick is recorded on the next trading day between 10:15 and 12:30 IST.</td></tr>'}</tbody></table></div>
+   <div class="note" style="margin-top:6px">Each trading day the tracker records the top High Net-worth Trade pick from the scanners (watchlist calls are per browser, so they are not part of the tracked pick), then follows it minute by minute on 5-minute bars: whichever of target or stop-loss is touched first closes it; if one bar touches both, the stop-loss is counted. "Reached in" counts trading sessions after the entry day ("same day" = closed on the entry day). "Missed target by" is how close the best price came before the stop-loss hit. A pick that hits neither in 20 sessions is closed at that day's close. Returns are per trade on equal money, before costs; net return (sum) adds them, compounded reinvests them one after another.</div>`;
+  if(typeof tileSig==='function') tileSig('tk',(TRK.trades||[]).map(t=>t.date+t.status).join(','),`${S.picks||0} picks · net <b class="${(S.net_sum||0)>=0?'up':'dn'}">${sg(S.net_sum||0)}</b>${S.open?' · '+S.open+' open':''}`);
+}
+trkLoad(); setInterval(trkLoad,10*60000);
 
 /* ---------- tiles: left menu, right panel; a tile blinks NEW when its section changed since you last looked ---------- */
 let PANEL=ldj('jc_wl_panel','wl'); const SEEN=ldj('jc_wl_seen',{}), SIG={};
