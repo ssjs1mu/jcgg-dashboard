@@ -85,6 +85,82 @@ def pick(rows, frac):
 BC = {}
 
 
+BROAD = {'NIFTY 50', 'NIFTY NEXT 50', 'NIFTY 100', 'NIFTY 200', 'NIFTY 500', 'NIFTY MIDCAP 50', 'NIFTY MIDCAP 100', 'NIFTY MIDCAP 150',
+         'NIFTY SMALLCAP 50', 'NIFTY SMALLCAP 100', 'NIFTY SMALLCAP 250', 'SENSEX'}
+KIND = {'LEADER': 'Sector leader', 'LAGGARD': 'Sector laggard', 'HEAVY': 'Index heavyweight', 'BOUNCE': 'Quality bounce'}
+
+
+def im_calls(rows, frac, cons):
+    """Day-trade calls from the Index movers 'How to build wealth' readings (same rules as signals.js):
+    1 sector money flow -> 2 leaders (BUY) / laggards (SELL) in those sectors, 3 heavyweights driving the Nifty, 4 quality bounce."""
+    Q = {r[0]: r for r in rows if r[3] and r[4] and r[5] and r[6]}
+    fl = cons.get('floats', {})
+
+    def calc(name):
+        out = []; sp = sc = 0
+        for c in cons['indices'][name]['rows']:
+            r = Q.get(c[0]); fs = fl.get(c[0])
+            if r and fs:
+                out.append(r); sp += fs * r[2]; sc += fs * r[3]
+        return out, ((sp / sc - 1) * 100 if sc else 0), {r[0]: fl[r[0]] * r[2] / sp * 100 for r in out} if sp else {}
+    pace = lambda r: r[7] / (r[8] * frac) if r[8] else 0
+    pct = lambda r: (r[2] / r[3] - 1) * 100
+    C = {}
+
+    def add(r, d, kind):
+        sy, g, p, pc, o, h, l = r[:7]; mh, ml, wh, wl = (r + [None] * 15)[10:14]
+        stop = (max(l, o if o < p else l) * 0.998) if d > 0 else (min(h, o if o > p else h) * 1.002)
+        risk = abs(p - stop) / p * 100
+        if risk <= 0.15 or risk > 3:
+            return
+        R = abs(p - stop)
+        lv = sorted(x for x in (mh, wh) if x and x > p * 1.003) if d > 0 else sorted((x for x in (ml, wl) if x and x < p * 0.997), reverse=True)
+        t2 = lv[0] if lv else p + d * 2 * R
+        if abs(t2 - p) > 1.5 * (h - l):
+            t2 = p + d * 1.5 * (h - l)
+        room = abs(t2 - p) / p * 100; rr = room / risk
+        if rr < 1.5:
+            return
+        k = (sy, d)
+        if k in C:
+            if kind not in C[k]['kinds']:
+                C[k]['kinds'].append(kind)
+            return
+        C[k] = {'s': sy, 'd': d, 'side': 'BUY' if d > 0 else 'SELL', 'entry': round(p, 2), 'stop': round(stop, 2), 't1': round(p + d * R, 2), 'target': round(t2, 2),
+                'room': round(room, 2), 'risk': round(risk, 2), 'rr': round(rr, 2), 'pace': round(pace(r), 1), 'kinds': [kind],
+                'score': room * min(pace(r), 4) / 4 * min(rr, 3) / 3 * {'LEADER': 1.2, 'HEAVY': 1.1, 'LAGGARD': 1.0, 'BOUNCE': 0.9}[kind]}
+    for n in cons['indices']:
+        if n in BROAD:
+            continue
+        rs_, ip, _ = calc(n)
+        if len(rs_) < 8:
+            continue
+        br = sum(1 for r in rs_ if r[2] > r[3]) / len(rs_) * 100
+        arv = sum(pace(r) for r in rs_) / len(rs_)
+        if ip >= 0.5 and br >= 60 and arv >= 1:          # money flowing in -> leaders
+            for r in rs_:
+                mh, wh, rsi = r[10], r[12], r[14]
+                if pct(r) > 0 and pace(r) >= 1.2 and ((mh and r[2] >= mh) or (wh and r[2] >= wh * 0.97)) and (rsi is None or rsi <= 75):
+                    add(r, 1, 'LEADER')
+        elif ip <= -0.5 and br <= 40:                     # money leaving -> laggards
+            for r in rs_:
+                ml, wl, rsi = r[11], r[13], r[14]
+                if pct(r) < 0 and pace(r) >= 1.2 and ((ml and r[2] <= ml) or (wl and r[2] <= wl * 1.03)) and (rsi is None or rsi >= 25):
+                    add(r, -1, 'LAGGARD')
+    if 'NIFTY 50' in cons['indices']:
+        rs_, ip, W = calc('NIFTY 50')
+        for r in sorted(rs_, key=lambda r: -abs(W.get(r[0], 0) * pct(r)))[:6]:
+            if abs(pct(r)) >= 1 and pace(r) >= 1.2 and pct(r) * ip > 0:
+                add(r, 1 if pct(r) > 0 else -1, 'HEAVY')
+    if 'NIFTY 100' in cons['indices']:
+        rs_, ip, W = calc('NIFTY 100')
+        for r in rs_:
+            wh, rsi = r[12], r[14]
+            if W.get(r[0], 0) >= 1 and wh and r[2] <= wh * 0.85 and rsi is not None and rsi < 45 and pct(r) >= 1 and r[2] > r[4] and pace(r) >= 1.2:
+                add(r, 1, 'BOUNCE')
+    return sorted(C.values(), key=lambda c: -c['score'])
+
+
 def bars5(sym, rng='60d'):
     if (sym, rng) in BC:
         return BC[(sym, rng)]
@@ -113,6 +189,8 @@ def follow(tr, now):
         n = len(days) - 1          # sessions after the entry session (0 = same day)
         hit_stop = l <= tr['stop'] if d > 0 else h >= tr['stop']
         hit_tg = h >= tr['target'] if d > 0 else l <= tr['target']
+        if tr.get('t1') and not tr.get('t1_hit') and ((d > 0 and h >= tr['t1']) or (d < 0 and l <= tr['t1'])):
+            tr['t1_hit'] = day
         if (d > 0 and h > best) or (d < 0 and l < best):
             best = h if d > 0 else l; best_day = n
         nb += 1
@@ -145,14 +223,27 @@ def main():
         rows = [r for r in heat['rows'] if r[9] == today]
         if age <= 20 and len(rows) > 200:
             frac = max(((hts.astimezone(IST).hour * 60 + hts.astimezone(IST).minute) - 555) / 375, 0.04)
-            have = {(t['date'], t['s'], t['side']) for t in T['trades']}
+            have = {(t['date'], t['s'], t['side']) for t in T['trades'] if t.get('src_kind', 'HNT') == 'HNT'}
             new = []
             for rank, c in enumerate(pick(rows, frac)[:15], 1):
                 if (today, c['s'], c['side']) in have:
                     continue
                 c.pop('score')
-                c.update(date=today, time=hts.astimezone(IST).strftime('%H:%M'), ts=int(hts.timestamp()), status='OPEN', rank=rank, top=rank == 1)
+                c.update(date=today, time=hts.astimezone(IST).strftime('%H:%M'), ts=int(hts.timestamp()), status='OPEN', rank=rank, top=rank == 1, src_kind='HNT')
                 T['trades'].append(c); new.append('%s %s #%d' % (c['s'], c['side'], rank))
+            # index-movers day-trade calls (09:25-14:45)
+            if 565 <= mm <= 885:
+                try:
+                    cons = getj('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json', 40)
+                    haveI = {(t['date'], t['s'], t['side']) for t in T['trades'] if t.get('src_kind') == 'IM'}
+                    for c in im_calls(rows, frac, cons)[:15]:
+                        if (today, c['s'], c['side']) in haveI:
+                            continue
+                        c.pop('score')
+                        c.update(date=today, time=hts.astimezone(IST).strftime('%H:%M'), ts=int(hts.timestamp()), status='OPEN', src_kind='IM', src=[KIND[k] for k in c.pop('kinds')])
+                        T['trades'].append(c); new.append('%s %s (index movers)' % (c['s'], c['side']))
+                except Exception as e:
+                    T['log'].append('%s: index-movers calls skipped (%s)' % (today, e))
             if new:
                 T['log'].append('%s %s: recorded %s' % (today, hts.astimezone(IST).strftime('%H:%M'), ', '.join(new)))
         else:
@@ -169,6 +260,7 @@ def main():
     for tr in T['trades']:
         px = tr.get('exit') if tr['status'] != 'OPEN' else tr.get('last')
         tr['ret'] = round((px / tr['entry'] - 1) * 100 * tr['d'], 2) if px else None
+        tr['pts'] = round((px - tr['entry']) * tr['d'], 2) if px else None
         if tr['status'] == 'STOP' and tr.get('best') is not None:
             tr['missed_by'] = round(abs(tr['target'] - tr['best']), 2)
     closed = [t for t in T['trades'] if t['status'] != 'OPEN' and t.get('ret') is not None]
@@ -184,6 +276,10 @@ def main():
                     'avg_mins_target': round(sum(t.get('mins') or 0 for t in closed if t['status'] == 'TARGET') / max(1, sum(1 for t in closed if t['status'] == 'TARGET'))),
                     'avg_mins_stop': round(sum(t.get('mins') or 0 for t in closed if t['status'] == 'STOP') / max(1, sum(1 for t in closed if t['status'] == 'STOP'))),
                     'top_picks': sum(1 for t in T['trades'] if t.get('top', True))}
+    for k in ('HNT', 'IM'):
+        L = [t for t in T['trades'] if t.get('src_kind', 'HNT') == k]; Lc = [t for t in L if t['status'] != 'OPEN' and t.get('ret') is not None]
+        T['summary'][k] = {'calls': len(L), 'closed': len(Lc), 'targets': sum(1 for t in Lc if t['status'] == 'TARGET'), 'stops': sum(1 for t in Lc if t['status'] == 'STOP'),
+                           'net_sum': round(sum(t['ret'] for t in Lc), 2), 'open_mtm': round(sum(t['ret'] or 0 for t in L if t['status'] == 'OPEN'), 2)}
     T['updated'] = now.isoformat(timespec='seconds'); T['log'] = T['log'][-120:]
     json.dump(T, open(os.environ.get('OUT', '/tmp/hntrack.json'), 'w'), indent=1)
     print(json.dumps(T['summary']), '|', T['log'][-3:])

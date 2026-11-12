@@ -1,7 +1,8 @@
 /* Joshi's Corner - ⚡ Day-trade signal popups on every page of the app.
-   The best intraday set-ups of the High Net-worth Trade screen (Big Fish / Tail Fish / Open = Low / Open = High / volume breakouts,
-   volume pace ≥ 1.5x, risk ≤ 3%, reward ≥ 1.5 × risk, target capped at 1.5 × today's range). When a stock ENTERS the top 5,
-   a popup shows Entry, Exit (stop-loss), T1 and T2 - once per stock and side per day, in every open tab of the app.
+   Built from the Index movers 'How to build wealth' readings 1-4: (1) sector money flow -> (2) leaders in sectors with money flowing in
+   (BUY) and laggards in sectors money is leaving (SELL), (3) heavyweights driving the Nifty, (4) quality bounce. Day-trade levels:
+   stop beyond the day's structure, T1 = 1 x risk, T2 = next 1M/52W level (or 2 x risk) capped at 1.5 x today's range; risk ≤ 3%, R:R ≥ 1.5.
+   Every new call pops up once per stock and side per day, in every open tab of the app. The tracker (hn_tracker.py) records the same calls.
    Signals 09:25-14:45 IST on trading days (no fresh day trades in the last 45 minutes).
    One tab does the work (the Watchlist if it is open, it already has live prices); the others just show the popups. */
 (function(){
@@ -36,6 +37,29 @@
         C.push({s,d,p,stop,t1:p+d*Math.abs(p-stop),t2:tg,room,risk,rr,pace,ch:(p/pc-1)*100,src,score:room*(1+0.25*(src.length-1))*Math.min(pace,4)/4*Math.min(rr,3)/3}); }); });
     return C.sort((a,b)=>b.score-a.score); }
 
+  /* ---------- day-trade calls from the index movers (same rules as pipeline/hn_tracker.py im_calls) ---------- */
+  const BROAD=new Set(['NIFTY 50','NIFTY NEXT 50','NIFTY 100','NIFTY 200','NIFTY 500','NIFTY MIDCAP 50','NIFTY MIDCAP 100','NIFTY MIDCAP 150','NIFTY SMALLCAP 50','NIFTY SMALLCAP 100','NIFTY SMALLCAP 250','SENSEX']);
+  const KIND={LEADER:'Sector leader',LAGGARD:'Sector laggard',HEAVY:'Index heavyweight',BOUNCE:'Quality bounce'}, KW={LEADER:1.2,HEAVY:1.1,LAGGARD:1,BOUNCE:0.9};
+  let CONS=null, CONSat=0;
+  async function cons(){ if(!CONS||Date.now()-CONSat>1800000){ CONS=await (await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json',{cache:'no-store'})).json(); CONSat=Date.now(); } return CONS; }
+  function im(rows,frac,K){ const Q={}; rows.forEach(r=>{ if(r[3]&&r[4]&&r[5]&&r[6]) Q[r[0]]=r; }); const fl=K.floats||{}, C={};
+    const pace=r=>r[8]?r[7]/(r[8]*frac):0, pct=r=>(r[2]/r[3]-1)*100;
+    const calc=n=>{ const out=[]; let sp=0,sc=0; K.indices[n].rows.forEach(c=>{ const r=Q[c[0]], f=fl[c[0]]; if(r&&f){ out.push(r); sp+=f*r[2]; sc+=f*r[3]; } }); const W={}; out.forEach(r=>W[r[0]]=sp?fl[r[0]]*r[2]/sp*100:0); return [out,sc?(sp/sc-1)*100:0,W]; };
+    const add=(r,d,kind)=>{ const [sy,,p,pc,o,h,l]=r, mh=r[10],ml=r[11],wh=r[12],wl=r[13];
+      const stop=d>0?Math.max(l,o<p?o:l)*0.998:Math.min(h,o>p?o:h)*1.002, risk=Math.abs(p-stop)/p*100; if(risk<=0.15||risk>3) return;
+      const R=Math.abs(p-stop), lv=d>0?[mh,wh].filter(x=>x&&x>p*1.003).sort((a,b)=>a-b):[ml,wl].filter(x=>x&&x<p*0.997).sort((a,b)=>b-a);
+      let t2=lv.length?lv[0]:p+d*2*R; if(Math.abs(t2-p)>1.5*(h-l)) t2=p+d*1.5*(h-l);
+      const room=Math.abs(t2-p)/p*100, rr=room/risk; if(rr<1.5) return; const k=sy+'|'+d;
+      if(C[k]){ if(!C[k].kinds.includes(kind)) C[k].kinds.push(kind); return; }
+      C[k]={s:sy,d,p,stop,t1:p+d*R,t2,room,risk,rr,pace:pace(r),ch:pct(r),kinds:[kind],score:room*Math.min(pace(r),4)/4*Math.min(rr,3)/3*KW[kind]}; };
+    Object.keys(K.indices).forEach(n=>{ if(BROAD.has(n)) return; const [rs,ip]=calc(n); if(rs.length<8) return;
+      const br=rs.filter(r=>r[2]>r[3]).length/rs.length*100, arv=rs.reduce((a,r)=>a+pace(r),0)/rs.length;
+      if(ip>=0.5&&br>=60&&arv>=1) rs.forEach(r=>{ if(pct(r)>0&&pace(r)>=1.2&&((r[10]&&r[2]>=r[10])||(r[12]&&r[2]>=r[12]*0.97))&&(r[14]==null||r[14]<=75)) add(r,1,'LEADER'); });
+      else if(ip<=-0.5&&br<=40) rs.forEach(r=>{ if(pct(r)<0&&pace(r)>=1.2&&((r[11]&&r[2]<=r[11])||(r[13]&&r[2]<=r[13]*1.03))&&(r[14]==null||r[14]>=25)) add(r,-1,'LAGGARD'); }); });
+    if(K.indices['NIFTY 50']){ const [rs,ip,W]=calc('NIFTY 50'); rs.slice().sort((a,b)=>Math.abs((W[b[0]]||0)*pct(b))-Math.abs((W[a[0]]||0)*pct(a))).slice(0,6).forEach(r=>{ if(Math.abs(pct(r))>=1&&pace(r)>=1.2&&pct(r)*ip>0) add(r,pct(r)>0?1:-1,'HEAVY'); }); }
+    if(K.indices['NIFTY 100']){ const [rs,,W]=calc('NIFTY 100'); rs.forEach(r=>{ if((W[r[0]]||0)>=1&&r[12]&&r[2]<=r[12]*0.85&&r[14]!=null&&r[14]<45&&pct(r)>=1&&r[2]>r[4]&&pace(r)>=1.2) add(r,1,'BOUNCE'); }); }
+    return Object.values(C).map(c=>Object.assign(c,{src:c.kinds.map(k=>KIND[k])})).sort((a,b)=>b.score-a.score); }
+
   /* ---------- data: the Watchlist's live rows if this is the Watchlist, else the 5-minute snapshot + live quotes ---------- */
   let BASE=null, BASEat=0;
   async function rows(){
@@ -52,7 +76,7 @@
   const LK='jc_sig_lead', SK=()=>'jc_sig_'+day();
   function lead(){ const l=ld(LK,null), now=Date.now(); if(IS_WL||!l||l.id===ME||now-l.ts>45000){ sv(LK,{id:ME,ts:now,wl:IS_WL}); return true; } return false; }   // the Watchlist always takes over; otherwise the first tab, until it goes quiet
   async function scan(){ if(!window_()||document.hidden&&!IS_WL) return; if(!lead()) return;
-    try{ const R=await rows(); if(R.length<200) return; const frac=Math.max((mins()-555)/375,0.04), top=pick(R,frac).slice(0,5);
+    try{ const R=await rows(); if(R.length<200) return; const frac=Math.max((mins()-555)/375,0.04), top=im(R,frac,await cons()).slice(0,15);
       const S=ld(SK(),{list:[],seen:{}}); let added=0;
       top.forEach((c,i)=>{ const k=c.s+'|'+c.d; if(S.seen[k]) return; S.seen[k]=1; added++;
         S.list.unshift({k,t:Date.now(),s:c.s,side:c.d>0?'BUY':'SELL',en:+c.p.toFixed(2),sl:+c.stop.toFixed(2),t1:+c.t1.toFixed(2),t2:+c.t2.toFixed(2),risk:+c.risk.toFixed(2),room:+c.room.toFixed(2),rr:+c.rr.toFixed(2),pace:+c.pace.toFixed(1),ch:+c.ch.toFixed(2),src:c.src,rank:i+1}); });
@@ -87,7 +111,7 @@
   const tm=t=>new Date(t+19800000).toISOString().slice(11,16);
   const chartHref=s=>IS_WL?'#':'watchlist.html#chart='+encodeURIComponent(s);
   function card(x){ const el=document.createElement('div'); el.className='jcs '+(x.side==='BUY'?'b':'s');
-    el.innerHTML=`<button class="x" title="Dismiss">✕</button><div class="h">⚡ DAY-TRADE SIGNAL <i>${tm(x.t)} IST · #${x.rank} of top 5</i></div>
+    el.innerHTML=`<button class="x" title="Dismiss">✕</button><div class="h">⚡ DAY-TRADE CALL · INDEX MOVERS <i>${tm(x.t)} IST</i></div>
      <div class="n"><b>${esc(x.s)}</b><em>${x.side}</em><span>${x.ch>=0?'+':''}${x.ch}% today · vol ${x.pace}x</span></div><div class="w">${x.src.map(esc).join(' · ')}</div>
      <table><tr><th>ENTRY</th><th>EXIT / SL</th><th>T1</th><th>T2</th></tr><tr><td class="en">${fx(x.en)}</td><td class="sl">${fx(x.sl)}</td><td class="tg">${fx(x.t1)}</td><td class="tg">${fx(x.t2)}</td></tr></table>
      <div class="m">Risk ${x.risk}% · reward ${x.room}% · R:R ${x.rr} : 1 · exit by 15:15 if neither is hit · rule-based, not advice</div>
@@ -103,12 +127,12 @@
     sv('jc_sig_shown_'+day(),[...shown]); while(box.children.length>3) box.firstChild.remove();
     if(n){ beep(); bell.classList.remove('nw'); void bell.offsetWidth; bell.classList.add('nw'); } paintBell(S); }
   function paintBell(S){ S=S||ld(SK(),{list:[]}); const k=S.list.length; bell.classList.toggle('on',k>0); bell.textContent='⚡ '+k+' day-trade signal'+(k===1?'':'s')+' today';
-    L.innerHTML=`<div class="hd">⚡ Today's day-trade signals <button type="button" title="Close">✕</button></div><table><tr><th>Time</th><th>Stock</th><th>Side</th><th>Entry</th><th>Exit / SL</th><th>T1</th><th>T2</th><th>R:R</th><th>Why</th></tr>${S.list.map(x=>`<tr><td>${tm(x.t)}</td><td><b>${esc(x.s)}</b></td><td class="${x.side[0]}">${x.side}</td><td>${fx(x.en)}</td><td>${fx(x.sl)}</td><td>${fx(x.t1)}</td><td>${fx(x.t2)}</td><td>${x.rr}</td><td style="font-family:Inter,Arial;white-space:normal">${x.src.map(esc).join(' · ')}</td></tr>`).join('')}</table><div style="color:#9fb0c6;margin-top:6px">Top-5 High Net-worth Trade set-ups as they appear (09:25–14:45 IST). Rule-based ideas, not personal advice; exit day trades by 15:15.</div>`;
+    L.innerHTML=`<div class="hd">⚡ Today's day-trade signals <button type="button" title="Close">✕</button></div><table><tr><th>Time</th><th>Stock</th><th>Side</th><th>Entry</th><th>Exit / SL</th><th>T1</th><th>T2</th><th>R:R</th><th>Why</th></tr>${S.list.map(x=>`<tr><td>${tm(x.t)}</td><td><b>${esc(x.s)}</b></td><td class="${x.side[0]}">${x.side}</td><td>${fx(x.en)}</td><td>${fx(x.sl)}</td><td>${fx(x.t1)}</td><td>${fx(x.t2)}</td><td>${x.rr}</td><td style="font-family:Inter,Arial;white-space:normal">${x.src.map(esc).join(' · ')}</td></tr>`).join('')}</table><div style="color:#9fb0c6;margin-top:6px">Calls from the Index movers readings 1–4 (sector money flow → leaders / laggards, heavyweights driving the Nifty, quality bounce) as they appear, 09:25–14:45 IST. All are tracked in the 📒 HNT tracker on the Watchlist page. Rule-based ideas, not personal advice; exit day trades by 15:15.</div>`;
     L.querySelector('button').onclick=()=>L.classList.remove('on'); }
   bell.onclick=()=>{ paintBell(); L.classList.toggle('on'); };
   // a new day starts clean
   try{ Object.keys(localStorage).forEach(k=>{ if(/^jc_sig_(shown_)?\d{4}-/.test(k)&&k.indexOf(day())<0) localStorage.removeItem(k); }); }catch(e){}
   setTimeout(()=>{ const S=ld(SK(),{list:[]}); S.list.forEach(x=>{ if(Date.now()-x.t>=20*60000) shown.add(x.k); }); showNew(S); paintBell(S); },1500);
   setTimeout(scan,IS_WL?8000:4000); setInterval(scan,IS_WL?30000:60000);
-  window.JCSIG={scan,pick,test:x=>{ const S=ld(SK(),{list:[],seen:{}}); const k='TEST'+Date.now(); S.list.unshift(Object.assign({k,t:Date.now(),s:'TESTCO',side:'BUY',en:100,sl:98.5,t1:101.5,t2:103.2,risk:1.5,room:3.2,rr:2.13,pace:2.4,ch:2.1,src:['Big Fish','Vol up breakout'],rank:1},x||{})); sv(SK(),S); showNew(S); }};
+  window.JCSIG={scan,pick,im,cons,test:x=>{ const S=ld(SK(),{list:[],seen:{}}); const k='TEST'+Date.now(); S.list.unshift(Object.assign({k,t:Date.now(),s:'TESTCO',side:'BUY',en:100,sl:98.5,t1:101.5,t2:103.2,risk:1.5,room:3.2,rr:2.13,pace:2.4,ch:2.1,src:['Big Fish','Vol up breakout'],rank:1},x||{})); sv(SK(),S); showNew(S); }};
 })();
