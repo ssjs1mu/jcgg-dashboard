@@ -119,16 +119,16 @@ let quotaUntil=0, SNAP=null, SNAPAT=0;
 const yurl=(y,r,i)=>'https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(y)+'?range='+r+'&interval='+i+'&includePrePost=false';
 function parseYahoo(j){ const x=j.chart.result[0], q=x.indicators.quote[0], o={t:[],o:[],h:[],l:[],c:[],v:[]}; (x.timestamp||[]).forEach((ts,i)=>{ if(q.close[i]==null||q.high[i]==null||q.low[i]==null) return; o.t.push(ts); o.o.push(q.open[i]!=null?q.open[i]:q.close[i]); o.h.push(q.high[i]); o.l.push(q.low[i]); o.c.push(q.close[i]); o.v.push(q.volume[i]||0); }); o.pc=x.meta&&x.meta.chartPreviousClose; o.cur=x.meta&&x.meta.currency; return o; }
 async function live(y,r,i){ if(Date.now()<quotaUntil) return null;
-  try{ const j=await getJ(BACKEND+'?action=fetch&url='+encodeURIComponent(yurl(y,r,i)),20000);
+  try{ const j=await getJ(BACKEND+'?action=fetch&url='+encodeURIComponent(yurl(y,r,i)),35000);
     if(j&&j.error){ if(/too many times|quota/i.test(j.error)) quotaUntil=Date.now()+30*60000; return null; }
     if(j&&j.chart&&j.chart.error) return {bad:true};
     const p=parseYahoo(j); return p.c.length?p:{bad:true}; }
-  catch(e){ quotaUntil=Date.now()+180000; return null; } }
+  catch(e){ return null; } }   /* slow network: this stock retries on the next cycle, the others carry on */
 async function snapBars(s){ if(!SNAP||Date.now()-SNAPAT>240000){ try{ SNAP=await getJ('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/bars.json?x='+Math.floor(Date.now()/60000),20000); SNAPAT=Date.now(); }catch(e){} }
   const b=SNAP&&SNAP.bars&&SNAP.bars[s]; return b?{b,age:Math.max(0,Math.round((Date.now()-Date.parse(SNAP.ts))/60000))}:null; }
 async function fetchOne(w){ const k=key(w), y=w.s+'.'+w.x, B=BARS[k]||(BARS[k]={});
   if(!B.dd||B.ddDay!==istDay()){ const d=await live(y,'1y','1d'); if(d&&d.bad){ B.bad=true; return; } if(d){ B.dd=d; B.ddDay=istDay(); } }
-  const i=await live(y,'5d','1m'); if(i&&i.bad){ B.bad=true; return; } if(i&&!i.bad) i.step=1;   // 1-minute bars, the finest Yahoo gives
+  const fine=+TF<=5, i=await live(y,fine?'2d':'5d',fine?'1m':'5m'); if(i&&i.bad){ B.bad=true; return; } if(i&&!i.bad) i.step=fine?1:5;   // 1-minute bars, the finest Yahoo gives
   if(i){ B.b5=i; B.src='LIVE'; B.at=B.at5=Date.now(); B.bad=false; return; }
   if(w.x==='NS'){ const s=await snapBars(w.s); if(s){ B.b5=Object.assign({step:5},s.b); B.src='SNAPSHOT · '+s.age+' min old'; B.at=Date.now(); B.bad=false; } } }
 
@@ -184,6 +184,7 @@ const fx=(v,d=2)=>v==null||!isFinite(v)?'–':v.toLocaleString('en-IN',{minimumF
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const PREV={}, CALLAT={};
 function rowHtml(w,r,i){ const k=key(w), ex=w.x==='BO'?'BSE':'NSE', del=`<button class="x" data-del="${esc(k)}" title="Remove ${esc(w.s)}">✕</button>`;
+  const Bq=BARS[k]&&BARS[k].q; if(!r&&Bq&&Bq[0]>0){ const ch=Bq[1]>0?(Bq[0]/Bq[1]-1)*100:null; return `<tr data-k="${esc(k)}" class="avoid"><td class="mu">${i}</td><td><span class="sym">${esc(w.s)}</span><span class="ex">${ex}</span></td><td data-f="ltp">${fx(Bq[0])}</td><td class="${ch>=0?'up':'dn'}">${ch==null?'–':(ch>=0?'+':'')+ch.toFixed(2)+'%'}</td><td colspan="11" class="c mu">working out the call…</td><td class="c">${del}</td></tr>`; }
   if(!r) return `<tr data-k="${esc(k)}" class="avoid"><td class="mu">${i}</td><td><span class="sym">${esc(w.s)}</span><span class="ex">${ex}</span></td><td colspan="13" class="c mu">loading live data…</td><td class="c">${del}</td></tr>`;
   if(r.bad) return `<tr data-k="${esc(k)}" class="avoid"><td class="mu">${i}</td><td><span class="sym">${esc(w.s)}</span><span class="ex">${ex}</span></td><td colspan="13" class="c dn">Symbol not found on ${ex} - check the spelling or the exchange</td><td class="c">${del}</td></tr>`;
   if(r.few) return `<tr data-k="${esc(k)}" class="avoid"><td class="mu">${i}</td><td><span class="sym">${esc(w.s)}</span><span class="ex">${ex}</span></td><td colspan="13" class="c mu">Not enough price history on this timeframe yet</td><td class="c">${del}</td></tr>`;
@@ -224,12 +225,12 @@ setInterval(()=>{ $('clk').textContent=ist().toISOString().slice(11,19)+' IST'; 
 (function loop(){ const m=mkt(); refresh(); setTimeout(loop,m.open?30000:300000); })();
 /* fast quotes: one call for the whole list every 10 s in market hours - price, day open/high/low and volume for the triggers */
 let qBusy=false;
-async function quick(){ if(qBusy||!W.length||document.hidden||!mkt().open||Date.now()<quotaUntil) return; qBusy=true;
+async function quick(force){ if(qBusy||!W.length||(!force&&(document.hidden||!mkt().open))||Date.now()<quotaUntil) return; qBusy=true;
   try{ const j=await getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(W.map(w=>w.s+'.'+w.x).join(',')),12000);
-    if(j&&j.ok&&j.q){ const now=Date.now(); W.forEach(w=>{ const k=key(w), q=j.q[w.s+'.'+w.x]; if(q&&q[0]>0){ const B=BARS[k]||(BARS[k]={}); B.q=q; B.qAt=now; const r=analyse(w); if(r&&!r.bad&&!r.few){ const old=R[k]; if(old&&old.call&&old.call!==r.call) CALLAT[k]={t:now,was:old.call}; R[k]=r; } } }); lastQ=now; paint(); status(); }
+    if(j&&j.ok&&j.q){ const now=Date.now(); W.forEach(w=>{ const k=key(w), q=j.q[w.s+'.'+w.x]; if(q&&q[0]>0){ const B=BARS[k]||(BARS[k]={}); B.q=q; B.qAt=now; const r=BARS[k].b5||BARS[k].dd?analyse(w):null; if(r&&!r.bad&&!r.few){ const old=R[k]; if(old&&old.call&&old.call!==r.call) CALLAT[k]={t:now,was:old.call}; R[k]=r; } } }); lastQ=now; paint(); status(); }
     else if(j&&j.error&&/too many times|quota/i.test(j.error)) quotaUntil=Date.now()+30*60000; }
   catch(e){} finally{ qBusy=false; } }
-let lastQ=0; setInterval(quick,10000);
+let lastQ=0; setInterval(quick,10000); setTimeout(()=>quick(true),300);   /* prices on screen within a few seconds of opening */
 
 /* ---------- add / delete / timeframe / share ---------- */
 $('addF').addEventListener('submit',e=>{ e.preventDefault(); const s=$('sym').value.trim().toUpperCase().replace(/\.(NS|BO)$/,'').replace(/[^A-Z0-9&_-]/g,''), x=$('exch').value; if(!s) return;
