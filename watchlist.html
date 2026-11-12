@@ -142,6 +142,12 @@ table.rpt{width:100%;min-width:0!important}table.rpt th{text-align:left;width:38
 .pnh b{flex:1;font:800 12.5px Inter,Arial,sans-serif;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pnh .gr{color:var(--mu);font-size:14px;letter-spacing:-2px}
 .pnh button{border:1px solid #3a5476;background:#13213a;color:#e8eef8;border-radius:6px;width:24px;height:22px;padding:0;cursor:pointer;font:800 12px Arial}.pnh button.cx{background:#5a1f2c;border-color:#a0364c}.pnh button:hover{border-color:var(--gold)}
 .pnl.multi .pn.drag{opacity:.45}.pnl.multi .pn.over{outline:2px dashed var(--gold);outline-offset:-2px}
+#chPop{z-index:9500;padding:2vh 8px}.chc{position:relative;background:#0f1a2b;border:1px solid #2fd0ff;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.6);width:min(1600px,98vw);height:94vh;display:flex;flex-direction:column;padding:8px 10px}
+.chh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding-right:38px}.chn{font:900 17px Inter,Arial,sans-serif;color:var(--gold)}.chq{font:800 14px Inter,Arial,sans-serif}
+.chtf button{border:1px solid #3a5476;background:#13213a;color:#e8eef8;border-radius:6px;padding:2px 9px;margin-right:2px;cursor:pointer;font:800 12px Inter,Arial,sans-serif}.chtf button.on{background:#e0cd96;color:#0b1220;border-color:#e0cd96}
+.chind{display:flex;flex-wrap:wrap;gap:2px 10px;font:600 11.5px Inter,Arial,sans-serif;color:var(--mu)}.chind label{display:flex;gap:3px;align-items:center;cursor:pointer}
+.chlv{margin:6px 0;padding:6px 9px;border:1px solid #2d4260;border-radius:8px;background:#13213a;font:600 13px Inter,Arial,sans-serif}.chbox{flex:1;min-height:300px;border-radius:8px;overflow:hidden}.chft{font-size:11px;margin-top:4px}
+.chb{border:0;background:none;cursor:pointer;font-size:12px;padding:0 3px;opacity:.75;vertical-align:middle}.chb:hover{opacity:1;transform:scale(1.2)}.chb.big{border:1px solid #3a5476;background:#13213a;border-radius:6px;padding:2px 8px;font:700 11.5px Inter,Arial,sans-serif;color:#e8eef8;opacity:1}
 .empty{padding:26px;text-align:center;color:var(--mu)}
 .note{max-width:1800px;margin:10px auto 0;font-size:11.5px;color:var(--mu);line-height:1.55}
 .note b{color:#d8e2f0}
@@ -237,6 +243,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
 </div>
 <div class="pop" id="wlPop"><div class="ppc"><div class="pph"></div><button type="button" class="ppx" title="Close">✕</button><div class="ppb"></div></div></div>
 <div class="pop" id="rowPop"></div>
+<div class="pop" id="chPop"></div>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec'; // shared Joshi's Corner Apps Script (same live feed as the Trading terminal)
@@ -723,11 +730,10 @@ function ixPaint(){ const el=$('ixT'); if(!el) return; let sig='', bear=0, bull=
     const lvl=str>=0.8?'strong':str>=0.4?'moderate':'mild';
     const eff=flat?'flat':inv?(ch>0?`▲ rising · <b>bearish</b> for India (${lvl})`:`▼ falling · <b>supportive</b> for India (${lvl})`):(ch>0?`▲ <b>bullish</b> (${lvl})`:`▼ <b>bearish</b> (${lvl})`);
     if(!flat){ if(good) bull++; else bear++; } if(s==='^NSEI') nifty=pc; sig+=n+(flat?0:good?'+':'-')+(str>=0.8?'!':'')+',';
-    const sp=(r.sp||[]).filter(v=>v!=null&&isFinite(v)); let spk='–'; if(sp.length>2){ const mn=Math.min(...sp), mx=Math.max(...sp), w=90, h=22, pts=sp.map((v,i)=>(i/(sp.length-1)*w).toFixed(1)+','+(mx>mn?(h-2-(v-mn)/(mx-mn)*(h-4)):h/2).toFixed(1)).join(' '); spk=`<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${good?'#35f0a8':'#ff6b9d'}" stroke-width="1.6"/></svg>`; }
-    return `<tr title="${inv?'A rise here is negative for Indian equities, so it is coloured red; a fall is coloured green.':'Indian index: up = green, down = red.'} Colour depth = strength of the move (full colour at ±${thr}%)."><td style="background:${bg}"><b>${n}</b>${inv?' <span class="mu" title="inverse cue">⇅</span>':''}</td><td style="background:${bg}">${fx(r.p,dp)}</td><td style="background:${bg}">${sgn(ch,dp)}</td><td style="background:${bg}"><b>${sgn(pc,2)}%</b></td><td style="background:${bg}">${spk}</td><td style="background:${bg};white-space:normal">${eff}</td><td style="background:${bg}"><span class="ixb" style="width:${Math.round(8+str*70)}px;background:${good?'#35f0a8':'#ff6b9d'}"></span>${Math.round(str*100)}%</td></tr>`; }).join('');
+    return `<tr title="${inv?'A rise here is negative for Indian equities, so it is coloured red; a fall is coloured green.':'Indian index: up = green, down = red.'} Colour depth = strength of the move (full colour at ±${thr}%)."><td style="background:${bg}"><b>${n}</b>${inv?' <span class="mu" title="inverse cue">⇅</span>':''}</td><td style="background:${bg}">${fx(r.p,dp)}</td><td style="background:${bg}">${sgn(ch,dp)}</td><td style="background:${bg}"><b>${sgn(pc,2)}%</b></td><td style="background:${bg}"><button type="button" class="chb big" data-chart="${esc(s)}|${esc(n)}" title="Live intraday chart with entry / exit / targets">📈 Chart</button></td><td style="background:${bg};white-space:normal">${eff}</td><td style="background:${bg}"><span class="ixb" style="width:${Math.round(8+str*70)}px;background:${good?'#35f0a8':'#ff6b9d'}"></span>${Math.round(str*100)}%</td></tr>`; }).join('');
   const m=IXat?Math.max(0,Math.round((Date.now()-IXat)/60000)):null;
   el.innerHTML=`<div class="rbh"><b>🌐 Indices &amp; global cues</b> <span class="mu">${esc(IXsrc||'loading…')}${m==null?'':' · '+(m<1?'<1':m)+' min old'} · rows tinted by effect on Indian equities: crude, US dollar, US bond yield and VIX rising = <span class="dn">bearish red</span>, falling = <span class="up">green</span>; deeper colour = stronger move</span></div>
-   <div class="wrap"><table class="rbt"><thead><tr><th>Index / cue</th><th>LTP</th><th>Change</th><th>Chg %</th><th>Intraday</th><th>Effect on Indian market</th><th>Strength</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+   <div class="wrap"><table class="rbt"><thead><tr><th>Index / cue</th><th>LTP</th><th>Change</th><th>Chg %</th><th>Chart</th><th>Effect on Indian market</th><th>Strength</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   tileSig('ix',sig,`${nifty==null?'':'Nifty <b class="'+(nifty>=0?'up':'dn')+'">'+sgn(nifty)+'%</b> · '}<span class="up">${bull} support</span> · <span class="dn">${bear} drag</span>`); }
 setTimeout(ixPc,1200); setInterval(ixPc,1800000); setTimeout(ixLoad,600);
 (function ixs(){ setTimeout(async()=>{ if(!document.hidden) await ixLoad(); ixs(); }, mkt().open?20000:120000); })();
@@ -761,7 +767,7 @@ function hmPaint(){ const G=$('hmG'); if(!G) return;
   tileSig('hm',out.filter(x=>x.full||x.bf||x.bs||x.bear).map(x=>x.sy+(x.bf?'f':'')+(x.bs?'s':'')+(x.bear?'b':'')).sort().join(','),`match <b class="up">${nf}</b> / ${out.length}${nb?' · 🐟 '+nb:''}${ns?' · 🦈 '+ns:''}`); }
 $('hmG').addEventListener('click',e=>{ const c=e.target.closest('.hc'); if(!c) return; const x=HMO[+c.dataset.hi]; if(!x) return; const r=x.r, cl=x.cl, inW=W.some(w=>w.s===x.sy);
   const T=(k,v)=>`<tr><th>${k}</th><td>${v}</td></tr>`;
-  $('rowPop').innerHTML=`<div class="rpc"><div class="pph">${esc(x.sy)} <span class="mu">${x.x}</span><button type="button" class="ppx" title="Close">✕</button></div><table class="rpt">${
+  $('rowPop').innerHTML=`<div class="rpc"><div class="pph"><span class="sym">${esc(x.sy)}</span><span class="ex">${x.x}</span><button type="button" class="ppx" title="Close">✕</button></div><table class="rpt">${
     T('LTP',`${fx(r.p)} <span class="${x.pct>=0?'up':'dn'}">${sgn(x.pct)}%</span>`)+T('Open / Low / High',`${fx(r.o)} / ${fx(r.l)} / ${fx(r.h)}`)+T('Prev close',fx(r.pc))+
     T('Volume',`${(r.v/1e5).toFixed(1)} L · ${x.vx.toFixed(2)}x avg · pace ${x.vp.toFixed(2)}x`)+T('Filters',`Open=Low ${x.cOL?'✓':'✗'} · above prev close ${x.cUP?'✓':'✗'} · volume ${x.cV?'✓':'✗'}`)+
     T('Call (day-range levels)',`<b class="${cl.side==='BUY'?'up':'dn'}">${cl.side}</b> entry ${fx(cl.entry)} · SL ${fx(cl.sl)} · T1 ${fx(cl.t1)} · T2 ${fx(cl.t2)} · R:R ${cl.rr.toFixed(2)}`)+
@@ -856,6 +862,100 @@ nwLoad(); (function nwt(){ setTimeout(async()=>{ if(!document.hidden) await nwLo
 
 /* open a section from a link, e.g. watchlist.html#p=hm (used by the terminal) */
 (function(){ const m=location.hash.match(/p=([a-z]{2,3})\b/); if(m&&$('p_'+m[1])){ history.replaceState(null,'',location.pathname); if(MULTI){ if(OPEN.indexOf(m[1])<0) show(m[1]); } else show(m[1]); } })();
+
+/* ======================================================================================================
+   📈 Live intraday chart for any stock or index (button next to every symbol).
+   Candles + volume, EMA 9 / 21, VWAP, Supertrend (10,3), Bollinger (20,2), previous-day high/low/close and
+   standard pivots, RSI 14 and MACD (12,26,9) panes. Entry, exit (stop-loss) and targets T1-T3 come from the
+   SAME call engine as the watchlist (EMA 9/21, VWAP, RSI, volume score; risk from ATR and EMA 21), on the
+   chart's timeframe. Data: live Yahoo bars through the shared backend (1-minute, refreshed every 20 s while open).
+   ====================================================================================================== */
+const LWC='https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js';
+const CH={y:null,nm:'',tf:+ldj('jc_ch_tf',5),on:Object.assign({e9:1,e21:1,vw:1,st:1,bb:0,pd:1,pv:0},ldj('jc_ch_ind',{})),chart:null,timer:null,raw:null,busy:0,fit:true};
+const chLib=()=>window.LightweightCharts?Promise.resolve():new Promise((ok,no)=>{ const e=document.createElement('script'); e.src=LWC; e.onload=ok; e.onerror=()=>no(new Error('chart library blocked')); document.head.appendChild(e); });
+const IXN={'^NSEI':'NIFTY 50','^NSEBANK':'BANK NIFTY','^BSESN':'SENSEX','^INDIAVIX':'INDIA VIX','USDINR=X':'USD / INR','BZ=F':'BRENT CRUDE','DX-Y.NYB':'US $ INDEX','^TNX':'US 10Y YIELD'};
+function chOpen(y,nm){ CH.y=y; CH.nm=nm||IXN[y]||y.replace(/\.(NS|BO)$/,''); CH.raw=null; CH.fit=true;
+  const P=$('chPop'); P.innerHTML=`<div class="chc"><div class="chh"><b class="chn">${esc(CH.nm)}</b><span class="mu">${esc(/\.(NS|BO)$/.test(y)?(/\.BO$/.test(y)?'BSE':'NSE'):'index')}</span><span id="chQ" class="chq"></span>
+    <span class="chtf">${[1,3,5,15].map(m=>`<button type="button" data-tf="${m}" class="${m===CH.tf?'on':''}">${m}m</button>`).join('')}</span>
+    <span class="chind">${[['e9','EMA 9'],['e21','EMA 21'],['vw','VWAP'],['st','Supertrend'],['bb','Bollinger'],['pd','Prev day H/L/C'],['pv','Pivots']].map(([k,l])=>`<label><input type="checkbox" data-ind="${k}" ${CH.on[k]?'checked':''}>${l}</label>`).join('')}</span>
+    <button type="button" class="ppx" id="chX" title="Close (Esc)">✕</button></div>
+    <div class="chlv" id="chLv">loading live bars…</div><div class="chbox" id="chBox"></div><div class="chft mu" id="chFt"></div></div>`;
+  P.classList.add('on'); chLoad(); clearInterval(CH.timer); CH.timer=setInterval(()=>{ if(!document.hidden&&mkt().open) chLoad(); },20000); }
+function chClose(){ clearInterval(CH.timer); CH.timer=null; try{ CH.chart&&CH.chart.remove(); }catch(e){} CH.chart=null; $('chPop').classList.remove('on'); $('chPop').innerHTML=''; }
+async function chLoad(){ if(CH.busy) return; CH.busy=1; const y=CH.y;
+  try{ await chLib(); let b=await live(y,'5d',CH.tf>=15?'5m':'1m'), src='LIVE';
+    if((!b||b.bad)&&/\.NS$/.test(y)){ const s=await snapBars(y.replace(/\.NS$/,'')); if(s){ b=Object.assign({step:5},s.b); src='SNAPSHOT · '+s.age+' min old'; } }
+    if(y!==CH.y) return;
+    if(!b||b.bad||!b.c||!b.c.length){ $('chLv').innerHTML='<b class="dn">No live bars for this symbol right now</b> - the feed is busy or the symbol has no intraday data. Retrying every 20 s.'; return; }
+    if(!b.step) b.step=CH.tf>=15?5:1; CH.raw=b; CH.src=src; chDraw(); }
+  catch(e){ $('chLv').textContent='Chart could not load: '+(e.message||e); } finally{ CH.busy=0; } }
+function chCalc(D){ // the watchlist's call engine, run on these bars and this timeframe
+  const k='§chart.NS', saveTF=TF; BARS[k]={b5:CH.raw,src:CH.src,at:Date.now()}; TF=String(CH.tf); let A=null; try{ A=analyse({s:'§chart',x:'NS'}); }catch(e){} TF=saveTF; delete BARS[k]; return A; }
+function chDraw(){ const L=window.LightweightCharts, b=CH.raw; const D=aggr(b,CH.tf), n=D.c.length; if(n<2) return;
+  const IST=19800, T=D.t.map(t=>t+IST), days=[...new Set(D.t.map(dayOf))], td=days[days.length-1], pd=days.length>1?days[days.length-2]:null;
+  // previous session high / low / close and standard pivots
+  let PH=-1e18,PL=1e18,PC=null; if(pd){ for(let i=0;i<n;i++) if(dayOf(D.t[i])===pd){ PH=Math.max(PH,D.h[i]); PL=Math.min(PL,D.l[i]); PC=D.c[i]; } }
+  const piv=PC!=null?(()=>{ const P=(PH+PL+PC)/3; return {P,R1:2*P-PL,S1:2*P-PH,R2:P+(PH-PL),S2:P-(PH-PL)}; })():null;
+  const e9=ema(D.c,9), e21=ema(D.c,21), hasVol=D.v.some(v=>v>0);
+  // VWAP, reset each session
+  const vw=Array(n).fill(null); { let d0=null,pv=0,vv=0; for(let i=0;i<n;i++){ const d=dayOf(D.t[i]); if(d!==d0){ d0=d; pv=0; vv=0; } const tp=(D.h[i]+D.l[i]+D.c[i])/3; pv+=tp*D.v[i]; vv+=D.v[i]; vw[i]=vv?pv/vv:null; } }
+  // Bollinger 20,2
+  const bbU=Array(n).fill(null), bbL=Array(n).fill(null), bbM=Array(n).fill(null); for(let i=19;i<n;i++){ const s=D.c.slice(i-19,i+1), m=s.reduce((a,x)=>a+x,0)/20, sd=Math.sqrt(s.reduce((a,x)=>a+(x-m)*(x-m),0)/20); bbM[i]=m; bbU[i]=m+2*sd; bbL[i]=m-2*sd; }
+  // Supertrend 10,3
+  const st=Array(n).fill(null), sdir=Array(n).fill(1); { let a=null, fu=null, fl=null; for(let i=0;i<n;i++){ const tr=i?Math.max(D.h[i]-D.l[i],Math.abs(D.h[i]-D.c[i-1]),Math.abs(D.l[i]-D.c[i-1])):D.h[i]-D.l[i]; a=a==null?tr:(a*9+tr)/10; if(i<10) continue; const m=(D.h[i]+D.l[i])/2, bu=m+3*a, bl=m-3*a;
+      fu=(fu==null||bu<fu||D.c[i-1]>fu)?bu:fu; fl=(fl==null||bl>fl||D.c[i-1]<fl)?bl:fl; const pdv=sdir[i-1]; let d=pdv; if(pdv===1&&D.c[i]<fl) d=-1; else if(pdv===-1&&D.c[i]>fu) d=1; sdir[i]=d; st[i]=d===1?fl:fu; } }
+  // RSI 14 and MACD 12,26,9
+  const rs=Array(n).fill(null); { let g=0,l=0; for(let i=1;i<n;i++){ const d=D.c[i]-D.c[i-1]; if(i<=14){ g+=Math.max(d,0); l+=Math.max(-d,0); if(i===14){ g/=14; l/=14; rs[i]=l===0?100:100-100/(1+g/l); } } else { g=(g*13+Math.max(d,0))/14; l=(l*13+Math.max(-d,0))/14; rs[i]=l===0?100:100-100/(1+g/l); } } }
+  const e12=ema(D.c,12), e26=ema(D.c,26), mac=D.c.map((x,i)=>e12[i]!=null&&e26[i]!=null?e12[i]-e26[i]:null), mfirst=mac.findIndex(v=>v!=null), sig=Array(n).fill(null); if(mfirst>=0){ const s=ema(mac.slice(mfirst),9); s.forEach((v,j)=>sig[mfirst+j]=v); }
+  const A=chCalc(D), dp=D.c[n-1]<20?3:2;
+  // ---- draw
+  const box=$('chBox'); if(!box) return; const keep=CH.chart&&!CH.fit?CH.chart.timeScale().getVisibleLogicalRange():null; try{ CH.chart&&CH.chart.remove(); }catch(e){}
+  const C=CH.chart=L.createChart(box,{autoSize:true,layout:{background:{color:'#0b1422'},textColor:'#c9d4e3',fontFamily:'Inter,Arial,sans-serif',fontSize:11,panes:{separatorColor:'#2d4260'}},grid:{vertLines:{color:'#16243a'},horzLines:{color:'#16243a'}},
+    crosshair:{mode:L.CrosshairMode.Normal},rightPriceScale:{borderColor:'#2d4260'},timeScale:{borderColor:'#2d4260',timeVisible:true,secondsVisible:false,rightOffset:6,tickMarkFormatter:(t,k)=>{ const d=new Date(t*1000).toISOString(); return k<3?d.slice(8,10)+'/'+d.slice(5,7):d.slice(11,16); }},localization:{locale:'en-IN',priceFormatter:p=>p.toFixed(dp),timeFormatter:t=>new Date(t*1000).toISOString().slice(5,16).replace('T',' ')}});
+  const ser=(arr)=>arr.map((v,i)=>v==null?{time:T[i]}:{time:T[i],value:v});
+  const cs=C.addSeries(L.CandlestickSeries,{upColor:'#26c281',downColor:'#ff5c7a',borderVisible:false,wickUpColor:'#26c281',wickDownColor:'#ff5c7a',priceFormat:{type:'price',precision:dp,minMove:dp===3?0.001:0.05}});
+  cs.setData(D.t.map((t,i)=>({time:T[i],open:D.o[i],high:D.h[i],low:D.l[i],close:D.c[i]})));
+  if(hasVol){ const vs=C.addSeries(L.HistogramSeries,{priceFormat:{type:'volume'},priceScaleId:'vol',lastValueVisible:false,priceLineVisible:false}); vs.priceScale().applyOptions({scaleMargins:{top:0.8,bottom:0}}); vs.setData(D.t.map((t,i)=>({time:T[i],value:D.v[i],color:D.c[i]>=D.o[i]?'rgba(38,194,129,.45)':'rgba(255,92,122,.45)'}))); }
+  const line=(arr,col,w,title,style)=>{ const s=C.addSeries(L.LineSeries,{color:col,lineWidth:w||1.5,lineStyle:style||0,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false,title:title||''}); s.setData(ser(arr)); return s; };
+  if(CH.on.e9) line(e9,'#f2c14e',1.5,'EMA9'); if(CH.on.e21) line(e21,'#5cc8ff',1.5,'EMA21');
+  if(CH.on.vw&&hasVol) line(vw,'#ff9ff3',2,'VWAP',2);
+  if(CH.on.bb){ line(bbU,'#8b9bb4',1,'',1); line(bbM,'#5d6b82',1,'',2); line(bbL,'#8b9bb4',1,'',1); }
+  if(CH.on.st){ const up=st.map((v,i)=>sdir[i]===1?v:null), dn=st.map((v,i)=>sdir[i]===-1?v:null); line(up,'#35f0a8',2,'ST'); line(dn,'#ff6b9d',2,''); }
+  const PL_=(price,col,title,style,w)=>cs.createPriceLine({price,color:col,lineWidth:w||1,lineStyle:style==null?2:style,axisLabelVisible:true,title});
+  if(CH.on.pd&&PC!=null){ PL_(PH,'#9aa9c0','Prev H',3); PL_(PL,'#9aa9c0','Prev L',3); PL_(PC,'#c9d4e3','Prev C',3); }
+  if(CH.on.pv&&piv){ [['R2',piv.R2],['R1',piv.R1],['P',piv.P],['S1',piv.S1],['S2',piv.S2]].forEach(([k,v])=>PL_(v,'#6d7f99',k,1)); }
+  // entry / exit / targets
+  let lvTxt='';
+  if(A&&A.lv&&A.call!=='AVOID'){ const lv=A.lv, buy=A.call==='BUY';
+    PL_(lv.en,'#2fd0ff','ENTRY '+A.call,0,2); PL_(lv.sl,'#ff3b5c','EXIT / SL',0,2); PL_(lv.t1,'#35f0a8','T1',0,2); PL_(lv.t2,'#35f0a8','T2',0,1); PL_(lv.t3,'#35f0a8','T3',0,1);
+    const r=Math.abs(lv.en-lv.sl), pct=v=>((v/lv.en-1)*100*(buy?1:-1)).toFixed(2);
+    lvTxt=`<span class="tag ${buy?'bull':'bear'}" style="font-size:13px">${A.call}</span> conviction ${A.conv} · <b style="color:#2fd0ff">Entry ${fx(lv.en,dp)}</b> · <b style="color:#ff3b5c">Exit / SL ${fx(lv.sl,dp)}</b> (−${(r/lv.en*100).toFixed(2)}%) · <b class="up">T1 ${fx(lv.t1,dp)}</b> (+${pct(lv.t1)}%) · <b class="up">T2 ${fx(lv.t2,dp)}</b> · <b class="up">T3 ${fx(lv.t3,dp)}</b> · R:R 1 : 1 / 2 / 3`; }
+  else if(A&&A.call==='AVOID') lvTxt=`<span class="tag" style="font-size:13px;background:#3a4a62">AVOID</span> conviction ${A.conv} (needs 45+) · no entry marked - wait for EMA 9/21, VWAP and volume to line up · watch ${hasVol&&vw[n-1]?'VWAP '+fx(vw[n-1],dp)+' · ':''}EMA 21 ${fx(e21[n-1],dp)}`;
+  else lvTxt='<span class="mu">Not enough bars on this timeframe for a call yet - try a smaller timeframe.</span>';
+  // EMA 9/21 cross markers on the latest session
+  const mk=[]; for(let i=1;i<n;i++){ if(dayOf(D.t[i])!==td||e9[i]==null||e21[i]==null||e9[i-1]==null||e21[i-1]==null) continue; const up=e9[i]>e21[i], was=e9[i-1]>e21[i-1]; if(up!==was) mk.push({time:T[i],position:up?'belowBar':'aboveBar',color:up?'#35f0a8':'#ff6b9d',shape:up?'arrowUp':'arrowDown',text:up?'9>21':'9<21'}); }
+  try{ L.createSeriesMarkers(cs,mk); }catch(e){}
+  // RSI pane, MACD pane
+  const r1=C.addSeries(L.LineSeries,{color:'#c792ea',lineWidth:1.5,priceLineVisible:false,title:'RSI 14'},1); r1.setData(ser(rs)); r1.createPriceLine({price:70,color:'#ff6b9d',lineStyle:2,lineWidth:1,axisLabelVisible:false}); r1.createPriceLine({price:30,color:'#35f0a8',lineStyle:2,lineWidth:1,axisLabelVisible:false});
+  const mh=C.addSeries(L.HistogramSeries,{priceLineVisible:false,lastValueVisible:false,title:'MACD'},2); mh.setData(mac.map((v,i)=>v==null||sig[i]==null?{time:T[i]}:{time:T[i],value:v-sig[i],color:v-sig[i]>=0?'rgba(53,240,168,.6)':'rgba(255,107,157,.6)'}));
+  const ml=C.addSeries(L.LineSeries,{color:'#5cc8ff',lineWidth:1.2,priceLineVisible:false,lastValueVisible:false},2); ml.setData(ser(mac)); const sl2=C.addSeries(L.LineSeries,{color:'#f2c14e',lineWidth:1.2,priceLineVisible:false,lastValueVisible:false},2); sl2.setData(ser(sig));
+  try{ const ps=C.panes(); ps[0].setStretchFactor(5); if(ps[1]) ps[1].setStretchFactor(1.2); if(ps[2]) ps[2].setStretchFactor(1.2); }catch(e){}
+  // view: today's session (plus a little of yesterday) on first open; keep your zoom on live refresh
+  if(keep) C.timeScale().setVisibleLogicalRange(keep); else { let i0=D.t.findIndex(t=>dayOf(t)===td); i0=Math.max(0,i0-Math.round(40/CH.tf)); C.timeScale().setVisibleLogicalRange({from:i0,to:n+6}); } CH.fit=false;
+  const ltp=A&&A.ltp||D.c[n-1], ch=A&&A.chg!=null?A.chg:(PC?(ltp/PC-1)*100:null);
+  $('chQ').innerHTML=`<b>${fx(ltp,dp)}</b> <span class="${ch>=0?'up':'dn'}">${ch==null?'':sgn(ch)+'%'}</span>`;
+  $('chLv').innerHTML=lvTxt;
+  $('chFt').innerHTML=`${esc(CH.src)} · ${CH.tf}-min candles · last bar ${tHM(D.t[n-1])} IST${mkt().open?' · refreshes every 20 s':' · '+esc(mkt().txt)} · RSI ${rs[n-1]!=null?rs[n-1].toFixed(0):'–'} · Supertrend ${sdir[n-1]===1?'<span class="up">up</span>':'<span class="dn">down</span>'} · ${hasVol?'':'no volume for indices / FX, so no VWAP · '}levels: the watchlist's call engine on this timeframe; risk = max(ATR, distance to EMA 21 + ¼ ATR), capped at 3 × ATR`; }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-chart]'); if(b){ e.preventDefault(); e.stopPropagation(); const [y,nm]=b.dataset.chart.split('|'); chOpen(y,nm); return; }
+  const P=$('chPop'); if(!P.classList.contains('on')) return;
+  if(e.target.id==='chPop'||e.target.id==='chX') { chClose(); return; }
+  const t=e.target.closest('[data-tf]'); if(t&&P.contains(t)){ CH.tf=+t.dataset.tf; svj('jc_ch_tf',CH.tf); P.querySelectorAll('[data-tf]').forEach(x=>x.classList.toggle('on',x===t)); CH.fit=true; CH.raw=null; chLoad(); } },true);
+document.addEventListener('change',e=>{ const t=e.target; if(t.dataset&&t.dataset.ind){ CH.on[t.dataset.ind]=t.checked?1:0; svj('jc_ch_ind',CH.on); if(CH.raw) chDraw(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('chPop').classList.contains('on')) chClose(); });
+/* a 📈 button beside every stock symbol on the page (tables, popups, lists) */
+function chDecorate(root){ (root||document).querySelectorAll('.sym:not([data-chd])').forEach(s=>{ s.dataset.chd=1; const nm=s.textContent.trim(); if(!/^[A-Z0-9&_.-]{1,20}$/i.test(nm)) return; const ex=s.nextElementSibling&&s.nextElementSibling.classList.contains('ex')?s.nextElementSibling:null;
+  const x=ex&&/BSE/.test(ex.textContent)?'BO':'NS'; const b=document.createElement('button'); b.type='button'; b.className='chb'; b.title='Live intraday chart with entry / exit / targets'; b.dataset.chart=nm+'.'+x+'|'+nm; b.textContent='📈'; (ex||s).after(b); }); }
+new MutationObserver(()=>{ clearTimeout(chDecorate.t); chDecorate.t=setTimeout(()=>chDecorate(),60); }).observe(document.body,{childList:true,subtree:true}); chDecorate();
 
 /* ---------- a popped-out TV keeps playing while you move around the app: other app pages open over this page ---------- */
 (function(){
