@@ -52,7 +52,7 @@ tr.buy td:nth-child(2){box-shadow:inset 3px 0 0 var(--up)}tr.sell td:nth-child(2
 table.rbt{min-width:1100px}table.rbt td{white-space:normal;text-align:left;vertical-align:top;font-size:12.5px}table.rbt th{text-align:left}
 .ex2{font-weight:800}.ex2.up{color:var(--up)}.ex2.dn{color:var(--dn)}.ex2.nt{color:var(--av)}
 .app{max-width:1800px;margin:0 auto;display:grid;grid-template-columns:200px minmax(0,1fr);gap:12px;align-items:start}
-.tiles{display:flex;flex-direction:column;gap:10px;position:sticky;top:8px;perspective:700px;max-height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--m1,#2fd0ff) transparent;padding:10px 8px 14px;margin:-2px -4px 0;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 40px rgba(0,0,0,.35),0 0 28px var(--mglow,rgba(47,208,255,.12)),inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:cloud 7s ease-in-out infinite}
+.tiles{display:flex;flex-direction:column;gap:10px;position:sticky;top:8px;perspective:700px;max-height:calc(100vh - 16px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--m1,#2fd0ff) transparent;padding:10px 8px 14px;margin:-2px -4px 0;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.10);box-shadow:0 10px 40px rgba(0,0,0,.35),0 0 28px var(--mglow,rgba(47,208,255,.12)),inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;flex-direction:column;height:calc(100vh - 16px)}
 @keyframes cloud{50%{transform:translateY(-3px);box-shadow:0 16px 46px rgba(0,0,0,.38),0 0 36px var(--mglow,rgba(47,208,255,.16)),inset 0 1px 0 rgba(255,255,255,.14)}}
 .tiles::-webkit-scrollbar{width:6px}.tiles::-webkit-scrollbar-thumb{background:var(--m1,#2fd0ff);border-radius:6px}
 .tile{position:relative;text-align:left;border:1px solid #3a5476;border-radius:14px;padding:12px 12px 11px 50px;cursor:pointer;color:#e8eef8;
@@ -175,7 +175,13 @@ body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none
 .top{border-bottom-color:color-mix(in srgb,var(--m1) 45%,transparent)!important}
 .hbr{display:flex;flex-direction:column;align-items:center;gap:3px}.mood{font:700 11.5px Inter,Arial,sans-serif;color:var(--m1);background:color-mix(in srgb,var(--m1) 12%,transparent);border:1px solid color-mix(in srgb,var(--m1) 40%,transparent);border-radius:999px;padding:2px 12px;white-space:nowrap;transition:color 2s,background 2s}
 @media(max-width:1100px){.hbr{grid-column:1/-1;grid-row:1}}@media(max-width:700px){.hbr{grid-row:auto}.mood{white-space:normal;text-align:center}}
-@media(prefers-reduced-motion:reduce){body::before,.tiles{animation:none}}
+@media(prefers-reduced-motion:reduce){body::before{animation:none}}
+.wctl{display:flex;gap:6px}.wctl #multiB{flex:1}.wauto{flex:none;width:34px;padding:0}.wauto.on{background:var(--m1,#2fd0ff);color:#0b1220}
+.wheel{position:relative;flex:1;min-height:180px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;perspective:520px;margin:2px -6px 0;padding:0 6px;
+ -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 84%,transparent 100%)}
+.wheel::-webkit-scrollbar{display:none}.wtrack{display:flex;flex-direction:column;gap:10px;padding:6px 0}
+.ws{transform-origin:50% 50%;will-change:transform,opacity}.ws .tile{width:100%}
+@media(max-width:820px){.tiles{height:auto}.wheel{overflow:visible;-webkit-mask-image:none;mask-image:none;perspective:none;margin:0;padding:0;min-height:0}.wtrack{flex-direction:row;padding:0}.ws.clone{display:none}.ws{transform:none!important;opacity:1!important}.wctl{flex-direction:column}.wauto{display:none}}
 .empty{padding:26px;text-align:center;color:var(--mu)}
 .note{max-width:1800px;margin:10px auto 0;font-size:11.5px;color:var(--mu);line-height:1.55}
 .note b{color:#d8e2f0}
@@ -205,21 +211,23 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
  <div class="tvb" id="tvBadge"><div class="tvh" id="tvHd" title="Click to open the TV as a section (joins the 2 × 2 view)"><b>📺 LIVE TV ⤢</b><span id="tvSt">Zee Business</span></div>
   <div id="tvHome"><div class="tvhm" id="tvAway">▣ showing in the TV section</div><div class="tvv" id="tvBox"><video id="wtv" playsinline muted></video><button type="button" id="tvGo" class="tvgo" title="Play Zee Business live">▶ Watch live</button></div></div>
   <div class="tvc"><button type="button" id="tvMu" title="Sound on / off">🔇</button><button type="button" id="tvRe" title="Reconnect">↻</button><button type="button" id="tvPi" title="Pop out (stays on top, keeps playing while you use the tiles)">⧉</button><button type="button" id="tvOff" title="Stop">■</button></div></div>
- <button type="button" class="mb" id="multiB" title="Open up to 4 sections as a 2 x 2 square (stocks as rows, click a row for details); a 5th opens as a popup">▣ 2 × 2 view</button>
- <button type="button" class="tile hn" data-p="hn"><i>💎</i><b>High Net-worth Trade</b><small id="ts_hn">–</small></button>
- <button type="button" class="tile" data-p="tk"><i>📒</i><b>HNT Tracker</b><small id="ts_tk">–</small></button>
- <button type="button" class="tile" data-p="ix"><i>🌐</i><b>Indices &amp; global cues</b><small id="ts_ix">–</small></button>
- <button type="button" class="tile" data-p="hm"><i>🔥</i><b>Heat map</b><small id="ts_hm">–</small></button>
- <button type="button" class="tile" data-p="al"><i>🔔</i><b>Live alerts</b><small id="ts_al">–</small></button>
- <button type="button" class="tile" data-p="wl"><i>📋</i><b>Watchlist</b><small id="ts_wl">live calls</small></button>
- <button type="button" class="tile" data-p="ol"><i>🟢</i><b>Open = Low</b><small id="ts_ol">–</small></button>
- <button type="button" class="tile" data-p="oh"><i>🔴</i><b>Open = High</b><small id="ts_oh">–</small></button>
- <button type="button" class="tile" data-p="bf"><i>🐟</i><b>Big Fish</b><small id="ts_bf">–</small></button>
- <button type="button" class="tile" data-p="bs"><i>🦈</i><b>Tail Fish</b><small id="ts_bs">–</small></button>
- <button type="button" class="tile" data-p="rt"><i>📢</i><b>Results today</b><small id="ts_rt">–</small></button>
- <button type="button" class="tile" data-p="rp"><i>🌙</i><b>Yesterday's results</b><small id="ts_rp">–</small></button>
- <button type="button" class="tile" data-p="ru"><i>📅</i><b>Upcoming results</b><small id="ts_ru">–</small></button>
- <button type="button" class="tile" data-p="how"><i>ℹ️</i><b>How it works</b><small>rules &amp; sources</small></button>
+ <div class="wctl"><button type="button" class="mb" id="multiB" title="Open up to 4 sections as a 2 x 2 square (stocks as rows, click a row for details); a 5th opens as a popup">▣ 2 × 2 view</button><button type="button" class="mb wauto" id="wAuto" title="Tile wheel: rolls by itself; stops while you point at it or scroll it">⟳</button></div>
+ <div class="wheel" id="wheel"><div class="wtrack" id="wtrack">
+ <div class="ws"><button type="button" class="tile hn" data-p="hn"><i>💎</i><b>High Net-worth Trade</b><small id="ts_hn">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="tk"><i>📒</i><b>HNT Tracker</b><small id="ts_tk">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="ix"><i>🌐</i><b>Indices &amp; global cues</b><small id="ts_ix">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="hm"><i>🔥</i><b>Heat map</b><small id="ts_hm">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="al"><i>🔔</i><b>Live alerts</b><small id="ts_al">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="wl"><i>📋</i><b>Watchlist</b><small id="ts_wl">live calls</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="ol"><i>🟢</i><b>Open = Low</b><small id="ts_ol">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="oh"><i>🔴</i><b>Open = High</b><small id="ts_oh">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="bf"><i>🐟</i><b>Big Fish</b><small id="ts_bf">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="bs"><i>🦈</i><b>Tail Fish</b><small id="ts_bs">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="rt"><i>📢</i><b>Results today</b><small id="ts_rt">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="rp"><i>🌙</i><b>Yesterday's results</b><small id="ts_rp">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="ru"><i>📅</i><b>Upcoming results</b><small id="ts_ru">–</small></button></div>
+ <div class="ws"><button type="button" class="tile" data-p="how"><i>ℹ️</i><b>How it works</b><small>rules &amp; sources</small></button></div>
+ </div></div>
 </nav>
 <main class="pnl">
 <section class="pn" id="p_hn"><div class="rb" id="hnT"><div class="empty">Loading live prices…</div></div></section>
@@ -661,7 +669,7 @@ let PANEL=ldj('jc_wl_panel','wl'); const SEEN=ldj('jc_wl_seen',{}), SIG={};
 /* side-by-side mode: up to 4 sections open at once in compact form; a 5th opens as a popup */
 let MULTI=!!ldj('jc_wl_multi',0), OPEN=ldj('jc_wl_open',['hn','wl']), POP=null;
 const isOpen=p=>MULTI?(OPEN.indexOf(p)>=0||POP===p):p===PANEL;
-function seen(p){ if(SIG[p]!=null){ SEEN[p]=SIG[p]; svj('jc_wl_seen',SEEN); } const t=document.querySelector('.tile[data-p="'+p+'"]'); if(t) t.classList.remove('nw'); }
+function seen(p){ if(SIG[p]!=null){ SEEN[p]=SIG[p]; svj('jc_wl_seen',SEEN); } document.querySelectorAll('.tile[data-p="'+p+'"]').forEach(t=>t.classList.remove('nw')); }
 function layout(){ pnHead(); setTimeout(pnSync,0); const main=document.querySelector('.pnl'); main.classList.toggle('multi',MULTI); main.style.setProperty('--n',MULTI?Math.max(1,OPEN.length):1); main.classList.toggle('two-rows',MULTI&&OPEN.length>2);
   document.querySelectorAll('.pn').forEach(x=>{ const p=x.id.slice(2); x.classList.toggle('on',MULTI?OPEN.indexOf(p)>=0:p===PANEL); if(MULTI) x.style.order=OPEN.indexOf(p); else x.style.order=''; });
   document.querySelectorAll('.tile').forEach(t=>t.classList.toggle('on',isOpen(t.dataset.p))); $('tvBadge').classList.toggle('on',isOpen('tv')); if(typeof tvPlace==='function') tvPlace();
@@ -707,7 +715,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ $('rowPop').class
 function tileSig(p,sig,sub){ if(sub!=null){ const el=$('ts_'+p); if(el) el.innerHTML=sub; } SIG[p]=sig;
   if(isOpen(p)){ SEEN[p]=sig; svj('jc_wl_seen',SEEN); return; }
   if(SEEN[p]==null){ SEEN[p]=sig; svj('jc_wl_seen',SEEN); return; }       // first visit: nothing is "new" yet
-  const t=document.querySelector('.tile[data-p="'+p+'"]'); if(t) t.classList.toggle('nw',SEEN[p]!==sig); }
+  document.querySelectorAll('.tile[data-p="'+p+'"]').forEach(t=>t.classList.toggle('nw',SEEN[p]!==sig)); }
 function tileUpd(){
   if(OLH.rows.length&&!tileUpd.inHn){ tileUpd.inHn=1; try{ hnPaint(OLH.rows); }catch(e){} tileUpd.inHn=0; }
   // watchlist: a call changed, or a stock newly met a criterion
@@ -924,6 +932,37 @@ function baro(){ const el=$('bmW'); if(!el) return; const rows=todayRows().filte
   el.innerHTML=`<div class="bmf z${z}" title="Market barometer · own score (not an official index) from: ${comp.map(c=>c[0]).join(' · ')}&#10;52-week highs / lows: ${h52} / ${l52} · ${n} stocks&#10;Stance is a contrarian read: more greed = more risk, more fear = more opportunity"><span class="bmi">${wx[0]}</span><span class="bms"><small>FEAR &amp; GREED</small><b>${fg.toFixed(0)}</b></span><span class="bml"><em>${lab}</em><small>${wx[1]}</small></span></div>
    <div class="bmt">${ch('Adv / Dec',adv+' / '+dec,ap>=50)}${ch('Avg move',(avg>=0?'+':'')+avg.toFixed(2)+'%',avg>=0)}${ch('Day H / L',nh+' / '+nl,nh>=nl)}${ch('1M H / L',h1+' / '+l1,h1>=l1)}</div>`; }
 setTimeout(baro,1500); setInterval(()=>{ try{ baro(); }catch(e){} },30000);
+
+/* ---------- the tile wheel: tiles roll round like a dial - they go up, fade out under the 2 x 2 button and come back from the bottom.
+   Rolls by itself (⟳ on/off); stops while you point at it, touch it or scroll it, then carries on. ---------- */
+(function(){ const W=$('wheel'), T=$('wtrack'); if(!W||!T) return; const O=[...T.children];
+  const mk=()=>O.map(o=>{ const c=o.cloneNode(true); c.classList.add('clone'); c.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id')); return c; });
+  mk().forEach(c=>T.appendChild(c)); const pre=mk(); pre.reverse().forEach(c=>T.insertBefore(c,T.firstChild));
+  const C=[...T.querySelectorAll('.ws.clone')];
+  function sync(){ C.forEach((c,i)=>{ const o=O[i%O.length]; const h=o.innerHTML.replace(/ id="[^"]*"/g,''); if(c.dataset.h!==h){ c.dataset.h=h; c.innerHTML=h; } const ct=c.firstElementChild, ot=o.firstElementChild; if(ct&&ot&&ct.className!==ot.className) ct.className=ot.className; }); }
+  const set=()=>O[0].offsetTop-T.children[0].offsetTop; const mob=()=>innerWidth<=820;
+  let auto=ldj('jc_wl_wheel',1), hold=0, last=performance.now(), acc=0;
+  const ab=$('wAuto'); const abP=()=>{ ab.classList.toggle('on',!!auto); ab.title=auto?'Tile wheel rolling - click to stop':'Tile wheel stopped - click to let it roll'; }; abP();
+  ab.onclick=()=>{ auto=auto?0:1; svj('jc_wl_wheel',auto); abP(); };
+  const pause=ms=>{ hold=Math.max(hold,performance.now()+ms); };
+  W.addEventListener('pointerenter',()=>pause(1e9)); W.addEventListener('pointerleave',()=>{ hold=performance.now()+2500; });
+  W.addEventListener('wheel',()=>pause(5000),{passive:true}); W.addEventListener('touchstart',()=>pause(6000),{passive:true});
+  function wrap(){ const S=set(); if(S<=0) return; if(W.scrollTop<S*0.5) W.scrollTop+=S; else if(W.scrollTop>S*1.5) W.scrollTop-=S; }
+  function shape(){ const r=W.getBoundingClientRect(), mid=r.top+r.height/2, half=r.height/2||1;
+    T.querySelectorAll('.ws').forEach(x=>{ const b=x.getBoundingClientRect(), d=Math.max(-1.25,Math.min(1.25,(b.top+b.height/2-mid)/half)), a=Math.abs(d);
+      x.style.transform=`rotateX(${(-d*38).toFixed(1)}deg) scale(${(1-a*0.12).toFixed(3)})`; x.style.opacity=(1-Math.min(a,1)*0.55).toFixed(2); }); }
+  W.addEventListener('scroll',()=>{ if(mob()) return; wrap(); shape(); },{passive:true});
+  function frame(t){ const dt=Math.min(100,t-last); last=t;
+    if(!mob()&&auto&&t>hold&&!document.hidden&&!POP){ acc+=dt*0.022; if(acc>=1){ const n=Math.floor(acc); acc-=n; W.scrollTop+=n; } }
+    requestAnimationFrame(frame); }
+  setTimeout(()=>{ if(!mob()){ W.scrollTop=set(); shape(); } },50); requestAnimationFrame(frame);
+  setInterval(sync,1000); addEventListener('resize',()=>{ if(!mob()){ wrap(); shape(); } });
+  // the menu always ends at the bottom of the screen, whatever the page scroll
+  const nav=$('tiles'); function fit(){ if(mob()){ nav.style.height=''; return; } const top=Math.max(8,nav.parentNode.getBoundingClientRect().top); const h=Math.round(innerHeight-top-10); if(Math.abs((parseInt(nav.style.height)||0)-h)>2){ nav.style.height=h+'px'; shape(); } }
+  addEventListener('scroll',fit,{passive:true}); addEventListener('resize',fit); setTimeout(fit,60);
+  // opening a tile from the wheel brings it to the middle
+  W.addEventListener('click',e=>{ const ws=e.target.closest('.ws'); if(!ws||mob()) return; pause(8000); const r=W.getBoundingClientRect(), b=ws.getBoundingClientRect(); W.scrollBy({top:(b.top+b.height/2)-(r.top+r.height/2),behavior:'smooth'}); });
+})();
 
 /* ---------- 📰 live news ticker: headline + time; click for the details ---------- */
 let NWS=null, NWsig='';
