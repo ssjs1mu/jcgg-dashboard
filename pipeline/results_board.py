@@ -23,7 +23,8 @@ import concurrent.futures as cf, datetime as dt, json, os, urllib.parse, urllib.
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.environ.get('OUT') or os.path.join(ROOT, 'data', 'results_board.json')
-UA = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'}
+UA = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36', 'Accept': '*/*'}
+ERR = []
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 RAW = 'https://raw.githubusercontent.com/ssjs1mu/jc-stock-analyst/main/data/'
 
@@ -43,8 +44,10 @@ def daily(sym):
                     continue
                 rows.append((dt.datetime.fromtimestamp(t, IST).strftime('%Y-%m-%d'), q['open'][i], q['high'][i], q['low'][i], q['close'][i], q['volume'][i] or 0))
             return rows
-        except Exception:
-            pass
+        except Exception as e:
+            if len(ERR) < 3:
+                ERR.append('%s: %s' % (sym, e))
+            import time; time.sleep(1.5)
     return None
 
 
@@ -169,6 +172,7 @@ def main():
     rows['upcoming'].sort(key=lambda r: (r['date'], r['s']))
     json.dump({'updated': now.isoformat(timespec='seconds'), 'today': today, 'prev': prev, 'source': 'NSE event calendar (via jc-stock-analyst results.json, updated %s) + Yahoo daily prices' % res.get('updated', '?'),
                'missing_prices': miss, **rows}, open(OUT, 'w'), separators=(',', ':'))
+    print('price errors (first 3):', ERR)
     print('results board: %d upcoming, %d today, %d previous day (%d without prices)' % (len(rows['upcoming']), len(rows['today']), len(rows['prev']), miss))
 
 
