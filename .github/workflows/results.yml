@@ -1,0 +1,26 @@
+name: Results board (watchlist page)
+# Upcoming / today / previous-day results for the Nifty 500 with pre-result trend, estimated timing from past reactions,
+# reaction so far and a rule-based expected trend. Published to the `results` branch (no Pages rebuild).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '50 1 * * 1-5'     # 07:20 IST - before the open
+    - cron: '20 10 * * 1-5'    # 15:50 IST - after the close
+    - cron: '50 14 * * 1-5'    # 20:20 IST - after the evening results-calendar update
+permissions:
+  contents: write
+jobs:
+  board:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Build and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          OUT=/tmp/rb.json python pipeline/results_board.py | tee /tmp/log.txt
+          test -s /tmp/rb.json
+          b=$(git hash-object -w /tmp/rb.json); t=$(printf '100644 blob %s\tresults_board.json\n' "$b" | git mktree); c=$(git commit-tree "$t" -m "results $(date -u +%FT%TZ)"); git push -q -f origin "$c":refs/heads/results
