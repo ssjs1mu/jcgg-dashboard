@@ -97,9 +97,9 @@ async function pcLoad(ys){ const today=istDay();
 async function pull(){
   try{
     const syms=Object.keys(CONS.floats).map(s=>s+'.NS'), ys=PAN.slice(0,NP).map(n=>CONS.indices[n]&&CONS.indices[n].y).filter(Boolean), k=Math.ceil(syms.length/3), parts=[syms.slice(0,k).concat(ys),syms.slice(k,2*k),syms.slice(2*k)];
-    await pcLoad(ys);
-    const rs=await Promise.all(parts.map(p=>J(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.join(',')),30000).catch(()=>null)));
+    const [,rs]=await Promise.all([pcLoad(ys),Promise.all(parts.map(p=>J(BACKEND+'?action=liveq&symbols='+encodeURIComponent(p.join(',')),30000).catch(()=>null)))]);   // index closes and live quotes fetched together
     rs.forEach(j=>{ if(j&&j.ok) Object.keys(j.q).forEach(key=>{ const q=j.q[key]; if(!q||!q[0]||!q[1]) return; if(key.endsWith('.NS')&&!key.startsWith('NIFTY')) PX[key.slice(0,-3)]={p:q[0],pc:q[1],v:q[5],av:q[6]}; else LV[key]={p:q[0]}; }); });
+    if(!window._live1){ window._live1=1; WZat=0; }
     $('st').innerHTML='<b>● LIVE</b> '+ist().toISOString().slice(11,19)+' IST · '+Object.keys(PX).length+' stocks';
   }catch(e){ $('st').textContent='feed retrying…'; }
   paint();
@@ -181,7 +181,11 @@ function wzPaint(force){ if(!CONS||!Object.keys(AP).length) return; if(!force&&D
   $('cn').value=NP; $('so').value=SO;
   $('cn').onchange=()=>{ NP=+$('cn').value; sv('jc_np',NP); pull(); }; $('so').onchange=()=>{ SO=$('so').value; sv('jc_so',SO); paint(); };
   setAuto(AUTO); $('au').onclick=()=>{ setAuto(!AUTO); if(AUTO) paint(); else sv('jc_pan',PAN); };
+  // fast first view: the 5-minute market snapshot (one small file) while the live quotes load
+  const snap=J('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Math.floor(Date.now()/60000),15000).catch(()=>null);
   await loadCons(); if(!CONS){ $('st').textContent='constituents not available'; return; }
+  const h=await snap; if(h&&h.rows&&!Object.keys(PX).length){ h.rows.forEach(r=>{ if(r[2]&&r[3]) PX[r[0]]={p:r[2],pc:r[3],v:r[7],av:r[8]}; if(r[10]!=null) HS[r[0]]={mh:r[10],ml:r[11],wh:r[12],wl:r[13],rsi:r[14]}; }); HSat=Date.now();
+    $('st').innerHTML='SNAPSHOT '+new Date(Date.parse(h.ts)+19800000).toISOString().slice(11,16)+' IST · live quotes loading…'; paint(); try{ wzPaint(true); }catch(e){} }
   await pull(); setInterval(pull,20000);
 })();
 </script>
