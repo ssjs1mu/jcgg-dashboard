@@ -1,0 +1,31 @@
+name: Tomorrow's trade calls (next-day plan)
+# After the close: screens the Nifty 500 on today's closing data with the app's indicators and publishes
+# tomorrow's breakout plan (entry trigger, stop, T1-T3) to the `plan` branch. Live tracking happens on plan.html
+# and in the HNT tracker (hn_tracker.py records a call when its trigger is crossed).
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '25 10 * * 1-5'    # 15:55 IST
+    - cron: '35 14 * * 1-5'    # 20:05 IST - re-run on Yahoo's final daily bars
+permissions:
+  contents: write
+concurrency:
+  group: nextday
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Build and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch -q origin plan:plan 2>/dev/null && git show plan:plans.json > /tmp/old.json || echo '{}' > /tmp/old.json
+          OLD=/tmp/old.json OUT=/tmp/plans.json python pipeline/next_day.py | tee /tmp/log.txt
+          if [ -s /tmp/plans.json ]; then
+            b=$(git hash-object -w /tmp/plans.json); t=$(printf '100644 blob %s\tplans.json\n' "$b" | git mktree); c=$(git commit-tree "$t" -m "plan $(date -u +%FT%TZ)"); git push -q -f origin "$c":refs/heads/plan
+          fi

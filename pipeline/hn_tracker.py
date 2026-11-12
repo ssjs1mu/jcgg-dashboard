@@ -248,6 +248,44 @@ def main():
                 T['log'].append('%s %s: recorded %s' % (today, hts.astimezone(IST).strftime('%H:%M'), ', '.join(new)))
         else:
             T['log'].append('%s %02d:%02d: heat feed %.0f min old / %d rows - nothing recorded this run' % (today, now.hour, now.minute, age, len(rows)))
+    # 📅 next-day plan: a call becomes a trade when today's price crosses its trigger (09:15-14:00), not if it gapped past by > 1.5%
+    if trading and mm >= 560:
+        try:
+            PL = getj('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/plan/plans.json?x=%d' % now.timestamp()).get('plans', {}).get(today)
+        except Exception:
+            PL = None
+        if PL:
+            haveP = {(t['date'], t['s'], t['side']) for t in T['trades'] if t.get('src_kind') == 'PLAN'}
+            skips = T.setdefault('plan_skip', {}).setdefault(today, {})
+            for c in PL.get('calls', []):
+                if (today, c['s'], c['side']) in haveP or c['s'] in skips:
+                    continue
+                try:
+                    B = [b for b in bars5(c['s'], '5d') if dt.datetime.fromtimestamp(b[0], IST).strftime('%Y-%m-%d') == today]
+                except Exception:
+                    continue
+                if not B:
+                    continue
+                d = c["d"]; en = c["entry"]
+                hit = None
+                for t, h, l, cl in B:
+                    tm = dt.datetime.fromtimestamp(t, IST); m_ = tm.hour * 60 + tm.minute
+                    if m_ > 840:
+                        break
+                    if (d > 0 and h >= en) or (d < 0 and l <= en):
+                        hit = (t, tm.strftime('%H:%M')); break
+                if not hit:
+                    if mm > 840:
+                        skips[c['s']] = 'not triggered by 14:00'
+                    continue
+                # gap check: the first bar's range starts beyond the trigger
+                if hit[0] == B[0][0] and ((d > 0 and B[0][2] > en * 1.015) or (d < 0 and B[0][1] < en * 0.985)):
+                    skips[c['s']] = 'gapped past the trigger by more than 1.5% - not chased'; continue
+                T['trades'].append({'s': c['s'], 'side': c['side'], 'd': d, 'entry': en, 'stop': c['stop'], 't1': c['t1'], 'target': c['t2'], 't3': c['t3'],
+                                    'risk': c['risk'], 'date': today, 'time': hit[1], 'ts': hit[0], 'status': 'OPEN', 'src_kind': 'PLAN', 'src': c.get('why', [])[:4],
+                                    'plan_from': PL.get('from')})
+                T['log'].append('%s %s: next-day plan %s %s triggered at %.2f' % (today, hit[1], c['s'], c['side'], en))
+            T['plan_skip'] = {k: T['plan_skip'][k] for k in sorted(T['plan_skip'])[-10:]}
     # follow open picks
     for tr in T['trades']:
         if tr['status'] in ('TARGET', 'STOP', 'EXPIRED'):
@@ -276,7 +314,7 @@ def main():
                     'avg_mins_target': round(sum(t.get('mins') or 0 for t in closed if t['status'] == 'TARGET') / max(1, sum(1 for t in closed if t['status'] == 'TARGET'))),
                     'avg_mins_stop': round(sum(t.get('mins') or 0 for t in closed if t['status'] == 'STOP') / max(1, sum(1 for t in closed if t['status'] == 'STOP'))),
                     'top_picks': sum(1 for t in T['trades'] if t.get('top', True))}
-    for k in ('HNT', 'IM'):
+    for k in ('HNT', 'IM', 'PLAN'):
         L = [t for t in T['trades'] if t.get('src_kind', 'HNT') == k]; Lc = [t for t in L if t['status'] != 'OPEN' and t.get('ret') is not None]
         T['summary'][k] = {'calls': len(L), 'closed': len(Lc), 'targets': sum(1 for t in Lc if t['status'] == 'TARGET'), 'stops': sum(1 for t in Lc if t['status'] == 'STOP'),
                            'net_sum': round(sum(t['ret'] for t in Lc), 2), 'open_mtm': round(sum(t['ret'] or 0 for t in L if t['status'] == 'OPEN'), 2)}
