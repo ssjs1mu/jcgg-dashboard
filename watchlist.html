@@ -667,12 +667,12 @@ trkLoad(); setInterval(trkLoad,10*60000);
  let pip=null; const box=$('tvBox');
  const ph=document.createElement('div'); ph.className='tvph'; ph.innerHTML='📺 Playing in the pop-out window<button type="button" class="tvbk">⤺ Bring TV back here</button>';
  function back(){ if(pip){ try{ pip.close(); }catch(e){} return; } if(document.pictureInPictureElement) document.exitPictureInPicture().catch(()=>{}); }
- ph.querySelector('.tvbk').onclick=back;
+ ph.querySelector('.tvbk').onclick=back; window.tvBack=back; window.tvPopped=()=>!!(pip||document.pictureInPictureElement);
  function homeAgain(){ if(ph.parentNode){ ph.parentNode.insertBefore(box,ph); ph.remove(); } pip=null; $('tvPi').textContent='⧉'; $('tvPi').title='Pop out (stays on top while you work)'; if(on) v.play().catch(()=>{}); }
  $('tvPi').onclick=async()=>{ if(pip||document.pictureInPictureElement){ back(); return; } if(!on) await start();
    if(window.documentPictureInPicture){ try{
      pip=await documentPictureInPicture.requestWindow({width:520,height:330});
-     const d=pip.document, stl=d.createElement('style'); stl.textContent='html,body{margin:0;height:100%;background:#000;font:700 12px Inter,Segoe UI,Arial,sans-serif;overflow:hidden}#bar{position:fixed;left:0;right:0;top:0;display:flex;gap:6px;padding:6px;background:linear-gradient(180deg,rgba(0,0,0,.75),transparent);opacity:0;transition:opacity .25s;z-index:2}body:hover #bar{opacity:1}#bar button{border:1px solid #e0cd96;background:#1d2236;color:#fff;border-radius:7px;padding:4px 10px;cursor:pointer;font:800 12px Inter,Arial}#bar .bk{background:#e0cd96;color:#1a1030}.tvv{position:absolute;inset:0;border-radius:0;aspect-ratio:auto}.tvv video{width:100%;height:100%;object-fit:contain}.tvgo{display:none!important}';
+     const d=pip.document, stl=d.createElement('style'); stl.textContent='html,body{margin:0;height:100%;background:#000;font:700 12px Inter,Segoe UI,Arial,sans-serif;overflow:hidden}#bar{position:fixed;left:0;right:0;top:0;display:flex;gap:6px;padding:6px;background:linear-gradient(180deg,rgba(0,0,0,.8),transparent);z-index:2}#bar button{border:1px solid #e0cd96;background:#1d2236;color:#fff;border-radius:7px;padding:4px 10px;cursor:pointer;font:800 12px Inter,Arial}#bar .bk{background:#e0cd96;color:#1a1030}.tvv{position:absolute;left:0;right:0;top:38px;bottom:0;border-radius:0;aspect-ratio:auto}.tvv video{width:100%;height:100%;object-fit:contain}.tvgo{display:none!important}';
      d.head.appendChild(stl); d.title="Joshi's Corner · Zee Business live";
      const bar=d.createElement('div'); bar.id='bar'; bar.innerHTML='<button class="bk" title="Bring the TV back into the page">⤺ Back to page</button><button class="mu">'+(v.muted?'🔇 Sound on':'🔊 Mute')+'</button><button class="rl" title="Reconnect / jump to live">↻ Live</button>';
      d.body.appendChild(bar); box.parentNode.insertBefore(ph,box); d.body.appendChild(box); v.play().catch(()=>{});
@@ -717,7 +717,7 @@ function pnSync(){ if(!MULTI) return; document.querySelectorAll('.pnl .pn.on').f
 setInterval(pnSync,1000);
 function mvSec(p,to){ const i=OPEN.indexOf(p); if(i<0||to<0||to>=OPEN.length||to===i) return; OPEN.splice(i,1); OPEN.splice(to,0,p); svj('jc_wl_open',OPEN); layout(); }
 function swapSec(a,b){ const i=OPEN.indexOf(a), j=OPEN.indexOf(b); if(i<0||j<0||i===j) return; OPEN[i]=b; OPEN[j]=a; svj('jc_wl_open',OPEN); layout(); }
-function closeSec(p){ const i=OPEN.indexOf(p); if(i<0) return; OPEN.splice(i,1); if(!OPEN.length){ MULTI=false; svj('jc_wl_multi',0); OPEN=[p]; PANEL=p; } svj('jc_wl_open',OPEN); layout(); }
+function closeSec(p){ const i=OPEN.indexOf(p); if(i<0) return; if(p==='tv'&&tvRestore(i)){ svj('jc_wl_open',OPEN); layout(); return; } OPEN.splice(i,1); if(!OPEN.length){ MULTI=false; svj('jc_wl_multi',0); OPEN=[p]; PANEL=p; } svj('jc_wl_open',OPEN); layout(); }
 (function(){ const main=document.querySelector('.pnl'); let dragP=null;
   main.addEventListener('click',e=>{ const b=e.target.closest('.pnh button'); if(!b||!MULTI) return; e.stopPropagation(); const p=b.closest('.pn').id.slice(2);
     if(b.dataset.cx) closeSec(p); else mvSec(p,OPEN.indexOf(p)+(+b.dataset.mv)); },true);
@@ -726,17 +726,19 @@ function closeSec(p){ const i=OPEN.indexOf(p); if(i<0) return; OPEN.splice(i,1);
   main.addEventListener('drop',e=>{ if(!dragP) return; e.preventDefault(); const sec=e.target.closest('.pn.on'); if(sec) swapSec(dragP,sec.id.slice(2)); });
   main.addEventListener('dragend',()=>{ dragP=null; main.querySelectorAll('.pn.drag,.pn.over').forEach(x=>x.classList.remove('drag','over')); });
 })();
-function show(p){ if(!MULTI){ PANEL=p; svj('jc_wl_panel',p); seen(p); layout(); return; }
+let TVREP=ldj('jc_wl_tvrep',null);
+function tvRestore(i){ /* closing the TV square brings back the section it replaced */ if(!TVREP||OPEN.indexOf(TVREP.p)>=0||!$('p_'+TVREP.p)){ TVREP=null; svj('jc_wl_tvrep',null); return false; } OPEN[i]=TVREP.p; TVREP=null; svj('jc_wl_tvrep',null); return true; }
+function show(p){ if(!MULTI){ if(p==='tv'&&PANEL==='tv'){ p=ldj('jc_wl_prevp','wl'); } else if(p==='tv') svj('jc_wl_prevp',PANEL); PANEL=p; svj('jc_wl_panel',p); seen(p); layout(); return; }   /* single view: clicking LIVE TV again goes back to the previous section */
   const i=OPEN.indexOf(p);
-  if(i>=0){ if(OPEN.length>1) OPEN.splice(i,1); }            // click an open tile to close it (one always stays)
+  if(i>=0){ if(p==='tv'&&tvRestore(i)) {} else if(OPEN.length>1) OPEN.splice(i,1); }            // click an open tile to close it (one always stays)
   else if(OPEN.length<4) OPEN.push(p);
-  else if(p==='tv'){ OPEN[OPEN.length-1]='tv'; }               // the TV always joins the 2 x 2 square (takes the last square), never a popup
+  else if(p==='tv'){ TVREP={p:OPEN[OPEN.length-1],i:OPEN.length-1}; svj('jc_wl_tvrep',TVREP); OPEN[OPEN.length-1]='tv'; }               // the TV always joins the 2 x 2 square (takes the last square), never a popup
   else { popOpen(p); return; }                                  // the 5th: show as a popup
   svj('jc_wl_open',OPEN); seen(p); layout(); }
 function popOpen(p){ popClose(); const sec=$('p_'+p); if(!sec) return; POP=p; const m=$('wlPop'); m.querySelector('.pph').innerHTML=(p==='tv'?'📺 Live TV':document.querySelector('.tile[data-p="'+p+'"] b').textContent)+' <span class="mu">(popup · the 4 side-by-side sections stay open)</span>';
   sec.dataset.home='1'; m.querySelector('.ppb').appendChild(sec); sec.classList.add('on','inpop'); m.classList.add('on'); seen(p); layout(); }
 function popClose(){ const m=$('wlPop'); if(!POP) { m.classList.remove('on'); return; } const sec=$('p_'+POP); sec.classList.remove('inpop'); document.querySelector('.pnl').appendChild(sec); POP=null; m.classList.remove('on'); layout(); }
-$('tiles').addEventListener('click',e=>{ const t=e.target.closest('.tile'); if(t) show(t.dataset.p); else if(e.target.closest('#tvHd')) show('tv'); });
+$('tiles').addEventListener('click',e=>{ const t=e.target.closest('.tile'); if(t) show(t.dataset.p); else if(e.target.closest('#tvHd')){ if(window.tvPopped&&tvPopped()){ tvBack(); return; } show('tv'); } });
 $('multiB').addEventListener('click',()=>{ MULTI=!MULTI; svj('jc_wl_multi',MULTI?1:0); if(MULTI&&OPEN.indexOf(PANEL)<0){ OPEN.unshift(PANEL); OPEN=OPEN.slice(0,4); svj('jc_wl_open',OPEN); } popClose(); layout(); });
 /* compact rows in side-by-side mode: a click shows every column of that row in a popup */
 document.querySelector('.pnl').addEventListener('click',e=>{ if(!MULTI||e.target.closest('button,a,input,select')) return; const tr=e.target.closest('.pnl table tbody tr'); if(!tr||tr.querySelector('td[colspan]')) return; rowPop(tr); });
@@ -1020,8 +1022,9 @@ setTimeout(baro,1500); setInterval(()=>{ try{ baro(); }catch(e){} },30000);
 /* ---------- one always-visible ✕ Close for every popup (stays on screen at any zoom or scroll) ---------- */
 (function(){ const X=$('popX');
   const top=()=>['chPop','rowPop','wlPop'].map($).find(p=>p&&p.classList.contains('on'));
-  function closeTop(){ const p=top(); if(!p) return; if(p.id==='chPop') chClose(); else if(p.id==='wlPop') popClose(); else p.classList.remove('on'); upd(); }
-  function upd(){ X.classList.toggle('on',!!top()); }
+  function closeTop(){ const p=top(); if(!p){ if(window.tvPopped&&tvPopped()){ tvBack(); setTimeout(upd,300); } return; } if(p.id==='chPop') chClose(); else if(p.id==='wlPop') popClose(); else p.classList.remove('on'); upd(); }
+  function upd(){ const tv=!top()&&window.tvPopped&&tvPopped(); X.classList.toggle('on',!!top()||tv); X.textContent=tv?'⤺ Bring TV back':'✕ Close'; }
+  setInterval(upd,1000);
   X.onclick=closeTop; new MutationObserver(upd).observe(document.body,{attributes:true,subtree:true,attributeFilter:['class']});
   document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeTop(); });
   // a click on the dark area around any popup closes it
