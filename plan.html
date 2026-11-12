@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Joshi's Corner - Tomorrow's Calls</title>
+<style>
+:root{--bg:#0e1621;--card:#16243a;--line:#2d4260;--tx:#f1f5fb;--mu:#a9b8cc;--gold:#e0cd96;--up:#35f0a8;--dn:#ff6b9d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(1200px 600px at 15% -10%,#1b2d4a,transparent),linear-gradient(180deg,#0e1621,#0a111a);background-attachment:fixed;color:var(--tx);font:13px/1.35 Inter,"Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;padding:8px 12px 60px;-webkit-font-smoothing:antialiased}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;max-width:1500px;margin:0 auto 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.top h1{font:400 44px/1 "Brush Script MT","Segoe Script",cursive;color:var(--gold);text-align:center;white-space:nowrap}
+.nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sw{display:inline-block;padding:5px 13px;border-radius:999px;background:linear-gradient(180deg,#ffd35c,#d9a21c);color:#1a1030;font:800 12px Inter,"Segoe UI",sans-serif;text-decoration:none}
+.sw.on{background:#1d3a5c;color:#9ee7ff;border:1px solid #2fd0ff;pointer-events:none}
+.st{font:700 12px ui-monospace,Consolas,monospace;color:var(--mu)}.st b{color:var(--up)}
+.hd{max-width:1500px;margin:0 auto 10px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.hd h2{font:900 20px Inter,Arial;color:#fff}.hd h2 span{color:var(--gold)}.hd select{background:#10263d;color:#fff;border:1px solid #2fd0ff;border-radius:7px;padding:5px 8px;font:700 13px Inter}
+.mu{color:var(--mu)}.up{color:var(--up)}.dn{color:var(--dn)}
+.sum{max-width:1500px;margin:0 auto 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.sum div{background:linear-gradient(160deg,#1a2c48,#121f33);border:1px solid var(--line);border-radius:12px;padding:7px 10px;box-shadow:0 6px 0 #0a1320,0 10px 18px rgba(0,0,0,.35)}
+.sum span{display:block;font:700 10.5px Inter;color:var(--mu);letter-spacing:.05em;text-transform:uppercase}.sum b{font:900 19px ui-monospace,Consolas,monospace}
+.list{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:14px;perspective:1100px}
+.row{position:relative;display:grid;grid-template-columns:64px 190px minmax(200px,1.3fr) minmax(330px,1.6fr) 210px;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;
+ border:1px solid rgba(255,255,255,.10);transform:rotateX(7deg);transform-origin:50% 100%;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s;
+ box-shadow:0 10px 0 #071019,0 18px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.14);animation:rise .7s cubic-bezier(.2,.9,.2,1) both}
+.row:hover{transform:rotateX(0) translateY(-4px);box-shadow:0 14px 0 #071019,0 26px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.18)}
+@keyframes rise{from{opacity:0;transform:rotateX(25deg) translateY(30px)}}
+.row.B{background:linear-gradient(120deg,#0d3b2e,#13253d 55%,#101c2e)}.row.S{background:linear-gradient(120deg,#42132a,#13253d 55%,#101c2e)}
+.row.hitT{box-shadow:0 10px 0 #0a3b28,0 0 26px rgba(53,240,168,.45),inset 0 1px 0 rgba(255,255,255,.14)}.row.hitSL{box-shadow:0 10px 0 #3b0a1c,0 0 26px rgba(255,107,157,.45),inset 0 1px 0 rgba(255,255,255,.14)}.row.idle{filter:saturate(.55) brightness(.85)}
+.rk{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font:900 20px Inter;background:linear-gradient(145deg,#e0cd96,#a8873a);color:#1a1030;box-shadow:0 5px 0 #5c4a1c,inset 0 1px 0 rgba(255,255,255,.5)}
+.row.S .rk{background:linear-gradient(145deg,#ff9bb8,#c0345f);color:#fff;box-shadow:0 5px 0 #6a1a35,inset 0 1px 0 rgba(255,255,255,.4)}
+.nm b{display:block;font:900 19px Inter;letter-spacing:.01em}.nm .sd{display:inline-block;margin:3px 0;padding:2px 10px;border-radius:7px;font:900 12px Inter}.row.B .sd{background:#35f0a8;color:#0b1220}.row.S .sd{background:#ff6b9d;color:#fff}
+.nm small{display:block;color:var(--mu);font:600 11px Inter}.nm button{border:1px solid #3a5476;background:#13213a;color:#fff;border-radius:7px;padding:2px 8px;font:700 11px Inter;cursor:pointer;margin-top:3px}
+.why{display:flex;flex-wrap:wrap;gap:4px}.why i{font-style:normal;font:600 11px Inter;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#d9e2ee}
+.why i.k{border-color:#e0cd96;color:#e0cd96}
+.lv{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.lv div{background:rgba(0,0,0,.25);border-radius:8px;padding:3px 6px;text-align:center}.lv span{display:block;font:800 9.5px Inter;letter-spacing:.06em;color:var(--mu)}.lv b{font:800 13px ui-monospace,Consolas,monospace}
+.lv .e b{color:#2fd0ff}.lv .s b{color:#ff5c7a}.lv .t b{color:#35f0a8}.lv .ok{outline:2px solid #35f0a8;background:rgba(53,240,168,.15)}.lv .bad{outline:2px solid #ff5c7a;background:rgba(255,92,122,.15)}
+.bar{position:relative;height:10px;margin:9px 4px 2px;border-radius:6px;background:linear-gradient(90deg,#7a1f38,#7a1f38 var(--e),#1a3a5c var(--e),#0f6a52)}
+.bar u{position:absolute;top:-3px;width:2px;height:16px;background:#fff;opacity:.55}.bar em{position:absolute;top:-5px;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:#fff;border:3px solid #2fd0ff;box-shadow:0 0 10px #2fd0ff;transition:left .8s}
+.lt{text-align:right}.lt .p{font:900 20px ui-monospace,Consolas,monospace}.lt .bd{display:inline-block;margin:4px 0 2px;padding:3px 10px;border-radius:8px;font:900 12px Inter}
+.bd.w{background:#3a3420;color:#f2c14e}.bd.r{background:#14385a;color:#9ee7ff}.bd.t{background:#0f6a52;color:#c9fbe5}.bd.s{background:#7a1f38;color:#ffd1e1}.bd.n{background:#2a3446;color:#c7d2e0}
+.lt small{display:block;color:var(--mu);font:600 11px Inter}.lt .pl{font:900 14px ui-monospace,Consolas,monospace}
+.note{max-width:1500px;margin:14px auto 0;color:var(--mu);font:12px/1.55 Inter}.note b{color:var(--gold)}
+.empty{max-width:1500px;margin:30px auto;text-align:center;color:var(--mu);font:600 14px Inter}
+@media(max-width:1150px){.row{grid-template-columns:56px 1fr;transform:none}.why,.lvw,.lt{grid-column:1/-1}.lt{text-align:left}.top{grid-template-columns:1fr}.top h1{font-size:36px}.nav{justify-content:center}}
+@media(prefers-reduced-motion:reduce){.row{animation:none;transition:none}}
+#jcZ{position:fixed;right:56px;bottom:10px;z-index:99999;display:flex;gap:4px}
+#jcZ button{width:38px;height:38px;border-radius:50%;border:1px solid #2fd0ff;background:#0d5a73;color:#fff;font:700 15px/1 Inter,Arial,sans-serif!important;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+</style>
+<script>(function(){ var z=1; try{ z=parseFloat(localStorage.getItem('jc_zoom'))||1; }catch(e){}
+ function ap(){ if(document.body) document.body.style.zoom=z; }
+ document.addEventListener('DOMContentLoaded',function(){ ap(); var d=document.createElement('div'); d.id='jcZ';
+  d.innerHTML='<button type="button" title="Smaller text" id="jcZm">A−</button><button type="button" title="Larger text" id="jcZp">A+</button>'; document.body.appendChild(d);
+  function st(n){ z=Math.min(1.5,Math.max(.8,Math.round((z+n)*100)/100)); try{ localStorage.setItem('jc_zoom',z); }catch(e){} ap(); }
+  d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
+</head><body>
+<div class="top"><span class="st" id="st">loading…</span><h1>Joshi's Corner</h1>
+ <nav class="nav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw" href="watchlist.html">WATCHLIST</a><a class="sw on" href="plan.html">TOMORROW'S CALLS</a></nav></div>
+<div class="hd"><h2>📅 Trade calls for <span id="for">…</span></h2><select id="pick" title="Earlier plans and how they went"></select><span class="mu" id="made"></span></div>
+<div class="sum" id="sum"></div>
+<div class="list" id="list"><div class="empty">Loading the plan…</div></div>
+<div class="note" id="note"></div>
+<script>
+const $=id=>document.getElementById(id);
+const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
+const fx=v=>v==null||!isFinite(v)?'–':Number(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ist=()=>new Date(Date.now()+19800000), today=()=>ist().toISOString().slice(0,10), mins=()=>{ const n=ist(); return n.getUTCHours()*60+n.getUTCMinutes(); };
+const tHM=t=>new Date((t+19800)*1000).toISOString().slice(11,16), dd=d=>new Date(d+'T00:00:00Z').toUTCString().slice(0,16);
+const sg=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
+let P=null, SEL=null, LIVE={}, BARS={}, busy=0;
+async function J(u,ms){ const c=new AbortController(), t=setTimeout(()=>c.abort(),ms||20000); try{ const r=await fetch(u,{cache:'no-store',signal:c.signal}); if(!r.ok) throw new Error(r.status); return await r.json(); } finally{ clearTimeout(t); } }
+async function load(){ for(const u of ['https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/plans.json?ref=plan','https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/plan/plans.json?x='+Math.floor(Date.now()/60000)]){
+  try{ const r=await fetch(u,u.includes('api.github')?{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}:{cache:'no-store'}); if(r.ok){ P=await r.json(); break; } }catch(e){} }
+  if(!P||!P.plans){ $('list').innerHTML='<div class="empty">No plan published yet - the first one is built after today\'s close (about 15:55 IST).</div>'; return; }
+  const ks=Object.keys(P.plans).sort().reverse(), t=today();
+  if(!SEL||!P.plans[SEL]) SEL=(P.plans[t]&&mins()<955)?t:ks[0];     // during the session: today's plan (live); after ~15:55: tomorrow's
+  $('pick').innerHTML=ks.map(k=>`<option value="${k}" ${k===SEL?'selected':''}>${dd(k)}${k===t?' · today':k>t?' · next session':''}</option>`).join('');
+  paint(); live(); }
+$('pick').onchange=e=>{ SEL=e.target.value; BARS={}; LIVE={}; paint(); live(); };
+/* ---------- live: last price every 15 s, 5-minute bars every 90 s (to know when the trigger, targets and stop were hit) ---------- */
+async function live(){ const pl=P&&P.plans[SEL]; if(!pl||busy) return; busy=1; const t=today(), isToday=pl.for===t, past=pl.for<t;
+  if(pl.for>t){ busy=0; status('plan for the next session · live tracking starts at 09:15 IST on '+dd(pl.for)); paint(); return; }
+  const syms=pl.calls.map(c=>c.s+'.NS');
+  try{ if(isToday){ const j=await J(BACKEND+'?action=liveq&symbols='+encodeURIComponent(syms.join(',')),20000); if(j&&j.q) Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]) LIVE[k.replace('.NS','')]={p:q[0],o:q[2],h:q[3],l:q[4]}; }); }
+    const stale=Object.keys(BARS).length===0||(isToday&&Date.now()-(BARS._at||0)>90000);
+    if(stale){ const age=(Date.parse(t)-Date.parse(pl.for))/864e5, rng=age<4?'5d':'1mo';
+      await Promise.all(pl.calls.map(async c=>{ try{ const j=await J(BACKEND+'?action=fetch&url='+encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+c.s+'.NS?range='+rng+'&interval=5m&includePrePost=false'),25000), x=j.chart.result[0], q=x.indicators.quote[0];
+        BARS[c.s]=(x.timestamp||[]).map((ts,i)=>[ts,q.open[i],q.high[i],q.low[i],q.close[i]]).filter(b=>b[2]!=null&&new Date((b[0]+19800)*1000).toISOString().slice(0,10)===pl.for); }catch(e){} }));
+      BARS._at=Date.now(); }
+    status(isToday?'<b>● LIVE</b> '+ist().toISOString().slice(11,19)+' IST':'session closed · result of '+dd(pl.for)); }
+  catch(e){ status('feed retrying…'); }
+  busy=0; paint(); }
+function status(h){ $('st').innerHTML=h; }
+/* ---------- the trade, step by step, on the day's 5-minute bars ---------- */
+function track(c,pl){ const B=BARS[c.s]||[], d=c.d, isToday=pl.for===today(), now=mins(), L=LIVE[c.s];
+  const o={st:'w',txt:'⏳ Waiting for the open',hit:{},pl:null,ltp:L?L.p:(B.length?B[B.length-1][4]:c.close)};
+  if(!B.length){ if(pl.for<today()) { o.st='n'; o.txt='No data for that day'; } return o; }
+  const first=B[0]; if((d>0&&first[3]>c.entry*1.015)||(d<0&&first[2]<c.entry*0.985)){ o.st='n'; o.txt='⛔ Gapped past the trigger by >1.5% - not chased'; return o; }
+  let ti=-1; for(let i=0;i<B.length;i++){ const m=(new Date((B[i][0]+19800)*1000)).getUTCHours()*60+(new Date((B[i][0]+19800)*1000)).getUTCMinutes(); if(m>840) break; if((d>0&&B[i][2]>=c.entry)||(d<0&&B[i][3]<=c.entry)){ ti=i; break; } }
+  if(ti<0){ const over=!isToday||now>840; o.st=over?'n':'w'; o.txt=over?'✖ Not triggered by 14:00':'⏳ Waiting · '+(o.ltp?Math.abs(c.entry/o.ltp-1)*100:0).toFixed(2)+'% to trigger'; return o; }
+  o.at=tHM(B[ti][0]); o.st='r'; o.txt='▶ Triggered '+o.at; let exit=null;
+  for(let i=ti;i<B.length;i++){ const [ts,,h,l,cl]=B[i], m=(new Date((ts+19800)*1000)).getUTCHours()*60+(new Date((ts+19800)*1000)).getUTCMinutes();
+    const sl=d>0?l<=c.stop:h>=c.stop; if(sl){ o.hit.sl=tHM(ts); exit=c.stop; break; }
+    ['t1','t2','t3'].forEach(k=>{ if(!o.hit[k]&&(d>0?h>=c[k]:l<=c[k])) o.hit[k]=tHM(ts); });
+    if(o.hit.t3){ exit=c.t3; break; }
+    if(m>=915){ exit=cl; o.hit.x=tHM(ts); break; } }
+  if(o.hit.sl){ o.st='s'; o.txt='🛑 Stop-loss '+o.hit.sl+(o.hit.t1?' (T1 was hit first '+o.hit.t1+')':''); }
+  else if(o.hit.t3){ o.st='t'; o.txt='🏆 T3 hit '+o.hit.t3; }
+  else if(o.hit.x){ o.st=o.hit.t1?'t':'n'; o.txt='⏹ Closed 15:15'+(o.hit.t2?' · T2 ✓':o.hit.t1?' · T1 ✓':''); }
+  else if(o.hit.t2){ o.st='t'; o.txt='🎯 T2 hit '+o.hit.t2+' · running for T3'; }
+  else if(o.hit.t1){ o.st='t'; o.txt='🎯 T1 hit '+o.hit.t1+' · running'; }
+  const px=exit!=null?exit:o.ltp; if(px!=null) o.pl=(px/c.entry-1)*100*d; o.exit=exit; return o; }
+function paint(){ const pl=P&&P.plans[SEL]; if(!pl) return; const t=today();
+  $('for').textContent=dd(pl.for)+(pl.for===t?' · today':pl.for>t?' · next session':'');
+  $('made').textContent='built '+pl.made.replace('T',' ').slice(0,16)+' IST from the close of '+dd(pl.from);
+  const R=pl.calls.map(c=>[c,track(c,pl)]), trig=R.filter(([,o])=>o.at), t1=trig.filter(([,o])=>o.hit.t1).length, sl=trig.filter(([,o])=>o.hit.sl).length, net=trig.reduce((a,[,o])=>a+(o.pl||0),0);
+  $('sum').innerHTML=[['Calls',pl.calls.length],['BUY · SELL',pl.calls.filter(c=>c.d>0).length+' · '+pl.calls.filter(c=>c.d<0).length],['Triggered',trig.length],['T1 or better',t1],['Stop-loss',sl],['Waiting',R.filter(([,o])=>o.st==='w').length],['Net of triggered',`<span class="${net>=0?'up':'dn'}">${sg(net)}</span>`]].map(([a,b])=>`<div><span>${a}</span><b>${b}</b></div>`).join('');
+  $('list').innerHTML=R.map(([c,o],i)=>{ const lo=Math.min(c.stop,c.t3), hi=Math.max(c.stop,c.t3), pos=v=>((v-lo)/(hi-lo)*100).toFixed(1)+'%', inv=c.d<0, P_=v=>inv?(100-parseFloat(pos(v))).toFixed(1)+'%':pos(v);
+    const lvc=(k,cls,lab)=>`<div class="${cls}${k!=='entry'&&o.hit[k]?' ok':''}${k==='stop'&&o.hit.sl?' bad':''}"><span>${lab}${k!=='entry'&&k!=='stop'&&o.hit[k]?' ✓':''}</span><b>${fx(c[k])}</b></div>`;
+    return `<div class="row ${c.d>0?'B':'S'} ${o.st==='t'?'hitT':o.st==='s'?'hitSL':o.st==='n'?'idle':''}" style="animation-delay:${i*45}ms">
+     <div class="rk">${i+1}</div>
+     <div class="nm"><b>${esc(c.s)}</b><span class="sd">${c.side}</span> <small>${c.sector?esc(c.sector)+' · ':''}close ${fx(c.close)} (${c.chg>=0?'+':''}${c.chg}%) · score ${c.score}</small><button type="button" data-ch="${esc(c.s)}">📈 Chart</button></div>
+     <div class="why">${c.why.map(w=>`<i class="${/money|leader|laggard|heavyweight|bounce|Fish/i.test(w)?'k':''}">${esc(w)}</i>`).join('')}</div>
+     <div class="lvw"><div class="lv">${lvc('entry','e',c.d>0?'BUY ABOVE':'SELL BELOW')}${lvc('stop','s','EXIT / SL')}${lvc('t1','t','T1')}${lvc('t2','t','T2')}${lvc('t3','t','T3')}</div>
+      <div class="bar" style="--e:${P_(c.entry)}"><u style="left:${P_(c.entry)}"></u><u style="left:${P_(c.t1)}"></u><u style="left:${P_(c.t2)}"></u>${o.ltp!=null?`<em style="left:${Math.max(0,Math.min(100,parseFloat(P_(o.ltp))))}%" title="Last price ${fx(o.ltp)}"></em>`:''}</div></div>
+     <div class="lt"><div class="p">${fx(o.ltp)}</div><span class="bd ${o.st}">${esc(o.txt)}</span>${o.pl!=null?`<small>P&amp;L <span class="pl ${o.pl>=0?'up':'dn'}">${sg(o.pl)}</span>${o.exit!=null?' · exited':' · live'}</small>`:`<small>risk ${c.risk}% · ATR ${fx(c.atr)}</small>`}</div></div>`; }).join('')||'<div class="empty">No set-up met the rules at this close.</div>';
+  $('note').innerHTML=`<b>How the list is made:</b> after the close the Nifty 500 is scored on today's closing data with every indicator the app's calls use - day change, where it closed in the day's range, volume vs the 20-day average, 1-month / 52-week highs and lows, RSI 14, EMA 9 / EMA 21 trend, today's scanner hits (Big Fish / Tail Fish, Open = Low / High) and the Index movers readings (sector money flowing in / out, sector leaders / laggards, Nifty heavyweights, quality bounce). The best BUY and SELL set-ups become <b>breakout plans</b> for the next session: BUY above today's high (+0.1%) / SELL below today's low (−0.1%); exit / stop-loss on the other side of today's range but never more than 1.2 × ATR away (risk ≤ 3%); T1 = 1 × risk, T2 = 2 × risk, T3 = next 1-month / 52-week level or 3 × risk. <b>Rules:</b> valid 09:15–14:00 · not chased if it gaps more than 1.5% past the trigger · exit by 15:15. Tracked live here and in the 📒 HNT tracker (📅 Next-day plan). Rule-based ideas, not personal advice.`; }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-ch]'); if(b) location.href='watchlist.html#chart='+encodeURIComponent(b.dataset.ch); });
+load(); setInterval(()=>{ if(!document.hidden&&P){ const pl=P.plans[SEL]; if(pl&&pl.for===today()&&mins()>=555&&mins()<=935) live(); } },15000);
+setInterval(()=>{ if(!document.hidden) load(); },10*60000);
+</script>
+<script src="signals.js?v=4"></script>
+</body></html>
