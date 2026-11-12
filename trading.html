@@ -867,4 +867,32 @@ clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load(); heatLoad();
 (function hs(){ setTimeout(async()=>{ if(!document.hidden) await heatLoad(); hs(); }, indiaOpen()?45000:180000); })();
 (function sched(){ setTimeout(async()=>{ if(!document.hidden) await load(); sched(); }, indiaOpen()?20000:120000); })();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
+/* ---- Popped-out TV stays live across the app: while the TV is popped out, other app pages open over this page
+   (this page keeps running underneath, so the pop-out window keeps playing). Back to the terminal = overlay closes. ---- */
+(function(){
+  const popped=()=>!!((window.documentPictureInPicture&&documentPictureInPicture.window)||document.pictureInPictureElement);
+  const base=location.pathname.replace(/[^/]*$/,''), self=location.pathname.replace(/^.*\//,'')||'trading.html';
+  let ov=null, fr=null;
+  function isApp(u){ return u.origin===location.origin&&u.pathname.indexOf(base)===0&&/(\.html|\/)$/.test(u.pathname); }
+  function isHome(u){ const f=u.pathname.slice(base.length)||'index.html'; return f===self; }
+  function open(url){
+    if(!ov){ ov=document.createElement('div'); ov.id='stayOv'; ov.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#0e1621;display:none';
+      ov.innerHTML='<iframe title="Joshi\'s Corner page" style="width:100%;height:100%;border:0;display:block"></iframe><button type="button" id="stayBk" title="Back to the trading terminal (the TV keeps playing)" style="position:fixed;left:8px;bottom:10px;z-index:2147483001;border:1px solid #2fd0ff;background:#0d5a73;color:#fff;border-radius:16px;padding:6px 12px;font:700 12px Inter,Segoe UI,sans-serif;cursor:pointer">◂ Terminal · TV live</button>';
+      document.body.appendChild(ov); fr=ov.querySelector('iframe'); ov.querySelector('#stayBk').onclick=()=>close(true);
+      fr.addEventListener('load',()=>{ if(ov.style.display==='none') return; try{ const u=new URL(fr.contentWindow.location.href); if(u.href==='about:blank') return; if(isHome(u)){ close(true); return; } document.title=fr.contentDocument.title;
+        // links inside the page that leave the app open in a new tab, so the terminal (and the TV) is never unloaded
+        fr.contentDocument.addEventListener('click',e=>{ const a=e.target.closest&&e.target.closest('a[href]'); if(!a) return; const v=new URL(a.href,fr.contentWindow.location.href); if(isApp(v)&&isHome(v)&&!a.target){ e.preventDefault(); close(true); return; } if(isApp(v)&&!a.target&&!(v.hash&&v.pathname===fr.contentWindow.location.pathname)){ e.preventDefault(); fr.contentWindow.location.replace(v.href); return; }   /* replace: page changes inside the overlay add no back-button steps */ if(!isApp(v)&&!a.target){ e.preventDefault(); window.open(v.href,'_blank','noopener'); } },true);
+      }catch(e){} }); }
+    try{ fr.contentWindow.location.replace(url); }catch(e){ fr.src=url; }   /* replace: no extra back-button step */
+    ov.style.display='block'; document.documentElement.style.overflow='hidden';
+  }
+  function close(back){ if(!ov||ov.style.display==='none') return; ov.style.display='none'; try{ fr.contentWindow.location.replace('about:blank'); }catch(e){} document.documentElement.style.overflow=''; document.title=TITLE; }
+  const TITLE=document.title;
+  document.addEventListener('click',e=>{ if(!popped()||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey) return;
+    const a=e.target.closest&&e.target.closest('a[href]'); if(!a||(a.target&&a.target!=='_self')) return;
+    const u=new URL(a.href,location.href); if(!isApp(u)||isHome(u)||u.hash&&u.pathname===location.pathname) return;
+    e.preventDefault(); open(u.href); },true);
+  // leaving the app with the TV popped out: warn, because the pop-out window closes with this page
+  window.addEventListener('beforeunload',e=>{ if(popped()){ e.preventDefault(); e.returnValue=''; } });
+})();
 </script></body></html>
