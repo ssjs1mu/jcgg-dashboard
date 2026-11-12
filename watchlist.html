@@ -136,7 +136,7 @@ table.rpt{width:100%;min-width:0!important}table.rpt th{text-align:left;width:38
 .hc.full{border:1px solid #c9bd94;box-shadow:0 0 8px rgba(200,190,150,.55)}.hc.part{opacity:.85}.hc.none{opacity:.55}.hc.bf{border:2px solid #b466ff;box-shadow:0 0 10px #b466ff;opacity:1}.hc.bs{border:2px solid #ff6a3d;box-shadow:0 0 10px #ff6a3d;opacity:1}.hc.bear{border:1px solid #d6667a;opacity:1}
 .hc.pri{animation:hpri 2.4s ease-in-out infinite;border:2px solid #e0cd96;opacity:1}@keyframes hpri{50%{box-shadow:0 0 16px #e0cd96}}
 .at{display:inline-block;border-radius:5px;padding:1px 6px;font:800 10.5px Inter,Arial,sans-serif;color:#0b1220;white-space:nowrap}.at.g{background:#35f0a8}.at.g2{background:#7de2b6}.at.r{background:#ff6b9d}.at.r2{background:#ff9bb8}.at.y{background:#f2c14e}.at.b{background:#5cc8ff}.at.bf{background:#b466ff;color:#fff}.at.bs{background:#ff6a3d;color:#fff}
-#alT tr.new td{animation:alnw 1s ease-in-out 4}@keyframes alnw{50%{background:#3a3420}}#alT td.dt{white-space:normal;color:var(--mu);font-size:12px;max-width:520px}#alT tbody tr{cursor:pointer}
+#alT td.dt{white-space:normal;color:var(--mu);font-size:12px;max-width:520px}#alT tbody tr{cursor:pointer}
 #ixT tr td{transition:background .6s}.ixb{display:inline-block;height:7px;border-radius:4px;vertical-align:middle;margin-right:6px}
 .nwp a.go{display:inline-block;margin:8px 0;background:#d81f26;color:#fff;border-radius:8px;padding:6px 12px;font:800 13px Inter,Arial,sans-serif;text-decoration:none}.nwp .ttl{font:800 17px/1.35 Inter,Arial,sans-serif;color:#fff;margin:4px 0 6px}.nwp ul{list-style:none;padding:0;margin:6px 0 0;max-height:46vh;overflow:auto}.nwp li{padding:5px 2px;border-top:1px solid #22344f;cursor:pointer;font-size:13px}.nwp li:hover{color:var(--gold)}.nwp li i{font-style:normal;color:var(--gold);font-weight:800;margin-right:6px}
 @media(max-width:820px){.nwt{margin:0 6px 6px}}
@@ -965,6 +965,24 @@ setTimeout(baro,1500); setInterval(()=>{ try{ baro(); }catch(e){} },30000);
   W.addEventListener('click',e=>{ const ws=e.target.closest('.ws'); if(!ws||mob()) return; pause(8000); const r=W.getBoundingClientRect(), b=ws.getBoundingClientRect(); W.scrollBy({top:(b.top+b.height/2)-(r.top+r.height/2),behavior:'smooth'}); });
 })();
 
+/* ---------- smooth table updates: when a table is redrawn, rows that stay slide to their new place, new rows rise from below,
+   unchanged rows don't move. Works for every table and the heat-map boxes (the watchlist table has its own slide). ---------- */
+(function(){ const POS=new Map(); let busy=false;
+  const keyOf=(el,seen)=>{ const s=el.querySelector('.sym')||el.querySelector('b'); let k=(s?s.textContent:el.textContent.slice(0,40)).trim(); const c=el.querySelector('.call,.at,.tag'); if(c) k+='|'+c.textContent.trim(); seen[k]=(seen[k]||0)+1; return k+'#'+seen[k]; };
+  function items(box){ return box.classList.contains('hmg')?[...box.children].filter(e=>e.classList.contains('hc')):[...box.querySelectorAll(':scope>tr')].filter(tr=>!tr.querySelector('td[colspan]')); }
+  function boxes(){ return [...document.querySelectorAll('.pnl tbody, .pnl .hmg, #rowPop tbody')].filter(b=>!b.closest('#p_wl')&&b.offsetParent!==null); }
+  function run(){ busy=false; const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const cnt={}; boxes().forEach(box=>{ const h=box.closest('section,.rpc'), hk=(h?(h.id||'pop'):'x'), id=hk+':'+(cnt[hk]=(cnt[hk]||0)+1), old=POS.get(id)||null, seen={}, now=new Map(), its=items(box);
+      its.forEach(el=>now.set(keyOf(el,seen),{el,x:el.offsetLeft,y:el.offsetTop}));
+      POS.set(id,now);
+      if(!old||reduce) return; let fresh=0; const many=[...now.keys()].filter(k=>!old.has(k)).length>its.length*0.6;   // a whole new list (filter changed): just show it
+      now.forEach((n,k)=>{ const o=old.get(k);
+        if(o){ const dx=o.x-n.x, dy=o.y-n.y; if((Math.abs(dy)>2||Math.abs(dx)>2)&&n.el.animate) n.el.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:'none'}],{duration:450,easing:'cubic-bezier(.2,.8,.2,1)'}); }
+        else if(!many&&fresh<25&&n.el.animate){ fresh++; n.el.animate([{transform:'translateY(22px)',opacity:0,background:'rgba(224,205,150,.25)'},{transform:'translateY(-2px)',opacity:1,offset:.7},{transform:'none',opacity:1,background:'transparent'}],{duration:700,easing:'ease-out',delay:fresh*40}); } }); }); }
+  new MutationObserver(()=>{ if(!busy){ busy=true; queueMicrotask(run); } }).observe(document.querySelector('.pnl'),{childList:true,subtree:true});
+  setTimeout(run,500);
+})();
+
 /* ---------- 📰 live news ticker: headline + time; click for the details ---------- */
 let NWS=null, NWsig='';
 async function nwLoad(){ for(const u of ['https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/news/news.json?x='+Math.floor(Date.now()/30000),'https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/news.json?ref=news']){
@@ -1081,7 +1099,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('chPop').classLi
 /* a 📈 button beside every stock symbol on the page (tables, popups, lists) */
 function chDecorate(root){ (root||document).querySelectorAll('.sym:not([data-chd])').forEach(s=>{ s.dataset.chd=1; const nm=s.textContent.trim(); if(!/^[A-Z0-9&_.-]{1,20}$/i.test(nm)) return; const ex=s.nextElementSibling&&s.nextElementSibling.classList.contains('ex')?s.nextElementSibling:null;
   const x=ex&&/BSE/.test(ex.textContent)?'BO':'NS'; const b=document.createElement('button'); b.type='button'; b.className='chb'; b.title='Live intraday chart with entry / exit / targets'; b.dataset.chart=nm+'.'+x+'|'+nm; b.textContent='📈'; (ex||s).after(b); }); }
-new MutationObserver(()=>{ clearTimeout(chDecorate.t); chDecorate.t=setTimeout(()=>chDecorate(),60); }).observe(document.body,{childList:true,subtree:true}); chDecorate();
+new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,subtree:true}); chDecorate();
 
 /* ---------- a popped-out TV keeps playing while you move around the app: other app pages open over this page ---------- */
 (function(){
