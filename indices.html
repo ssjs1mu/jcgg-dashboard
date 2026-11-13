@@ -184,7 +184,9 @@ function wzPaint(force){ if(!CONS||!Object.keys(AP).length) return; if(!force&&D
   // fast first view: the 5-minute market snapshot (one small file) while the live quotes load
   const snap=J('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Math.floor(Date.now()/60000),15000).catch(()=>null);
   await loadCons(); if(!CONS){ $('st').textContent='constituents not available'; return; }
-  const h=await snap; if(h&&h.rows&&!Object.keys(PX).length){ h.rows.forEach(r=>{ if(r[2]&&r[3]) PX[r[0]]={p:r[2],pc:r[3],v:r[7],av:r[8]}; if(r[10]!=null) HS[r[0]]={mh:r[10],ml:r[11],wh:r[12],wl:r[13],rsi:r[14]}; }); HSat=Date.now();
+  const h=await snap, tdy=ist().toISOString().slice(0,10), wd=ist().getUTCDay(), needT=wd>0&&wd<6&&(ist().getUTCHours()*60+ist().getUTCMinutes())>=540;
+  if(h&&h.rows&&needT) h.rows=h.rows.filter(r=>r[9]===tdy);   /* on a trading morning never show yesterday's prices as a snapshot */
+  if(h&&h.rows&&h.rows.length&&!Object.keys(PX).length){ h.rows.forEach(r=>{ if(r[2]&&r[3]) PX[r[0]]={p:r[2],pc:r[3],v:r[7],av:r[8]}; if(r[10]!=null) HS[r[0]]={mh:r[10],ml:r[11],wh:r[12],wl:r[13],rsi:r[14]}; }); HSat=Date.now();
     $('st').innerHTML='SNAPSHOT '+new Date(Date.parse(h.ts)+19800000).toISOString().slice(11,16)+' IST · live quotes loading…'; paint(); try{ wzPaint(true); }catch(e){} }
   await pull(); setInterval(pull,20000);
 })();
