@@ -29,8 +29,8 @@ def q(sym):
     if ts:
         d_last = dt.datetime.fromtimestamp(ts[-1], IST).date()
         prev = [cl[i] for i, t in enumerate(ts) if cl[i] is not None and dt.datetime.fromtimestamp(t, IST).date() < d_last]
-        if prev and sym.endswith('=F'):
-            pc = prev[-1]
+        if prev:
+            pc = prev[-1]      # previous session's last price (chartPreviousClose is the close before the whole 5-day window)
     return last, pc, dt.datetime.fromtimestamp(ts[-1], IST).strftime('%d %b %H:%M') if ts else ''
 
 
