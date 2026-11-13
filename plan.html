@@ -37,6 +37,9 @@ body{background:radial-gradient(1200px 600px at 15% -10%,#1b2d4a,transparent),li
 .lt{text-align:right}.lt .p{font:900 20px ui-monospace,Consolas,monospace}.lt .bd{display:inline-block;margin:4px 0 2px;padding:3px 10px;border-radius:8px;font:900 12px Inter}
 .bd.w{background:#3a3420;color:#f2c14e}.bd.r{background:#14385a;color:#9ee7ff}.bd.t{background:#0f6a52;color:#c9fbe5}.bd.s{background:#7a1f38;color:#ffd1e1}.bd.n{background:#2a3446;color:#c7d2e0}
 .lt small{display:block;color:var(--mu);font:600 11px Inter}.lt .pl{font:900 14px ui-monospace,Consolas,monospace}
+.mrn{background:linear-gradient(120deg,#2a2210,#13253d 40%);border:1px solid #a8873a;border-radius:12px;padding:8px 12px}.mrn b{color:var(--gold)}.mrn .bias{display:inline-block;padding:2px 9px;border-radius:6px;color:#0b1220;font:900 12px Inter;margin:0 4px}
+.mf{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.mf span{border:1px solid;border-radius:999px;padding:2px 9px;font:700 11.5px Inter;color:#d9e2ee;background:rgba(0,0,0,.2)}
+.adj{display:inline-block;margin-bottom:3px;padding:2px 8px;border-radius:6px;font:900 11px Inter;cursor:help}.adj.KEEP{background:#0f3527;color:#5dffbe}.adj.WAIT{background:#3a3420;color:#f2c14e}.adj.SKIP{background:#3a1424;color:#ff8fb8}
 .note{max-width:1500px;margin:14px auto 0;color:var(--mu);font:12px/1.55 Inter}.note b{color:var(--gold)}
 .empty{max-width:1500px;margin:30px auto;text-align:center;color:var(--mu);font:600 14px Inter}
 @media(max-width:1150px){.row{grid-template-columns:56px 1fr;transform:none}.why,.lvw,.lt{grid-column:1/-1}.lt{text-align:left}.top{grid-template-columns:1fr}.top h1{font-size:36px}.nav{justify-content:center}}
@@ -55,6 +58,7 @@ body{background:radial-gradient(1200px 600px at 15% -10%,#1b2d4a,transparent),li
 <div class="top"><span class="st" id="st">loading…</span><h1>Joshi's Corner</h1>
  <nav class="nav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw" href="watchlist.html">WATCHLIST</a><a class="sw on" href="plan.html">TOMORROW'S CALLS</a></nav></div>
 <div class="hd"><h2>📅 Trade calls for <span id="for">…</span></h2><select id="pick" title="Earlier plans and how they went"></select><span class="mu" id="made"></span></div>
+<div id="morn" style="max-width:1500px;margin:0 auto 10px"></div>
 <div class="sum" id="sum"></div>
 <div style="max-width:1500px;margin:0 auto 12px" id="perf"></div>
 <div class="list" id="list"><div class="empty">Loading the plan…</div></div>
@@ -92,8 +96,12 @@ async function live(){ const pl=P&&P.plans[SEL]; if(!pl||busy) return; busy=1; c
   busy=0; paint(); }
 function status(h){ $('st').innerHTML=h; }
 /* ---------- the trade, step by step, on the day's 5-minute bars ---------- */
-function track(c,pl){ const B=BARS[c.s]||[], d=c.d, isToday=pl.for===today(), now=mins(), L=LIVE[c.s];
+function track(c,pl){ let B=BARS[c.s]||[];const d=c.d, isToday=pl.for===today(), now=mins(), L=LIVE[c.s];
+  const adj=c.adj||{}, fm=adj.from?(+adj.from.slice(0,2))*60+(+adj.from.slice(3,5)):555;
   const o={st:'w',txt:'⏳ Waiting for the open',hit:{},pl:null,ltp:L?L.p:(B.length?B[B.length-1][4]:c.close)};
+  if(adj.action==='SKIP'){ o.st='n'; o.txt='⛔ Skipped by the 08:45 check'; return o; }
+  const B0=B; B=B.filter(b=>{ const z=new Date((b[0]+19800)*1000); return z.getUTCHours()*60+z.getUTCMinutes()>=fm; });
+  if(!B.length&&B0.length){ o.txt='⏳ Waiting for '+adj.from+' (08:45 check)'; return o; }
   if(!B.length){ if(pl.for<today()) { o.st='n'; o.txt='No data for that day'; } return o; }
   const first=B[0]; if((d>0&&first[3]>c.entry*1.015)||(d<0&&first[2]<c.entry*0.985)){ o.st='n'; o.txt='⛔ Gapped past the trigger by >1.5% - not chased'; return o; }
   let ti=-1; for(let i=0;i<B.length;i++){ const m=(new Date((B[i][0]+19800)*1000)).getUTCHours()*60+(new Date((B[i][0]+19800)*1000)).getUTCMinutes(); if(m>840) break; if((d>0&&B[i][2]>=c.entry)||(d<0&&B[i][3]<=c.entry)){ ti=i; break; } }
@@ -112,6 +120,7 @@ function track(c,pl){ const B=BARS[c.s]||[], d=c.d, isToday=pl.for===today(), no
   const px=exit!=null?exit:o.ltp; if(px!=null) o.pl=(px/c.entry-1)*100*d; o.exit=exit; return o; }
 function paint(){ const pl=P&&P.plans[SEL]; if(!pl) return; const t=today();
   $('for').textContent=dd(pl.for)+(pl.for===t?' · today':pl.for>t?' · next session':'');
+  mornPaint(pl);
   $('made').textContent='built '+pl.made.replace('T',' ').slice(0,16)+' IST from the close of '+dd(pl.from);
   const R=pl.calls.map(c=>[c,track(c,pl)]), trig=R.filter(([,o])=>o.at), t1=trig.filter(([,o])=>o.hit.t1).length, sl=trig.filter(([,o])=>o.hit.sl).length, net=trig.reduce((a,[,o])=>a+(o.pl||0),0);
   $('sum').innerHTML=[['Calls',pl.calls.length],['BUY · SELL',pl.calls.filter(c=>c.d>0).length+' · '+pl.calls.filter(c=>c.d<0).length],['Triggered',trig.length],['T1 or better',t1],['Stop-loss',sl],['Waiting',R.filter(([,o])=>o.st==='w').length],['Net of triggered',`<span class="${net>=0?'up':'dn'}">${sg(net)}</span>`]].map(([a,b])=>`<div><span>${a}</span><b>${b}</b></div>`).join('');
@@ -123,8 +132,12 @@ function paint(){ const pl=P&&P.plans[SEL]; if(!pl) return; const t=today();
      <div class="why">${c.why.map(w=>`<i class="${/money|leader|laggard|heavyweight|bounce|Fish/i.test(w)?'k':''}">${esc(w)}</i>`).join('')}</div>
      <div class="lvw"><div class="lv">${lvc('entry','e',c.d>0?'BUY ABOVE':'SELL BELOW')}${lvc('stop','s','EXIT / SL')}${lvc('t1','t','T1')}${lvc('t2','t','T2')}${lvc('t3','t','T3')}</div>
       <div class="bar" style="--e:${P_(c.entry)}"><u style="left:${P_(c.entry)}"></u><u style="left:${P_(c.t1)}"></u><u style="left:${P_(c.t2)}"></u>${o.ltp!=null?`<em style="left:${Math.max(0,Math.min(100,parseFloat(P_(o.ltp))))}%" title="Last price ${fx(o.ltp)}"></em>`:''}</div></div>
-     <div class="lt"><div class="p">${fx(o.ltp)}</div><span class="bd ${o.st}">${esc(o.txt)}</span>${o.pl!=null?`<small>P&amp;L <span class="pl ${o.pl>=0?'up':'dn'}">${sg(o.pl)}</span>${o.exit!=null?' · exited':' · live'}</small>`:`<small>risk ${c.risk}% · ATR ${fx(c.atr)}</small>`}</div></div>`; }).join('')||'<div class="empty">No set-up met the rules at this close.</div>';
-  $('note').innerHTML=`<b>How the list is made:</b> after the close the Nifty 500 is scored on today's closing data with every indicator the app's calls use - day change, where it closed in the day's range, volume vs the 20-day average, 1-month / 52-week highs and lows, RSI 14, EMA 9 / EMA 21 trend, today's scanner hits (Big Fish / Tail Fish, Open = Low / High) and the Index movers readings (sector money flowing in / out, sector leaders / laggards, Nifty heavyweights, quality bounce). The best BUY and SELL set-ups become <b>breakout plans</b> for the next session: BUY above today's high (+0.1%) / SELL below today's low (−0.1%); exit / stop-loss on the other side of today's range but never more than 1.2 × ATR away (risk ≤ 3%); T1 = 1 × risk, T2 = 2 × risk, T3 = next 1-month / 52-week level or 3 × risk. <b>Rules:</b> valid 09:15–14:00 · not chased if it gaps more than 1.5% past the trigger · exit by 15:15. Tracked live here and in the 📒 HNT tracker (📅 Next-day plan). Rule-based ideas, not personal advice.`; }
+     <div class="lt">${c.adj?`<span class="adj ${c.adj.action}" title="${esc(c.adj.reason)}">AM check · ${c.adj.action==='KEEP'?'✓ KEEP':c.adj.action==='WAIT'?'⏸ WAIT till 09:45':'⛔ SKIP'}</span>`:''}<div class="p">${fx(o.ltp)}</div><span class="bd ${o.st}">${esc(o.txt)}</span>${o.pl!=null?`<small>P&amp;L <span class="pl ${o.pl>=0?'up':'dn'}">${sg(o.pl)}</span>${o.exit!=null?' · exited':' · live'}</small>`:`<small>risk ${c.risk}% · ATR ${fx(c.atr)}</small>`}</div></div>`; }).join('')||'<div class="empty">No set-up met the rules at this close.</div>';
+  $('note').innerHTML=`<b>How the list is made:</b> after the close the Nifty 500 is scored on today's closing data with every indicator the app's calls use - day change, where it closed in the day's range, volume vs the 20-day average, 1-month / 52-week highs and lows, RSI 14, EMA 9 / EMA 21 trend, today's scanner hits (Big Fish / Tail Fish, Open = Low / High) and the Index movers readings (sector money flowing in / out, sector leaders / laggards, Nifty heavyweights, quality bounce). The best BUY and SELL set-ups become <b>breakout plans</b> for the next session: BUY above today's high (+0.1%) / SELL below today's low (−0.1%); exit / stop-loss on the other side of today's range but never more than 1.2 × ATR away (risk ≤ 3%); T1 = 1 × risk, T2 = 2 × risk, T3 = next 1-month / 52-week level or 3 × risk. <b>Rules:</b> valid 09:15–14:00 · not chased if it gaps more than 1.5% past the trigger · exit by 15:15 · <b>08:45 re-check</b> on the trading morning (GIFT Nifty, US futures, Asia, crude, gold, US yield, dollar, rupee, VIX): KEEP, WAIT (trigger counts only from 09:45) or SKIP. Tracked live here and in the 📒 HNT tracker (📅 Next-day plan). Rule-based ideas, not personal advice.`; }
+function mornPaint(pl){ const m=pl.morning, el=$('morn'); if(!m){ el.innerHTML=pl.for>=today()?'<div class="mrn"><b>🌅 Morning re-check</b> <span class="mu">runs at 08:45 IST on '+dd(pl.for)+' (GIFT Nifty, US futures, Asia, crude, gold, US yield, dollar, rupee, VIX) and may mark calls WAIT or SKIP</span></div>':''; return; }
+  const col=m.bias==='RISK-ON'?'#35f0a8':m.bias==='RISK-OFF'?'#ff6b9d':'#f2c14e';
+  el.innerHTML=`<div class="mrn"><div><b>🌅 Morning re-check ${m.at.slice(11,16)} IST</b> <span class="bias" style="background:${col}">${m.bias}</span> <span class="mu">score ${m.score} · expected Nifty open <b style="color:${m.gap>=0?'#35f0a8':'#ff6b9d'}">${m.gap>=0?'+':''}${m.gap}%</b> (${esc(m.gap_src)}${m.gift?' '+fx(m.gift.last):''}) · ${esc(m.summary.split(' · ').slice(2).join(' · '))}</span></div>
+   <div class="mf">${m.factors.filter(f=>f.chg!=null).map(f=>`<span title="as of ${esc(f.at||'')} · effect on Indian equities ${f.eff}" style="border-color:${f.eff>0.05?'#1d7a55':f.eff<-0.05?'#a3325a':'#3a5476'}">${esc(f.n)} <b style="color:${f.chg>=0?'#35f0a8':'#ff6b9d'}">${f.chg>=0?'+':''}${f.chg}%</b></span>`).join('')}</div></div>`; }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-ch]'); if(b) location.href='watchlist.html#chart='+encodeURIComponent(b.dataset.ch); });
 async function perf(){ try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/hntrack.json?ref=hntrack',{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}); const j=await r.json(); jcPerf($('perf'),j.trades||[],{sources:['PLAN','HNT','IM']}); }catch(e){} }
 perf(); setInterval(()=>{ if(!document.hidden) perf(); },10*60000);

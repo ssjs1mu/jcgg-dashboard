@@ -260,8 +260,13 @@ def main():
             for c in PL.get('calls', []):
                 if (today, c['s'], c['side']) in haveP or c['s'] in skips:
                     continue
+                adj = c.get('adj') or {}
+                if adj.get('action') == 'SKIP':
+                    skips[c['s']] = 'morning check: ' + adj.get('reason', ''); continue
+                fm = int(adj.get('from', '09:15')[:2]) * 60 + int(adj.get('from', '09:15')[3:5])
                 try:
-                    B = [b for b in bars5(c['s'], '5d') if dt.datetime.fromtimestamp(b[0], IST).strftime('%Y-%m-%d') == today]
+                    B = [b for b in bars5(c['s'], '5d') if dt.datetime.fromtimestamp(b[0], IST).strftime('%Y-%m-%d') == today
+                     and (lambda x: x.hour * 60 + x.minute)(dt.datetime.fromtimestamp(b[0], IST)) >= fm]      # WAIT: only from 09:45
                 except Exception:
                     continue
                 if not B:
