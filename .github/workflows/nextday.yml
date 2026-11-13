@@ -10,7 +10,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: nextday
+  group: plan
   cancel-in-progress: false
 jobs:
   plan:

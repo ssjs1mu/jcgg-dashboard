@@ -36,6 +36,7 @@ jobs:
               if [ "$hm" -ge 910 ] && [ "$hm" -le 1540 ]; then gh workflow run heatmap.yml --ref main || true; fi
               n=$((n+1)); if [ "$hm" -ge 800 ] && [ "$hm" -le 1600 ] && [ $((n % 2)) -eq 1 ]; then gh workflow run news.yml --ref main || true; fi
               if [ "$hm" -ge 925 ] && [ "$hm" -le 1525 ] && [ $((n % 2)) -eq 0 ]; then gh workflow run hntrack.yml --ref main || true; fi
+              if [ "$hm" -ge 845 ] && [ "$hm" -lt 850 ] && [ "$last" != "morn" ]; then gh workflow run morning.yml --ref main || true; last=morn; fi
               if [ "$hm" -ge 1550 ] && [ "$hm" -lt 1555 ] && [ "$last" != "plan" ]; then gh workflow run nextday.yml --ref main || true; last=plan; fi
               for t in 1545; do
                 if [ "$hm" -ge "$t" ] && [ "$hm" -lt $((t+5)) ] && [ "$last" != "$t" ]; then gh workflow run hntrack.yml --ref main || true; last=$t; fi

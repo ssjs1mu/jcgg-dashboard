@@ -1,0 +1,30 @@
+name: Morning re-check of today's calls (08:45 IST)
+# Re-checks the next-day plan against GIFT Nifty, global futures, Asia, crude, gold, US yield, dollar, rupee and VIX
+# and marks each call KEEP / WAIT (only after 09:45) / SKIP. Started by ticker.yml at 08:45; schedules are backups.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 3 * * 1-5'     # 08:45 IST
+    - cron: '35 3 * * 1-5'     # 09:05 IST - backup
+permissions:
+  contents: write
+concurrency:
+  group: plan
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Re-check and publish
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch -q origin plan:plan && git show plan:plans.json > /tmp/old.json
+          OLD=/tmp/old.json OUT=/tmp/plans.json python pipeline/morning_check.py | tee /tmp/log.txt
+          if [ -s /tmp/plans.json ]; then
+            b=$(git hash-object -w /tmp/plans.json); t=$(printf '100644 blob %s\tplans.json\n' "$b" | git mktree); c=$(git commit-tree "$t" -m "morning check $(date -u +%FT%TZ)"); git push -q -f origin "$c":refs/heads/plan
+          fi
