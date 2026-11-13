@@ -5,7 +5,8 @@ name: Ticker (free self-running clock for the live feeds)
 #   * every 5 minutes 09:10-15:40  -> starts the heat-map feed
 #   * every 10 minutes 09:25-15:25 and 15:45 -> starts the High Net-worth Trade tracker (records every recommendation)
 #   * every 10 minutes 08:00-16:00 -> starts the market-news feed (Watchlist news ticker)
-# Just before its own limit it starts the next clock; a sparse schedule restarts the chain if it ever breaks.
+# It runs round the clock: just before its own limit it starts the next clock (on 13 Nov GitHub skipped every morning
+# schedule, so a clock that stopped at 16:00 never came back). The schedule below only restarts the chain if it ever breaks.
 on:
   schedule:
     - cron: '13,43 2-10 * * 1-5'
@@ -42,7 +43,6 @@ jobs:
                 if [ "$hm" -ge "$t" ] && [ "$hm" -lt $((t+5)) ] && [ "$last" != "$t" ]; then gh workflow run hntrack.yml --ref main || true; last=$t; fi
               done
             fi
-            [ "$hm" -gt 1600 ] && break      # nothing more to do today
             sleep 300
           done
-          [ "$hm" -le 1600 ] && gh workflow run ticker.yml --ref main || true
+          gh workflow run ticker.yml --ref main || true      # never stops: GitHub schedules are too unreliable to restart it each morning
