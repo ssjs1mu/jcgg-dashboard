@@ -40,6 +40,11 @@ body{background:radial-gradient(1200px 600px at 15% -10%,#1b2d4a,transparent),li
 .mrn{background:linear-gradient(120deg,#2a2210,#13253d 40%);border:1px solid #a8873a;border-radius:12px;padding:8px 12px}.mrn b{color:var(--gold)}.mrn .bias{display:inline-block;padding:2px 9px;border-radius:6px;color:#0b1220;font:900 12px Inter;margin:0 4px}
 .mf{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.mf span{border:1px solid;border-radius:999px;padding:2px 9px;font:700 11.5px Inter;color:#d9e2ee;background:rgba(0,0,0,.2)}
 .adj{display:inline-block;margin-bottom:3px;padding:2px 8px;border-radius:6px;font:900 11px Inter;cursor:help}.adj.KEEP{background:#0f3527;color:#5dffbe}.adj.WAIT{background:#3a3420;color:#f2c14e}.adj.SKIP{background:#3a1424;color:#ff8fb8}
+.psc{border:1px solid #a8873a;border-radius:12px;background:#0f1a2b;padding:8px 10px}.psh{font:900 14px Inter;color:var(--gold);margin-bottom:6px;padding-right:40px}.psh .mu{font:600 11px Inter;margin-left:6px}
+.pst{width:100%;border-collapse:collapse;font:700 12px ui-monospace,Consolas,monospace}.pst th{background:#1a2b45;color:#c9d4e3;font:800 10px Inter;text-transform:uppercase;padding:4px 6px;text-align:left;white-space:nowrap;position:sticky;top:0}.pst td{padding:4px 6px;border-bottom:1px solid #1d2c44;white-space:nowrap}
+.pst tr.ck{cursor:pointer}.pst tr.ck:hover td{background:#22385a}
+#pdM{position:fixed;inset:0;z-index:2147482500;background:rgba(3,8,16,.72);display:none;align-items:flex-start;justify-content:center;padding:4vh 10px;overflow:auto}#pdM.on{display:flex}.pdc{position:relative;width:min(1350px,100%);background:#0f1a2b;border:1px solid #e0cd96;border-radius:14px;padding:12px 14px}
+.pdx{position:absolute;top:8px;right:10px;border:0;background:#d81f26;color:#fff;border-radius:999px;width:30px;height:30px;font:900 14px Arial;cursor:pointer}
 .note{max-width:1500px;margin:14px auto 0;color:var(--mu);font:12px/1.55 Inter}.note b{color:var(--gold)}
 .empty{max-width:1500px;margin:30px auto;text-align:center;color:var(--mu);font:600 14px Inter}
 @media(max-width:1150px){.row{grid-template-columns:56px 1fr;transform:none}.why,.lvw,.lt{grid-column:1/-1}.lt{text-align:left}.top{grid-template-columns:1fr}.top h1{font-size:36px}.nav{justify-content:center}}
@@ -53,16 +58,18 @@ body{background:radial-gradient(1200px 600px at 15% -10%,#1b2d4a,transparent),li
   d.innerHTML='<button type="button" title="Smaller text" id="jcZm">A−</button><button type="button" title="Larger text" id="jcZp">A+</button>'; document.body.appendChild(d);
   function st(n){ z=Math.min(1.5,Math.max(.8,Math.round((z+n)*100)/100)); try{ localStorage.setItem('jc_zoom',z); }catch(e){} ap(); }
   d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
-<script src="perf.js?v=1"></script>
+<script src="perf.js?v=2"></script>
+<script>addEventListener('keydown',e=>{ if(e.key==='Escape'){ const m=document.getElementById('pdM'); if(m) m.classList.remove('on'); } });</script>
 </head><body>
 <div class="top"><span class="st" id="st">loading…</span><h1>Joshi's Corner</h1>
  <nav class="nav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw" href="watchlist.html">WATCHLIST</a><a class="sw on" href="plan.html">TOMORROW'S CALLS</a></nav></div>
 <div class="hd"><h2>📅 Trade calls for <span id="for">…</span></h2><select id="pick" title="Earlier plans and how they went"></select><span class="mu" id="made"></span></div>
 <div id="morn" style="max-width:1500px;margin:0 auto 10px"></div>
 <div class="sum" id="sum"></div>
-<div style="max-width:1500px;margin:0 auto 12px" id="perf"></div>
 <div class="list" id="list"><div class="empty">Loading the plan…</div></div>
 <div class="note" id="note"></div>
+<div style="max-width:1500px;margin:18px auto 0" id="pscore"></div>
+<div style="max-width:1500px;margin:12px auto 0" id="perf"></div>
 <script>
 const $=id=>document.getElementById(id);
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -79,7 +86,7 @@ async function load(){ for(const u of ['https://api.github.com/repos/ssjs1mu/jcg
   const ks=Object.keys(P.plans).sort().reverse(), t=today();
   if(!SEL||!P.plans[SEL]) SEL=(P.plans[t]&&mins()<955)?t:ks[0];     // during the session: today's plan (live); after ~15:55: tomorrow's
   $('pick').innerHTML=ks.map(k=>`<option value="${k}" ${k===SEL?'selected':''}>${dd(k)}${k===t?' · today':k>t?' · next session':''}</option>`).join('');
-  paint(); live(); }
+  paint(); live(); pscore(); }
 $('pick').onchange=e=>{ SEL=e.target.value; BARS={}; LIVE={}; paint(); live(); };
 /* ---------- live: last price every 15 s, 5-minute bars every 90 s (to know when the trigger, targets and stop were hit) ---------- */
 async function live(){ const pl=P&&P.plans[SEL]; if(!pl||busy) return; busy=1; const t=today(), isToday=pl.for===t, past=pl.for<t;
@@ -139,7 +146,26 @@ function mornPaint(pl){ const m=pl.morning, el=$('morn'); if(!m){ el.innerHTML=p
   el.innerHTML=`<div class="mrn"><div><b>🌅 Morning re-check ${m.at.slice(11,16)} IST</b> <span class="bias" style="background:${col}">${m.bias}</span> <span class="mu">score ${m.score} · expected Nifty open <b style="color:${m.gap>=0?'#35f0a8':'#ff6b9d'}">${m.gap>=0?'+':''}${m.gap}%</b> (${esc(m.gap_src)}${m.gift?' '+fx(m.gift.last):''}) · ${esc(m.summary.split(' · ').slice(2).join(' · '))}</span></div>
    <div class="mf">${m.factors.filter(f=>f.chg!=null).map(f=>`<span title="as of ${esc(f.at||'')} · effect on Indian equities ${f.eff}" style="border-color:${f.eff>0.05?'#1d7a55':f.eff<-0.05?'#a3325a':'#3a5476'}">${esc(f.n)} <b style="color:${f.chg>=0?'#35f0a8':'#ff6b9d'}">${f.chg>=0?'+':''}${f.chg}%</b></span>`).join('')}</div></div>`; }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-ch]'); if(b) location.href='watchlist.html#chart='+encodeURIComponent(b.dataset.ch); });
-async function perf(){ try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/hntrack.json?ref=hntrack',{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}); const j=await r.json(); jcPerf($('perf'),j.trades||[],{sources:['PLAN','HNT','IM']}); }catch(e){} }
+/* ---------- 📅 plan scorecard: EVERY call of every plan, date by date - triggered or not ---------- */
+let TRK=null;
+function outcome(c,pl){ const t=(TRK&&TRK.trades||[]).find(x=>x.src_kind==='PLAN'&&x.date===pl.for&&x.s===c.s&&x.side===c.side), sk=((TRK&&TRK.plan_skip)||{})[pl.for]||{};
+  if(t) return {k:t.status,t,txt:t.status==='TARGET'?'🎯 Target':t.status==='STOP'?'🛑 Stop-loss':t.status==='EXPIRED'?'⌛ Expired':'● Open',ret:t.ret};
+  if(c.adj&&c.adj.action==='SKIP') return {k:'SKIP',txt:'⛔ Skipped (AM check)'};
+  if(sk[c.s]) return {k:/gap/.test(sk[c.s])?'GAP':'NT',txt:/gap/.test(sk[c.s])?'⛔ Gap - not chased':'✖ Not triggered'};
+  if(pl.for>today()) return {k:'NEXT',txt:'next session'};
+  if(pl.for===today()) return {k:'WAIT',txt:'⏳ Waiting / tracking'};
+  return {k:'NT',txt:'✖ Not triggered'}; }
+function pscore(){ if(!P||!TRK) return; const ds=Object.keys(P.plans).sort().reverse(); const sg2=v=>v==null?'–':`<span class="${v>=0?'up':'dn'}">${v>=0?'+':''}${v.toFixed(2)}%</span>`;
+  const rows=ds.map(d=>{ const pl=P.plans[d], O=pl.calls.map(c=>outcome(c,pl)), tr=O.filter(o=>o.t), cl=tr.filter(o=>o.k!=='OPEN'), net=cl.reduce((a,o)=>a+o.ret,0), mtm=tr.filter(o=>o.k==='OPEN').reduce((a,o)=>a+(o.ret||0),0);
+    const n=k=>O.filter(o=>o.k===k).length;
+    return `<tr class="ck" data-pd="${d}"><td><b>${dd(d)}</b></td><td>${pl.calls.length}</td><td>${pl.calls.filter(c=>c.d>0).length} · ${pl.calls.filter(c=>c.d<0).length}</td><td>${pl.morning?esc(pl.morning.bias):'–'}</td><td>${tr.length}</td><td>${n('TARGET')}</td><td>${n('STOP')}</td><td>${n('OPEN')}</td><td>${n('NT')}</td><td>${n('GAP')+n('SKIP')}</td><td>${cl.length?Math.round(cl.filter(o=>o.ret>0).length/cl.length*100)+'%':'–'}</td><td><b>${cl.length?sg2(net):'–'}</b></td><td>${tr.length-cl.length?sg2(mtm):'–'}</td></tr>`; }).join('');
+  $('pscore').innerHTML=`<div class="psc"><div class="psh">📅 Tomorrow's-calls scorecard · every call, date by date <span class="mu">click a date for each stock's result</span></div><div style="overflow:auto"><table class="pst"><thead><tr><th>Plan date</th><th>Calls</th><th>BUY · SELL</th><th>AM check</th><th>Triggered</th><th>🎯 Target</th><th>🛑 SL</th><th>Open</th><th>Not triggered</th><th>Gap / skipped</th><th>Win %</th><th>Net (closed)</th><th>Open MTM</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  $('pscore').querySelectorAll('[data-pd]').forEach(tr=>tr.onclick=()=>pdrill(tr.dataset.pd)); }
+function pdrill(d){ const pl=P.plans[d]; let m=$('pdM'); if(!m){ m=document.createElement('div'); m.id='pdM'; document.body.appendChild(m); m.onclick=e=>{ if(e.target===m||e.target.closest('.pdx')) m.classList.remove('on'); }; }
+  m.innerHTML=`<div class="pdc"><button class="pdx">✕</button><div class="psh">📅 ${dd(d)} · ${pl.calls.length} calls ${pl.morning?'· AM check '+esc(pl.morning.summary):''}</div><div style="overflow:auto;max-height:72vh"><table class="pst"><thead><tr><th>#</th><th>Stock</th><th>Side</th><th>AM</th><th>Trigger</th><th>SL</th><th>T1</th><th>T2</th><th>Triggered at</th><th>Result</th><th>Exit / now</th><th>Return</th><th>Duration</th><th>Why</th></tr></thead><tbody>${pl.calls.map((c,i)=>{ const o=outcome(c,pl), t=o.t;
+    return `<tr><td>${i+1}</td><td><b>${esc(c.s)}</b></td><td class="${c.d>0?'up':'dn'}">${c.side}</td><td>${c.adj?c.adj.action:'–'}</td><td>${fx(c.entry)}</td><td>${fx(c.stop)}</td><td>${fx(c.t1)}</td><td>${fx(c.t2)}</td><td>${t?esc(t.time):'–'}</td><td>${o.txt}</td><td>${t?fx(t.status==='OPEN'?t.last:t.exit):'–'}</td><td><b>${t&&t.ret!=null?`<span class="${t.ret>=0?'up':'dn'}">${t.ret>=0?'+':''}${t.ret.toFixed(2)}%</span>`:'–'}</b></td><td>${t&&t.mins!=null?(t.mins<60?t.mins+' min':Math.floor(t.mins/60)+' h '+t.mins%60+' m'):'–'}</td><td style="white-space:normal;min-width:220px;font:11px Inter">${c.why.map(esc).join(' · ')}</td></tr>`; }).join('')}</tbody></table></div></div>`;
+  m.classList.add('on'); }
+async function perf(){ try{ const r=await fetch('https://api.github.com/repos/ssjs1mu/jcgg-dashboard/contents/hntrack.json?ref=hntrack',{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}); TRK=await r.json(); jcPerf($('perf'),TRK.trades||[],{sources:['PLAN','HNT','IM']}); pscore(); }catch(e){} }
 perf(); setInterval(()=>{ if(!document.hidden) perf(); },10*60000);
 load(); setInterval(()=>{ if(!document.hidden&&P){ const pl=P.plans[SEL]; if(pl&&pl.for===today()&&mins()>=555&&mins()<=935) live(); } },15000);
 setInterval(()=>{ if(!document.hidden) load(); },10*60000);
