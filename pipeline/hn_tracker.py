@@ -199,6 +199,9 @@ def follow(tr, now):
             return dict(status='STOP', exit=tr['stop'], both=hit_tg, **ex)
         if hit_tg:
             return dict(status='TARGET', exit=tr['target'], **ex)
+        bt = dt.datetime.fromtimestamp(t, IST)
+        if tr.get('src_kind') in ('PLAN', 'IM') and bt.hour * 60 + bt.minute >= 910:      # day trades: square off at 15:15 (close of the 15:10 bar)
+            return dict(status='EXPIRED', exit=round(c, 2), dayend=True, **ex)
         if n >= MAX_SESSIONS:
             return dict(status='EXPIRED', exit=round(c, 2), **ex)
     last = B[-1] if B else None
@@ -291,6 +294,10 @@ def main():
                                     'plan_from': PL.get('from')})
                 T['log'].append('%s %s: next-day plan %s %s triggered at %.2f' % (today, hit[1], c['s'], c['side'], en))
             T['plan_skip'] = {k: T['plan_skip'][k] for k in sorted(T['plan_skip'])[-10:]}
+    # day trades (index-movers, next-day plan) close at 15:15 of their own day; re-check any that were closed on a later day
+    for tr in T['trades']:
+        if tr.get('src_kind') in ('PLAN', 'IM') and tr['status'] != 'OPEN' and not tr.get('dayend') and tr.get('exit_date', tr['date']) > tr['date']:
+            tr['status'] = 'OPEN'
     # follow open picks
     for tr in T['trades']:
         if tr['status'] in ('TARGET', 'STOP', 'EXPIRED'):

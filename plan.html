@@ -58,7 +58,7 @@ body{background:radial-gradient(1200px 600px at 15% -10%,#1b2d4a,transparent),li
   d.innerHTML='<button type="button" title="Smaller text" id="jcZm">A−</button><button type="button" title="Larger text" id="jcZp">A+</button>'; document.body.appendChild(d);
   function st(n){ z=Math.min(1.5,Math.max(.8,Math.round((z+n)*100)/100)); try{ localStorage.setItem('jc_zoom',z); }catch(e){} ap(); }
   d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
-<script src="perf.js?v=2"></script>
+<script src="perf.js?v=3"></script>
 <script>addEventListener('keydown',e=>{ if(e.key==='Escape'){ const m=document.getElementById('pdM'); if(m) m.classList.remove('on'); } });</script>
 </head><body>
 <div class="top"><span class="st" id="st">loading…</span><h1>Joshi's Corner</h1>
@@ -149,7 +149,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-ch]'); if
 /* ---------- 📅 plan scorecard: EVERY call of every plan, date by date - triggered or not ---------- */
 let TRK=null;
 function outcome(c,pl){ const t=(TRK&&TRK.trades||[]).find(x=>x.src_kind==='PLAN'&&x.date===pl.for&&x.s===c.s&&x.side===c.side), sk=((TRK&&TRK.plan_skip)||{})[pl.for]||{};
-  if(t) return {k:t.status,t,txt:t.status==='TARGET'?'🎯 Target':t.status==='STOP'?'🛑 Stop-loss':t.status==='EXPIRED'?'⌛ Expired':'● Open',ret:t.ret};
+  if(t) return {k:t.status,t,txt:t.status==='TARGET'?'🎯 Target':t.status==='STOP'?'🛑 Stop-loss':t.status==='EXPIRED'?(t.dayend?'⏹ Day end 15:15':'⌛ Expired'):'● Open',ret:t.ret};
   if(c.adj&&c.adj.action==='SKIP') return {k:'SKIP',txt:'⛔ Skipped (AM check)'};
   if(sk[c.s]) return {k:/gap/.test(sk[c.s])?'GAP':'NT',txt:/gap/.test(sk[c.s])?'⛔ Gap - not chased':'✖ Not triggered'};
   if(pl.for>today()) return {k:'NEXT',txt:'next session'};
