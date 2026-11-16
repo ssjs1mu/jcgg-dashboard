@@ -693,8 +693,10 @@ trkLoad(); setInterval(trkLoad,10*60000);
  /* stay at the live edge: after a pause, a hidden tab or a slow network the player can fall minutes behind - jump back to live */
  const edge=()=>{ if(!hls) return; const lp=hls.liveSyncPosition; if(lp!=null&&isFinite(lp)&&v.currentTime<lp-8){ v.currentTime=lp; } if(v.paused&&on) v.play().catch(()=>{}); };
  const lag=()=>{ const pd=hls&&hls.playingDate; return pd?Math.round((Date.now()-pd.getTime())/1000):null; };
- setInterval(()=>{ if(!on||!hls) return; edge(); const L=lag(); if(L!=null&&L>=0&&L<3600) st.innerHTML='<span style="color:'+(L<=25?'#3dffb4':L<=60?'#ffd24a':'#ff8f9a')+'">● LIVE</span> <span title="How far the picture is behind the clock (the channel itself is usually 10-25 s behind)">⏱ '+L+' s</span>'; if(L!=null&&L>90){ fails=0; start(); } },10000);
- document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&on) edge(); }); v.addEventListener('play',()=>setTimeout(edge,300));
+ setInterval(()=>{ if(!on||!hls) return; edge(); const L=lag(); if(L!=null&&L>=0&&L<3600) st.innerHTML='<span style="color:'+(L<=25?'#3dffb4':L<=60?'#ffd24a':'#ff8f9a')+'">● LIVE</span> <span title="How far the picture is behind the clock (the channel itself is usually 10-25 s behind)">⏱ '+L+' s</span>'; if(L!=null&&L>40){ fails=0; start(); }   /* more than 40 s behind the clock: reconnect to the live edge */
+  if(L!=null&&L>30) st.innerHTML='<span style="color:#ff8f9a">⚠ TV '+L+' s behind - trust the live prices, not the anchor</span>'; },10000);
+ document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&on){ const L=lag(); if(L==null||L>20||v.paused){ fails=0; start(); } else edge(); } });   /* back on the tab: the browser may have paused the video - restart at live */
+ v.addEventListener('waiting',()=>{ clearTimeout(v._wt); v._wt=setTimeout(()=>{ if(on&&v.readyState<3){ fails=0; start(); } },8000); });   /* stuck buffering for 8 s: reconnect */ v.addEventListener('play',()=>setTimeout(edge,300));
  setInterval(()=>{ if(!on||!hls||v.paused||document.hidden) return; if(Math.abs(v.currentTime-last)<0.01){ if(++stall>=2){ stall=0; fails=0; start(); } } else stall=0; last=v.currentTime; },20000);
  setInterval(()=>{ if(on&&!document.hidden) start(); },50*60000);
  // auto-start if it was on last time - but not when this page is opened inside the terminal (its popped-out TV is already playing)
