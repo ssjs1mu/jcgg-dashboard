@@ -115,7 +115,7 @@ table.rpt{width:100%;min-width:0!important}table.rpt th{text-align:left;width:38
 .tvh{display:flex;justify-content:space-between;align-items:center;font:800 11px Inter,Arial,sans-serif;color:var(--gold);padding:0 2px 4px}.tvh span{color:var(--mu);font-weight:600}
 .tvv{position:relative;aspect-ratio:16/9;background:#000;border-radius:9px;overflow:hidden}.tvv video{width:100%;height:100%;display:block;cursor:pointer}
 .tvgo{position:absolute;inset:0;margin:auto;width:max-content;height:max-content;border:0;border-radius:18px;padding:7px 12px;font:800 12px Inter,Arial,sans-serif;background:#d81f26;color:#fff;cursor:pointer}
-.tvc{display:flex;gap:4px;margin-top:5px}.tvc button{flex:1;border:1px solid #3a5476;background:#13213a;color:#e8eef8;border-radius:7px;padding:3px 0;cursor:pointer;font:700 12px Arial}
+.tvc select{flex:1.6;min-width:0;border:1px solid #3a5476;background:#13213a;color:#e8eef8;border-radius:7px;padding:3px 0;font:700 11px Arial}.tvc{display:flex;gap:4px;margin-top:5px}.tvc button{flex:1;border:1px solid #3a5476;background:#13213a;color:#e8eef8;border-radius:7px;padding:3px 0;cursor:pointer;font:700 12px Arial}
 @media(max-width:820px){.tvb{flex:0 0 220px}}
 .nwt{display:flex;align-items:center;gap:8px;margin:0 12px 6px;padding:4px 8px;border:1px solid #2d4260;border-radius:10px;background:linear-gradient(90deg,#1a1408,#0f1a2b 18%);overflow:hidden}
 .nwl{flex:none;font:800 11px Inter,Arial,sans-serif;color:#ff5a5a;letter-spacing:.06em;animation:nwb 1.6s ease-in-out infinite}@keyframes nwb{50%{opacity:.45}}
@@ -216,7 +216,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
 <nav class="tiles" id="tiles" aria-label="Sections">
  <div class="tvb" id="tvBadge"><div class="tvh" id="tvHd" title="Click to open the TV as a section (joins the 2 × 2 view)"><b>📺 LIVE TV ⤢</b><span id="tvSt">Zee Business</span></div>
   <div id="tvHome"><div class="tvhm" id="tvAway">▣ showing in the TV section</div><div class="tvv" id="tvBox"><video id="wtv" playsinline muted></video><button type="button" id="tvGo" class="tvgo" title="Play Zee Business live">▶ Watch live</button></div></div>
-  <div class="tvc"><button type="button" id="tvMu" title="Sound on / off">🔇</button><button type="button" id="tvRe" title="Reconnect">↻</button><button type="button" id="tvPi" title="Pop out (stays on top, keeps playing while you use the tiles)">⧉</button><button type="button" id="tvOff" title="Stop">■</button></div></div>
+  <div class="tvc"><button type="button" id="tvMu" title="Sound on / off">🔇</button><button type="button" id="tvJ" title="Jump to live now (skip the delay)">⚡</button><select id="tvQ" title="Picture quality: a lower quality stays closer to live on a slow line"><option value="a480">Auto ≤480p</option><option value="240">240p</option><option value="360">360p</option><option value="480">480p</option><option value="720">720p</option><option value="amax">Auto (max)</option></select><button type="button" id="tvRe" title="Reconnect">↻</button><button type="button" id="tvPi" title="Pop out (stays on top, keeps playing while you use the tiles)">⧉</button><button type="button" id="tvOff" title="Stop">■</button></div></div>
  <div class="wctl"><button type="button" class="mb" id="multiB" title="Open up to 4 sections as a 2 x 2 square (stocks as rows, click a row for details); a 5th opens as a popup">▣ 2 × 2 view</button><button type="button" class="mb wauto" id="wAuto" title="Tile wheel: rolls by itself; stops while you point at it or scroll it">⟳</button></div>
  <div class="wheel" id="wheel"><div class="wtrack" id="wtrack">
  <div class="ws"><button type="button" class="tile hn" data-p="hn"><i>💎</i><b>High Net-worth Trade</b><small id="ts_hn">–</small></button></div>
@@ -659,15 +659,20 @@ trkLoad(); setInterval(trkLoad,10*60000);
  let hls=null, on=false, fails=0, last=-1, stall=0; const ch=window.BroadcastChannel?new BroadcastChannel('jc-tv'):null, me='w'+Math.random().toString(36).slice(2);
  const lib=()=>window.Hls?Promise.resolve():new Promise((ok,no)=>{ const e=document.createElement('script'); e.src=LIB; e.onload=ok; e.onerror=()=>no(new Error('player blocked')); document.head.appendChild(e); });
  const stop=()=>{ try{ hls&&hls.destroy(); }catch(e){} hls=null; try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} };
- async function start(){ on=true; go.style.display='none'; st.textContent='connecting…'; stop();
+ let Q=(function(){ try{ return localStorage.getItem('jc_tv_q')||'a480'; }catch(e){ return 'a480'; } })(); const qs=$('tvQ'); if(qs) qs.value=Q;
+function applyQ(){ if(!hls||!hls.levels||!hls.levels.length) return; const L=hls.levels; let cap=L.length-1; if(Q==='a480'){ cap=-1; L.forEach((l,i)=>{ if(l.height<=480) cap=i; }); if(cap<0) cap=0; hls.autoLevelCapping=cap; hls.currentLevel=-1; }
+ else if(Q==='amax'){ hls.autoLevelCapping=-1; hls.currentLevel=-1; }
+ else { let idx=-1; L.forEach((l,i)=>{ if(l.height<=+Q) idx=i; }); if(idx<0) idx=0; hls.autoLevelCapping=-1; hls.currentLevel=idx; } }
+if(qs) qs.onchange=()=>{ Q=qs.value; try{ localStorage.setItem('jc_tv_q',Q); }catch(e){} applyQ(); };
+async function start(){ on=true; go.style.display='none'; st.textContent='connecting…'; stop();
   try{ const [,r]=await Promise.all([lib(),fetch(TOK,{cache:'no-store'})]); if(!r.ok) throw new Error('token '+r.status); let tk=String((await r.json()).video_token||''); if(!tk) throw new Error('no token'); if(tk[0]!=='?') tk='?akes='+tk;
-   if(window.Hls&&Hls.isSupported()){ hls=new Hls({maxBufferLength:10,backBufferLength:6,liveSyncDuration:6,liveMaxLatencyDuration:12,maxLiveSyncPlaybackRate:1.5,liveDurationInfinity:true,startLevel:0,enableWorker:true}); window.WTVH=hls; hls.loadSource(SRC+tk); hls.attachMedia(v); hls.on(Hls.Events.ERROR,(e,d)=>{ if(d&&d.fatal) fail(d.details); }); }
+   if(window.Hls&&Hls.isSupported()){ hls=new Hls({maxBufferLength:10,backBufferLength:6,liveSyncDuration:6,liveMaxLatencyDuration:12,maxLiveSyncPlaybackRate:1.5,liveDurationInfinity:true,startLevel:1,capLevelToPlayerSize:true,abrEwmaDefaultEstimate:900000,abrBandWidthFactor:0.8,abrBandWidthUpFactor:0.6,enableWorker:true}); window.WTVH=hls; hls.on(Hls.Events.MANIFEST_PARSED,applyQ); hls.loadSource(SRC+tk); hls.attachMedia(v); hls.on(Hls.Events.ERROR,(e,d)=>{ if(d&&d.fatal) fail(d.details); }); }
    else if(v.canPlayType('application/vnd.apple.mpegurl')) v.src=SRC+tk; else throw new Error('browser cannot play this stream');
    v.play().catch(()=>{}); fails=0; st.innerHTML='<span style="color:#3dffb4">● LIVE</span>'; if(ch) ch.postMessage({t:'play',me}); svj('jc_wl_tv',1);
   }catch(e){ fail(String(e.message||e)); } }
  function fail(why){ fails++; stop(); if(fails>=3){ on=false; go.style.display=''; go.textContent='▶ Retry'; st.textContent='not reachable ('+why+')'; return; } st.textContent='retrying '+fails+'/3…'; setTimeout(start,3000*fails); }
  function off(msg){ on=false; stop(); go.style.display=''; go.textContent='▶ Watch live'; st.textContent=msg||'Zee Business'; }
- go.onclick=start; $('tvRe').onclick=()=>{ fails=0; start(); }; $('tvOff').onclick=()=>{ off(); svj('jc_wl_tv',0); };
+ go.onclick=start; const jb=$('tvJ'); if(jb) jb.onclick=()=>{ if(!on){ start(); return; } const lp=hls&&hls.liveSyncPosition; if(lp!=null&&isFinite(lp)) v.currentTime=lp; v.play().catch(()=>{}); }; $('tvRe').onclick=()=>{ fails=0; start(); }; $('tvOff').onclick=()=>{ off(); svj('jc_wl_tv',0); };
  const mute=()=>{ v.muted=!v.muted; if(!v.muted) v.play().catch(()=>{}); $('tvMu').textContent=v.muted?'🔇':'🔊'; }; $('tvMu').onclick=mute; v.onclick=mute;
  /* pop-out: an always-on-top window WITH its own buttons (⤺ Back, sound, ↻); browsers without that get the plain picture-in-picture */
  let pip=null; const box=$('tvBox');
@@ -696,7 +701,7 @@ trkLoad(); setInterval(trkLoad,10*60000);
  setInterval(()=>{ if(!on||!hls) return; edge(); const L=lag(); if(L!=null&&L>=0&&L<3600) st.innerHTML='<span style="color:'+(L<=25?'#3dffb4':L<=60?'#ffd24a':'#ff8f9a')+'">● LIVE</span> <span title="How far the picture is behind the clock (the channel itself is usually 10-25 s behind)">⏱ '+L+' s</span>'; if(L!=null&&L>40){ fails=0; start(); }   /* more than 40 s behind the clock: reconnect to the live edge */
   if(L!=null&&L>30) st.innerHTML='<span style="color:#ff8f9a">⚠ TV '+L+' s behind - trust the live prices, not the anchor</span>'; },10000);
  document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&on){ const L=lag(); if(L==null||L>20||v.paused){ fails=0; start(); } else edge(); } });   /* back on the tab: the browser may have paused the video - restart at live */
- v.addEventListener('waiting',()=>{ clearTimeout(v._wt); v._wt=setTimeout(()=>{ if(on&&v.readyState<3){ fails=0; start(); } },8000); });   /* stuck buffering for 8 s: reconnect */ v.addEventListener('play',()=>setTimeout(edge,300));
+ v.addEventListener('waiting',()=>{ clearTimeout(v._wt); v._wt=setTimeout(()=>{ if(on&&v.readyState<3){ fails=0; start(); } },8000); });   /* stuck buffering for 8 s: reconnect */ v.addEventListener('play',()=>setTimeout(edge,300)); let _te=0; v.addEventListener('timeupdate',()=>{ const n=Date.now(); if(!on||!hls||n-_te<2000) return; _te=n; const lp=hls.liveSyncPosition; if(lp!=null&&isFinite(lp)&&v.currentTime<lp-6) v.currentTime=lp; });   /* falls behind by >12 s: skip forward to live (runs with the video, so a busy or background tab still catches up) */
  setInterval(()=>{ if(!on||!hls||v.paused||document.hidden) return; if(Math.abs(v.currentTime-last)<0.01){ if(++stall>=2){ stall=0; fails=0; start(); } } else stall=0; last=v.currentTime; },20000);
  setInterval(()=>{ if(on&&!document.hidden) start(); },50*60000);
  // auto-start if it was on last time - but not when this page is opened inside the terminal (its popped-out TV is already playing)
