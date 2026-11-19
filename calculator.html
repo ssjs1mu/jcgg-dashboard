@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Joshi's Corner - Pivot Calculator</title>
+<style>
+:root{--bg:#0e1621;--card:#16243a;--line:#2d4260;--tx:#f1f5fb;--mu:#a9b8cc;--gold:#e0cd96;--up:#35f0a8;--dn:#ff6b9d;--cmp:#ffd35c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:radial-gradient(1200px 600px at 15% -10%,#1b2d4a,transparent),linear-gradient(180deg,#0e1621,#0a111a);background-attachment:fixed;color:var(--tx);font:13px/1.35 Inter,"Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;padding:8px 12px 60px;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;max-width:1500px;margin:0 auto 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.top h1{font:400 44px/1 "Brush Script MT","Segoe Script",cursive;color:var(--gold);text-align:center;white-space:nowrap}
+.nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sw{display:inline-block;padding:5px 13px;border-radius:999px;background:linear-gradient(180deg,#ffd35c,#d9a21c);color:#1a1030;font:800 12px Inter,"Segoe UI",sans-serif;text-decoration:none}
+.sw.on{background:#1d3a5c;color:#9ee7ff;border:1px solid #2fd0ff;pointer-events:none}
+.st{font:700 12px ui-monospace,Consolas,monospace;color:var(--mu)}.st b{color:var(--up)}
+.wrap{max-width:1500px;margin:0 auto}
+.pick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 10px;padding:9px 12px;background:linear-gradient(160deg,#1a2c48,#121f33);border:1px solid var(--line);border-radius:12px}
+.pick h2{font:900 17px Inter;color:#fff;margin-right:6px}.pick h2 span{color:var(--gold)}
+.pick input,.pick select{background:#10263d;color:#fff;border:1px solid #2fd0ff;border-radius:7px;padding:6px 9px;font:700 13px Inter}.pick input{width:210px;text-transform:uppercase}
+.pick button{border:0;border-radius:8px;padding:7px 14px;font:900 13px Inter;cursor:pointer;background:linear-gradient(180deg,#ffd35c,#d9a21c);color:#1a1030}
+.pick .q{display:flex;gap:5px;flex-wrap:wrap}.pick .q a{cursor:pointer;font:700 11px Inter;color:#9ee7ff;border:1px solid #2fd0ff55;border-radius:999px;padding:2px 9px;background:#0f2238}
+.mu{color:var(--mu)}.up{color:var(--up)}.dn{color:var(--dn)}
+h3.sec{font:900 14px Inter;color:var(--gold);margin:14px 0 6px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}h3.sec small{font:600 11.5px Inter;color:var(--mu)}
+table.x{width:100%;border-collapse:collapse;font:700 12.5px ui-monospace,Consolas,monospace;background:#0f1a2b;border:1px solid var(--line)}
+table.x th{background:#1a2b45;color:#c9d4e3;font:800 10.5px Inter;text-transform:uppercase;letter-spacing:.04em;padding:5px 7px;text-align:left;white-space:nowrap}
+table.x td{padding:4px 7px;border-bottom:1px solid #1d2c42;white-space:nowrap}table.x td.n{text-align:right}
+.live td:nth-child(odd){color:#a9b8cc;font:700 11px Inter;text-transform:uppercase}.live td:nth-child(even){font:800 14px ui-monospace,Consolas,monospace}
+.rng{position:relative;height:8px;border-radius:5px;background:linear-gradient(90deg,#7a1f38,#1a3a5c 50%,#0f6a52);min-width:120px}.rng i{position:absolute;top:-4px;width:4px;height:16px;margin-left:-2px;border-radius:2px;background:var(--cmp);box-shadow:0 0 8px var(--cmp)}
+.tf{display:flex;gap:6px;margin:12px 0 6px;flex-wrap:wrap}.tf button{border:1px solid #2fd0ff;background:#10263d;color:#9ee7ff;border-radius:999px;padding:5px 14px;font:800 12px Inter;cursor:pointer}.tf button.on{background:linear-gradient(180deg,#ffd35c,#d9a21c);color:#1a1030;border-color:#ffd35c}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
+.card{background:linear-gradient(160deg,#16253d,#0f1a2b);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.card .hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;background:#13223a;border-bottom:1px solid var(--line)}
+.card .hd b{font:900 13.5px Inter}.card .hd small{display:block;font:600 10.5px Inter;color:var(--mu)}
+.tr{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font:900 12px Inter;white-space:nowrap}.tr i{font-style:normal;font-size:18px;line-height:1}
+.tr.B{background:#0f3527;color:#5dffbe}.tr.S{background:#3a1424;color:#ff8fb8}.tr.N{background:#2a3446;color:#e0cd96}
+.card table{width:100%;border-collapse:collapse;font:700 12.5px ui-monospace,Consolas,monospace}
+.card td{padding:3px 9px;border-bottom:1px solid #1b2a40}.card td.n{text-align:right}.card td.l{font:800 11.5px Inter;width:56px}
+.card tr.R td.l{color:#ff8fb8}.card tr.S td.l{color:#5dffbe}.card tr.P td.l{color:#e0cd96}.card tr.P td{background:#1c2a1a33}
+.card tr.near td{background:rgba(255,211,92,.08)}.card tr.near td.l::after{content:" ◀ nearest";font:700 9.5px Inter;color:var(--cmp)}
+.card tr.cmp td{background:linear-gradient(90deg,#4a3a0c,#2a2310);color:var(--cmp);font-weight:900;border-top:1px solid var(--cmp);border-bottom:1px solid var(--cmp)}
+.card .ft{padding:6px 10px;font:600 11.5px/1.4 Inter;color:#d9e2ee;border-top:1px solid var(--line)}
+.major{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:820px){.major{grid-template-columns:1fr}}
+.str{color:var(--cmp);letter-spacing:1px}
+.big{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:4px 0}.big .tr{font-size:15px;padding:6px 16px}.big .tr i{font-size:24px}
+.votes{display:flex;flex-wrap:wrap;gap:5px}.votes span{border:1px solid #2d4260;border-radius:999px;padding:2px 9px;font:700 11.5px Inter;background:rgba(0,0,0,.2)}
+.note{margin:14px 0 0;color:var(--mu);font:12px/1.55 Inter}.note b{color:var(--gold)}
+.empty{margin:30px auto;text-align:center;color:var(--mu);font:600 14px Inter}
+@media(max-width:900px){.top{grid-template-columns:1fr}.top h1{font-size:36px}.nav{justify-content:center}.pick input{width:150px}}
+#jcZ{position:fixed;right:56px;bottom:10px;z-index:99999;display:flex;gap:4px}
+#jcZ button{width:38px;height:38px;border-radius:50%;border:1px solid #2fd0ff;background:#0d5a73;color:#fff;font:700 15px/1 Inter,Arial,sans-serif!important;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+</style>
+<script>(function(){ var z=1; try{ z=parseFloat(localStorage.getItem('jc_zoom'))||1; }catch(e){}
+ function ap(){ if(document.body) document.body.style.zoom=z; }
+ document.addEventListener('DOMContentLoaded',function(){ ap(); var d=document.createElement('div'); d.id='jcZ';
+  d.innerHTML='<button type="button" title="Smaller text" id="jcZm">A−</button><button type="button" title="Larger text" id="jcZp">A+</button>'; document.body.appendChild(d);
+  function st(n){ z=Math.min(1.5,Math.max(.8,Math.round((z+n)*100)/100)); try{ localStorage.setItem('jc_zoom',z); }catch(e){} ap(); }
+  d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
+</head><body>
+<div class="top"><span class="st" id="st">pick a stock</span><h1>Joshi's Corner</h1>
+ <nav class="nav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw" href="watchlist.html">WATCHLIST</a><a class="sw" href="plan.html">TOMORROW'S CALLS</a><a class="sw on" href="calculator.html">PIVOT CALCULATOR</a></nav></div>
+<div class="wrap">
+ <div class="pick"><h2>🧮 Pivot <span>Calculator</span></h2>
+  <input id="sym" list="syms" placeholder="Symbol e.g. RELIANCE" autocomplete="off" spellcheck="false"><datalist id="syms"></datalist>
+  <select id="ex"><option value="NS">NSE</option><option value="BO">BSE</option></select>
+  <button id="go">Calculate</button>
+  <span class="q" id="quick"></span>
+ </div>
+ <div id="out"><div class="empty">Choose a symbol and exchange, then press <b>Calculate</b>.</div></div>
+ <div class="note"><b>How the levels are built:</b> Daily pivots use the previous completed session, Weekly the previous completed week, Monthly the previous completed month (high, low, close; DeMark also uses that period's open).
+ Classic P = (H+L+C)/3 · Fibonacci = P ± 0.382 / 0.618 / 1.000 × range · Camarilla = C ± range × 1.1/12, /6, /4, /2 · Woodie P = (H+L+2C)/4 · DeMark from the period's open/close relation · CPR = P with BC = (H+L)/2 and TC = 2P − BC.
+ <b>Trend arrow:</b> ▲ Bullish when the live price is above the pivot (above R1 = strong), ▼ Bearish below it (below S1 = strong), ◆ Neutral inside the pivot zone; Camarilla reads above R3 / below S3 as breakout / breakdown, inside as range-bound; CPR reads above TC / below BC.
+ <b>Major levels</b> = price zones where several pivot levels, the previous day / week / month high-low, the 20-day and 52-week high-low and the 20 / 50 / 200-day averages fall together (within ~0.3%); more levels and longer time frames = stronger. Rule-based levels, not advice.</div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
+const fx=(v,d)=>v==null||!isFinite(v)?'–':Number(v).toLocaleString('en-IN',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d});
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ist=()=>new Date(Date.now()+19800000), todayS=()=>ist().toISOString().slice(0,10), mins=()=>{ const n=ist(); return n.getUTCHours()*60+n.getUTCMinutes(); };
+const mktOpen=()=>{ const n=ist(), d=n.getUTCDay(), m=mins(); return d>0&&d<6&&m>=555&&m<930; };
+const pct=(a,b)=>(a/b-1)*100, sg=v=>(v>=0?'+':'')+v.toFixed(2)+'%';
+const INDICES={ 'NIFTY 50':'^NSEI','BANK NIFTY':'^NSEBANK','SENSEX':'^BSESN','FIN NIFTY':'NIFTY_FIN_SERVICE.NS','MIDCAP NIFTY':'^NSEMDCP50','NIFTY IT':'^CNXIT' };
+const yf=(s,ex)=>INDICES[s]||(/^\^/.test(s)?s:s+'.'+ex);
+const S={sym:null,ex:'NS',tf:'D',live:null,bars:null,meta:null,timer:null,busy:false};
+
+/* symbols: Nifty 500 from the heat-map feed + indices */
+(async()=>{ const q=['NIFTY 50','BANK NIFTY','SENSEX','RELIANCE','HDFCBANK','SBIN','INFY','TCS'];
+  $('quick').innerHTML=q.map(x=>`<a data-q="${esc(x)}">${esc(x)}</a>`).join('');
+  try{ const j=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Date.now()).then(r=>r.json());
+    $('syms').innerHTML=Object.keys(INDICES).concat(j.rows.map(r=>r[0]).sort()).map(s=>`<option value="${esc(s)}">`).join(''); }catch(e){ $('syms').innerHTML=Object.keys(INDICES).map(s=>`<option value="${esc(s)}">`).join(''); } })();
+document.addEventListener('click',e=>{ const q=e.target.closest('[data-q]'); if(q){ $('sym').value=q.dataset.q; $('ex').value=/SENSEX/.test(q.dataset.q)?'BO':'NS'; go(); return; }
+  const t=e.target.closest('[data-tf]'); if(t){ S.tf=t.dataset.tf; try{localStorage.setItem('jc_pv_tf',S.tf);}catch(_){ } paint(); } });
+$('go').onclick=go; $('sym').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+
+async function be(q){ const r=await fetch(BACKEND+'?'+q); return r.json(); }
+async function daily(ys){ const u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(ys)+'?range=1y&interval=1d&includePrePost=false';
+  const j=await be('action=fetch&url='+encodeURIComponent(u)); const x=j&&j.chart&&j.chart.result&&j.chart.result[0]; if(!x) throw new Error((j&&j.chart&&j.chart.error&&j.chart.error.description)||'no price history for this symbol');
+  const q=x.indicators.quote[0], B=[]; (x.timestamp||[]).forEach((t,i)=>{ if([q.open[i],q.high[i],q.low[i],q.close[i]].some(v=>v==null)) return; B.push({d:new Date((t+19800)*1000).toISOString().slice(0,10),o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0}); });
+  return {B,meta:x.meta||{}}; }
+async function liveQ(ys){ const j=await be('action=liveq&symbols='+encodeURIComponent(ys)); const q=j&&j.q&&j.q[ys]; return q&&q[0]?q:null; }
+
+async function go(){
+  const raw=($('sym').value||'').trim().toUpperCase().replace(/\.(NS|BO)$/,''); if(!raw){ $('sym').focus(); return; }
+  S.sym=raw; S.ex=$('ex').value; S.live=null; S.bars=null; location.hash=encodeURIComponent(raw)+':'+S.ex; try{localStorage.setItem('jc_pv_last',raw+':'+S.ex);}catch(e){}
+  $('out').innerHTML='<div class="empty">Fetching '+esc(raw)+' ('+(S.ex==='BO'?'BSE':'NSE')+') …</div>'; $('st').textContent='loading '+raw+'…';
+  const ys=yf(raw,S.ex);
+  try{ const [d,l]=await Promise.all([daily(ys),liveQ(ys).catch(()=>null)]); S.bars=d.B; S.meta=d.meta; S.live=l; S.ys=ys;
+    if(S.bars.length<30) throw new Error('not enough price history'); paint(); arm(); }
+  catch(e){ $('out').innerHTML='<div class="empty">Could not load <b>'+esc(raw)+'</b> on '+(S.ex==='BO'?'BSE':'NSE')+': '+esc(e.message||e)+'. Check the symbol (NSE code, e.g. RELIANCE).</div>'; $('st').textContent='—'; }
+}
+function arm(){ clearInterval(S.timer); S.timer=setInterval(async()=>{ if(document.hidden||!S.ys||!mktOpen()) return; try{ const l=await liveQ(S.ys); if(l){ S.live=l; paint(); } }catch(e){} },15000); }
+
+/* ---------- periods ---------- */
+const wkKey=d=>{ const t=new Date(d+'T00:00:00Z'), w=(t.getUTCDay()+6)%7; t.setUTCDate(t.getUTCDate()-w); return t.toISOString().slice(0,10); };
+function agg(B,key){ const G=[]; B.forEach(b=>{ const k=key(b.d), g=G[G.length-1]; if(g&&g.k===k){ g.h=Math.max(g.h,b.h); g.l=Math.min(g.l,b.l); g.c=b.c; g.e=b.d; } else G.push({k,o:b.o,h:b.h,l:b.l,c:b.c,s:b.d,e:b.d}); }); return G; }
+function periods(){
+  const B=S.bars.slice(), td=todayS(), done=!(B.length&&B[B.length-1].d===td&&mins()<930&&ist().getUTCDay()>0&&ist().getUTCDay()<6);
+  // daily: last COMPLETED session (today's bar counts only after 15:30)
+  const D=done?B[B.length-1]:B[B.length-2];
+  const W=agg(B,wkKey), M=agg(B,d=>d.slice(0,7));
+  const curW=wkKey(td), curM=td.slice(0,7), fri=ist().getUTCDay()===5&&mins()>=930||ist().getUTCDay()===6||ist().getUTCDay()===0;
+  const pw=W.filter(g=>g.k<curW||(g.k===curW&&fri)), pm=M.filter(g=>g.k<curM);
+  return { D:{o:D.o,h:D.h,l:D.l,c:D.c,lab:'session '+D.d}, W:pw.length?{...pw[pw.length-1],lab:'week '+pw[pw.length-1].s+' → '+pw[pw.length-1].e}:null, M:pm.length?{...pm[pm.length-1],lab:'month '+pm[pm.length-1].k}:null };
+}
+/* ---------- pivot methods ---------- */
+function methods(p){
+  const {o,h,l,c}=p, r=h-l, P=(h+l+c)/3;
+  const classic={ name:'Classic (Floor)', P, L:{R3:h+2*(P-l),R2:P+r,R1:2*P-l,P,S1:2*P-h,S2:P-r,S3:l-2*(h-P)} };
+  const fib={ name:'Fibonacci', P, L:{R3:P+r,R2:P+.618*r,R1:P+.382*r,P,S1:P-.382*r,S2:P-.618*r,S3:P-r} };
+  const cam={ name:'Camarilla', P, cam:true, L:{R4:c+r*1.1/2,R3:c+r*1.1/4,R2:c+r*1.1/6,R1:c+r*1.1/12,P,S1:c-r*1.1/12,S2:c-r*1.1/6,S3:c-r*1.1/4,S4:c-r*1.1/2} };
+  const WP=(h+l+2*c)/4; const woodie={ name:'Woodie', P:WP, L:{R3:h+2*(WP-l),R2:WP+r,R1:2*WP-l,P:WP,S1:2*WP-h,S2:WP-r,S3:l-2*(h-WP)} };
+  const X=c<o?h+2*l+c:c>o?2*h+l+c:h+l+2*c; const demark={ name:'DeMark', P:X/4, L:{R1:X/2-l,P:X/4,S1:X/2-h} };
+  let BC=(h+l)/2, TC=2*P-BC; if(TC<BC){ const t=TC; TC=BC; BC=t; } const cpr={ name:'CPR (Central Pivot Range)', P, cpr:true, TC, BC, L:{R2:P+r,R1:2*P-l,TC,P,BC,S1:2*P-h,S2:P-r} };
+  return [classic,fib,cam,woodie,demark,cpr];
+}
+function trend(m,cmp){
+  const L=m.L;
+  if(m.cam){ if(cmp>L.R4) return ['B','▲','Breakout above R4 — strong up-move']; if(cmp>L.R3) return ['B','▲','Above R3 — bullish, watch R4 for breakout']; if(cmp<L.S4) return ['S','▼','Breakdown below S4 — strong down-move']; if(cmp<L.S3) return ['S','▼','Below S3 — bearish, watch S4']; return ['N','◆','Between S3 and R3 — range-bound, fade the edges']; }
+  if(m.cpr){ const w=(m.TC-m.BC)/m.P*100, nw=w<0.25?' · narrow CPR ('+w.toFixed(2)+'%) → trending day likely':w>0.75?' · wide CPR ('+w.toFixed(2)+'%) → sideways day likely':' · CPR width '+w.toFixed(2)+'%';
+    if(cmp>m.TC) return ['B','▲','Above TC — bullish bias'+nw]; if(cmp<m.BC) return ['S','▼','Below BC — bearish bias'+nw]; return ['N','◆','Inside the CPR — undecided'+nw]; }
+  if(cmp>L.R1) return ['B','▲','Above R1 — strong bullish']; if(cmp>L.P) return ['B','▲','Above the pivot — bullish']; if(L.S1!=null&&cmp<L.S1) return ['S','▼','Below S1 — strong bearish']; if(cmp<L.P) return ['S','▼','Below the pivot — bearish']; return ['N','◆','At the pivot — neutral'];
+}
+const TL={B:'Bullish',S:'Bearish',N:'Neutral'};
+function table(m,cmp,p){
+  const ent=Object.entries(m.L).sort((a,b)=>b[1]-a[1]); const above=ent.filter(e=>e[1]>cmp), below=ent.filter(e=>e[1]<=cmp);
+  const nR=above.length?above[above.length-1][0]:null, nS=below.length?below[0][0]:null, t=trend(m,cmp);
+  const row=([k,v])=>{ const c=/^R/.test(k)?'R':/^S/.test(k)?'S':'P', d=pct(v,cmp); return `<tr class="${c}${k===nR||k===nS?' near':''}"><td class="l">${k}</td><td class="n">${fx(v)}</td><td class="n ${d>=0?'up':'dn'}">${sg(d)}</td></tr>`; };
+  const cm=`<tr class="cmp"><td class="l">▶ CMP</td><td class="n">${fx(cmp)}</td><td class="n">${t[1]} ${TL[t[0]]}</td></tr>`;
+  return `<div class="card"><div class="hd"><div><b>${esc(m.name)}</b><small>${esc(p.lab)}${m.cpr?' · TC '+fx(m.TC)+' / BC '+fx(m.BC):''}</small></div><span class="tr ${t[0]}"><i>${t[1]}</i>${TL[t[0]]}</span></div>
+   <table>${above.map(row).join('')}${cm}${below.map(row).join('')}</table>
+   <div class="ft">${esc(t[2])}${nR?` · next resistance <b class="dn">${nR} ${fx(m.L[nR])}</b>`:''}${nS?` · next support <b class="up">${nS} ${fx(m.L[nS])}</b>`:''}</div></div>`;
+}
+/* ---------- major support / resistance: confluence of levels ---------- */
+const ema=(v,n)=>{ const k=2/(n+1); let e=v[0]; v.forEach(x=>{ e=x*k+e*(1-k); }); return e; };
+function majors(P,cmp){
+  const B=S.bars, cl=B.map(b=>b.c), lv=[]; const add=(v,lab,w)=>{ if(v&&isFinite(v)) lv.push({v,lab,w}); };
+  [['D',1],['W',2],['M',3]].forEach(([tf,w])=>{ const p=P[tf]; if(!p) return; methods(p).forEach(m=>Object.entries(m.L).forEach(([k,v])=>add(v,tf+' '+m.name.split(' ')[0]+' '+k,w*(k==='P'?1.2:1)))); add(p.h,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' high',w*1.5); add(p.l,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' low',w*1.5); });
+  const b20=B.slice(-21,-1), b52=B.slice(-250); add(Math.max(...b20.map(b=>b.h)),'20-day high',2); add(Math.min(...b20.map(b=>b.l)),'20-day low',2);
+  add(Math.max(...b52.map(b=>b.h)),'52-week high',4); add(Math.min(...b52.map(b=>b.l)),'52-week low',4);
+  if(cl.length>=20) add(ema(cl.slice(-60),20),'20-DMA (EMA)',2); if(cl.length>=50) add(ema(cl.slice(-150),50),'50-DMA (EMA)',3); if(cl.length>=200) add(ema(cl,200),'200-DMA (EMA)',4);
+  lv.sort((a,b)=>a.v-b.v); const Z=[], tol=cmp*0.003;
+  lv.forEach(x=>{ const z=Z[Z.length-1]; if(z&&x.v-z.hi<=tol){ z.items.push(x); z.hi=x.v; } else Z.push({lo:x.v,hi:x.v,items:[x]}); });
+  Z.forEach(z=>{ const W=z.items.reduce((a,x)=>a+x.w,0); z.v=z.items.reduce((a,x)=>a+x.v*x.w,0)/W; z.s=W; z.labs=[...new Set(z.items.map(x=>x.lab))]; });
+  const res=Z.filter(z=>z.v>cmp*1.0015).sort((a,b)=>a.v-b.v), sup=Z.filter(z=>z.v<cmp*0.9985).sort((a,b)=>b.v-a.v);
+  const pickTop=(arr)=>{ const near=arr.slice(0,12); const top=near.slice().sort((a,b)=>b.s-a.s).slice(0,4); return near.filter(z=>top.includes(z)); };
+  return {res:pickTop(res),sup:pickTop(sup),max:Math.max(1,...Z.map(z=>z.s))};
+}
+const stars=(s,mx)=>{ const n=Math.max(1,Math.round(s/mx*5)); return '★'.repeat(n)+'<span class="mu">'+'★'.repeat(5-n)+'</span>'; };
+function majTable(arr,cmp,kind,mx){ if(!arr.length) return '<div class="empty">None within reach.</div>';
+  return `<table class="x"><thead><tr><th>${kind==='R'?'Resistance':'Support'}</th><th style="text-align:right">Level</th><th style="text-align:right">From CMP</th><th>Strength</th><th>Built from</th></tr></thead><tbody>${arr.map((z,i)=>{ const d=pct(z.v,cmp); return `<tr><td><b class="${kind==='R'?'dn':'up'}">${kind}${i+1}</b></td><td class="n"><b>${fx(z.v)}</b>${z.hi-z.lo>0.01?`<br><small class="mu">${fx(z.lo)} – ${fx(z.hi)}</small>`:''}</td><td class="n ${d>=0?'up':'dn'}">${sg(d)}</td><td class="str">${stars(z.s,mx)}</td><td style="white-space:normal;font:600 11px Inter;color:#d9e2ee">${esc(z.labs.slice(0,6).join(' · '))}${z.labs.length>6?' · +'+(z.labs.length-6):''}</td></tr>`; }).join('')}</tbody></table>`; }
+
+function paint(){
+  if(!S.bars) return; const B=S.bars, last=B[B.length-1], L=S.live, meta=S.meta||{};
+  const cmp=L?L[0]:(meta.regularMarketPrice||last.c), pc=L&&L[1]?L[1]:(meta.chartPreviousClose&&B.length>1?B[B.length-2].c:null), o=L?L[2]:last.o, h=L?L[3]:last.h, l=L?L[4]:last.l, v=L?L[5]:last.v, av=L?L[6]:null;
+  const wh=L&&L[8]?L[8]:Math.max(...B.slice(-250).map(b=>b.h)), wl=L&&L[9]?L[9]:Math.min(...B.slice(-250).map(b=>b.l)), qt=L&&L[7]?new Date(L[7]*1000):null;
+  const ch=pc?cmp-pc:null, cp=pc?pct(cmp,pc):null, pos=h>l?(cmp-l)/(h-l)*100:50, name=meta.longName||meta.shortName||S.sym;
+  $('st').innerHTML=(mktOpen()?'<b>● LIVE</b> ':'')+esc(S.sym)+' '+(qt?qt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'');
+  const P=periods(), cur=S.tf==='W'?P.W:S.tf==='M'?P.M:P.D;
+  const all=[]; ['D','W','M'].forEach(tf=>{ if(P[tf]) methods(P[tf]).forEach(m=>all.push({tf,t:trend(m,cmp)})); });
+  const bu=all.filter(x=>x.t[0]==='B').length, br=all.filter(x=>x.t[0]==='S').length, ov=bu>br*1.5?'B':br>bu*1.5?'S':'N';
+  const cl=B.map(b=>b.c), e20=ema(cl.slice(-60),20), e50=ema(cl.slice(-150),50), e200=cl.length>=200?ema(cl,200):null;
+  const MJ=majors(P,cmp);
+  const byTf=tf=>{ const x=all.filter(a=>a.tf===tf), b=x.filter(a=>a.t[0]==='B').length, s=x.filter(a=>a.t[0]==='S').length; return b>s?['B','▲']:s>b?['S','▼']:['N','◆']; };
+  $('out').innerHTML=`
+   <h3 class="sec">📈 ${esc(S.sym)} <small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'} · ${qt?'quote '+qt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'last close '+esc(last.d)}${mktOpen()?' · refreshes every 15 s':''}</small></h3>
+   <table class="x live"><tbody>
+    <tr><td>LTP (CMP)</td><td style="color:var(--cmp)">${fx(cmp)}</td><td>Change</td><td class="${ch>=0?'up':'dn'}">${ch==null?'–':(ch>=0?'+':'')+fx(ch)+' ('+sg(cp)+')'}</td><td>Open</td><td>${fx(o)}</td><td>Prev close</td><td>${fx(pc)}</td></tr>
+    <tr><td>Day high</td><td class="up">${fx(h)}</td><td>Day low</td><td class="dn">${fx(l)}</td><td>Day range</td><td><div class="rng" title="where the price sits in today's range"><i style="left:${Math.max(0,Math.min(100,pos)).toFixed(1)}%"></i></div></td><td>Position</td><td>${pos.toFixed(0)}% of range</td></tr>
+    <tr><td>Volume</td><td>${fx(v,0)}</td><td>Avg volume</td><td>${av?fx(av,0)+' <small class="mu">('+(v/av).toFixed(2)+'x)</small>':'–'}</td><td>52W high</td><td class="up">${fx(wh)} <small class="mu">${sg(pct(cmp,wh))}</small></td><td>52W low</td><td class="dn">${fx(wl)} <small class="mu">${sg(pct(cmp,wl))}</small></td></tr>
+    <tr><td>20-DMA</td><td class="${cmp>=e20?'up':'dn'}">${fx(e20)}</td><td>50-DMA</td><td class="${cmp>=e50?'up':'dn'}">${fx(e50)}</td><td>200-DMA</td><td class="${e200&&cmp>=e200?'up':'dn'}">${fx(e200)}</td><td>Prev day H / L</td><td>${fx(P.D.h)} / ${fx(P.D.l)}</td></tr>
+   </tbody></table>
+   <h3 class="sec">🧭 Expected trend <small>vote of ${all.length} pivot tables (daily, weekly, monthly) at CMP ${fx(cmp)}</small></h3>
+   <div class="big"><span class="tr ${ov}"><i>${ov==='B'?'▲':ov==='S'?'▼':'◆'}</i>${TL[ov]} — ${bu} bullish · ${br} bearish · ${all.length-bu-br} neutral</span>
+    <span class="votes">${['D','W','M'].filter(tf=>P[tf]).map(tf=>{ const t=byTf(tf); return `<span class="${t[0]==='B'?'up':t[0]==='S'?'dn':''}">${({D:'Daily',W:'Weekly',M:'Monthly'})[tf]} ${t[1]} ${TL[t[0]]}</span>`; }).join('')}
+     <span class="${cmp>e20&&e20>e50?'up':cmp<e20&&e20<e50?'dn':''}">Averages ${cmp>e20&&e20>e50?'▲ price > 20 > 50':cmp<e20&&e20<e50?'▼ price < 20 < 50':'◆ mixed'}</span></span></div>
+   <h3 class="sec">🧱 Major support &amp; resistance from CMP <small>where several levels and time frames meet</small></h3>
+   <div class="major"><div>${majTable(MJ.res,cmp,'R',MJ.max)}</div><div>${majTable(MJ.sup,cmp,'S',MJ.max)}</div></div>
+   <div class="tf"><button data-tf="D" class="${S.tf==='D'?'on':''}">Daily pivots</button><button data-tf="W" class="${S.tf==='W'?'on':''}" ${P.W?'':'disabled'}>Weekly pivots</button><button data-tf="M" class="${S.tf==='M'?'on':''}" ${P.M?'':'disabled'}>Monthly pivots</button>
+    <span class="mu" style="align-self:center;font:600 11.5px Inter">Based on ${esc(cur?cur.lab:'—')} · H ${fx(cur&&cur.h)} · L ${fx(cur&&cur.l)} · C ${fx(cur&&cur.c)}</span></div>
+   <div class="grid">${cur?methods(cur).map(m=>table(m,cmp,cur)).join(''):'<div class="empty">Not enough history for this time frame.</div>'}</div>`;
+}
+/* open from #SYMBOL:NS or the last symbol */
+(()=>{ let h=decodeURIComponent(location.hash.slice(1)); if(!h) try{ h=localStorage.getItem('jc_pv_last')||''; }catch(e){}
+  try{ S.tf=localStorage.getItem('jc_pv_tf')||'D'; }catch(e){}
+  if(h){ const [s,ex]=h.split(':'); $('sym').value=s; $('ex').value=ex==='BO'?'BO':'NS'; go(); } })();
+</script>
+</body></html>
