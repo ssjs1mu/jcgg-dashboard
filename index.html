@@ -202,7 +202,8 @@ function render(){
  const ks=['^NSEI','^N225','^HSI','^GDAXI','^FTSE','ES=F','NQ=F','YM=F'], ch=ks.map(k=>SNAP&&SNAP.m[k]).filter(Boolean).map(q=>q.pc?(q.p/q.pc-1)*100:0), av=ch.length?ch.reduce((a,b)=>a+b,0)/ch.length:null;
  const tb=document.getElementById('trendTxt'), li=document.getElementById('live-indicator'), bd=document.getElementById('global-trend-badge');
  if(av==null){ tb.textContent='GLOBAL TREND: no data'; } else { tb.textContent=(av>0.3?'▲ GLOBAL TREND: RISK-ON':av<-0.3?'▼ GLOBAL TREND: RISK-OFF':'◆ GLOBAL TREND: MIXED')+' ('+(av>=0?'+':'')+av.toFixed(2)+'% avg)'; bd.className='macro-trend-indicator '+(av>0.3?'up':av<-0.3?'dn':''); }
- if(SNAP){ const age=Math.round((Date.now()-SNAP.ts)/60000); li.textContent=age<=15?'LIVE FEED (GitHub snapshot, '+age+' min old)':'SNAPSHOT '+(age>1440?Math.round(age/1440)+' d':age>=60?Math.round(age/60)+' h':age+' min')+' old'; li.style.opacity=age<=15?1:.75; } else li.textContent='FEED UNAVAILABLE';
+ if(SNAP&&SNAP.liveAt&&Date.now()-SNAP.liveAt<180000){ li.textContent='LIVE · direct quotes '+new Date(SNAP.liveAt).toLocaleTimeString('en-GB',{timeZone:'Asia/Kolkata',hour12:false}); li.style.opacity=1; }
+ else if(SNAP){ const age=Math.round((Date.now()-SNAP.ts)/60000); li.textContent=age<=15?'LIVE FEED (GitHub snapshot, '+age+' min old)':'SNAPSHOT '+(age>1440?Math.round(age/1440)+' d':age>=60?Math.round(age/60)+' h':age+' min')+' old'; li.style.opacity=age<=15?1:.75; } else li.textContent='FEED UNAVAILABLE';
  updateTerminalClock(); cwHead(); if(!CUR){ const L=(lsg('jcm_last')||'^NSEI|NIFTY 50').split('|'); openChart(L[0],L[1]); }
 }
 
@@ -305,9 +306,21 @@ function flowsCard(){ if(!FD) return '<div class="card"><div class="card-header"
   const recent=ks.slice(-5).reverse();
   return `<div class="card"><div class="card-header"><h2>🏛️ FII / DII positions · ₹ crore</h2><span class="status-open">${dl(last)}</span></div><div class="table-container"><table class="fdt"><colgroup><col style="width:46%"><col style="width:27%"><col style="width:27%"></colgroup><thead><tr><th>Period</th><th>FII net</th><th>DII net</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td>${cell(r[1])}${cell(r[2])}</tr>`).join('')}<tr><td colspan="3" style="background:#223450;color:var(--gold);font:800 10px 'Segoe UI';letter-spacing:.12em">LAST 5 SESSIONS</td></tr>${recent.map(k=>`<tr><td>${dl(k)}</td>${cell(FD.daily[k].fii_net)}${cell(FD.daily[k].dii_net)}</tr>`).join('')}</tbody></table></div><div class="cnote" style="border-top:1px solid var(--line);border-bottom:0">NSE cash market, ${esc(FD.sources&&FD.sources[0]||'moneycontrol')}. Positive = net buying. YTD FII = NSDL FPI equity to ${esc(FD.fpi_equity_upto)}; DII YTD has no free feed. Latest day available: ${dl(last)}.</div></div>`; }
 
+/* LIVE OVERLAY: every minute, fresh quotes straight from the data backend for every symbol on the page, laid over the GitHub snapshot.
+   The snapshot alone can go stale when GitHub skips its scheduled job - on-screen prices must never depend on it. */
+const BE='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
+async function liveOverlay(){
+  if(!SNAP||!SNAP.m) return; const syms=Object.keys(SNAP.m); if(!syms.length) return;
+  try{ const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),20000);
+    const j=await fetch(BE+'?action=liveq&symbols='+encodeURIComponent(syms.join(',')),{signal:ctl.signal}).then(r=>r.json()); clearTimeout(to);
+    let n=0; Object.keys(j.q||{}).forEach(k=>{ const q=j.q[k], o=SNAP.m[k]; if(!o||!q||!q[0]) return; if(q[7]&&o.t&&q[7]<o.t) return;
+      o.p=q[0]; if(q[1]) o.pc=q[1]; if(q[3]) o.hi=q[3]; if(q[4]) o.lo=q[4]; if(q[7]) o.t=q[7]; if(Array.isArray(o.sp)){ o.sp=o.sp.concat([q[0]]).slice(-120); } n++; });
+    if(n) SNAP.liveAt=Date.now(); }catch(e){}
+}
 async function loadAll(){
  const j=await getJ([API+'snapshot.json?ref=snapshot',RAW+'ssjs1mu/jcgg-dashboard/snapshot/snapshot.json?x='+Date.now(),'data/snapshot.json']);
- if(j&&j.rows){ const m={}; j.rows.forEach(r=>{ if(r.p!=null&&r.pc!=null) m[r.s]={p:r.p,pc:r.pc,t:r.t,sp:r.sp,hi:r.hi,lo:r.lo}; }); SNAP={m,ts:j.ts?Date.parse(j.ts):Date.now()}; }
+ if(j&&j.rows){ const m={}; j.rows.forEach(r=>{ if(r.p!=null&&r.pc!=null) m[r.s]={p:r.p,pc:r.pc,t:r.t,sp:r.sp,hi:r.hi,lo:r.lo}; }); SNAP={m,ts:j.ts?Date.parse(j.ts):Date.now(),liveAt:SNAP&&SNAP.liveAt}; }
+ await liveOverlay();
   FD=FD||await getJ([RAW+'ssjs1mu/jc-stock-analyst/main/data/fiidii.json']); OI=OI||await getJ([RAW+'ssjs1mu/jc-stock-analyst/main/data/fno_oi.json']);
  render();
 }
