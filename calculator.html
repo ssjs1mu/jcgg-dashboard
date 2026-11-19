@@ -15,9 +15,9 @@ body{background:radial-gradient(900px 420px at 0% -10%,rgba(0,229,255,.18),trans
 .pick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 10px;padding:10px 12px;background:#fff;border:2px solid transparent;border-radius:14px;background-image:linear-gradient(#fff,#fff),linear-gradient(90deg,var(--neo-c),var(--neo-v),var(--neo-p));background-origin:border-box;background-clip:padding-box,border-box;box-shadow:0 6px 18px rgba(124,77,255,.12)}
 .pick h2{font:900 17px Inter;color:var(--tx);margin-right:6px}.pick h2 span{background:linear-gradient(90deg,var(--neo-v),var(--neo-p));-webkit-background-clip:text;background-clip:text;color:transparent}
 .pick input,.pick select{background:#fff;color:var(--tx);border:2px solid var(--neo-c);border-radius:8px;padding:6px 9px;font:700 13px Inter;outline:none}.pick input:focus,.pick select:focus{box-shadow:0 0 0 3px rgba(0,229,255,.3)}.pick input{width:190px;text-transform:uppercase}
-.pick select#symSel{max-width:260px;border-color:var(--neo-v)}
+.pick select#symSel{min-width:230px;max-width:300px;border-color:var(--neo-v)}
 .pick button{border:0;border-radius:8px;padding:7px 14px;font:900 13px Inter;cursor:pointer;background:linear-gradient(90deg,var(--neo-g),#00e5a0);color:#062b00;box-shadow:0 3px 0 #1fa30a,0 0 12px rgba(57,255,20,.45)}
-.pick .q{display:flex;gap:5px;flex-wrap:wrap}.pick .q a{cursor:pointer;font:800 11px Inter;color:#4a2bd6;border:1px solid rgba(124,77,255,.45);border-radius:999px;padding:2px 9px;background:#f1ecff}.pick .q a:hover{background:var(--neo-y);color:#000}
+.pick .q{display:flex;gap:5px;flex-wrap:wrap}.pick .q a{cursor:pointer;font:800 11px Inter;color:#4a2bd6;border:1px solid rgba(124,77,255,.45);border-radius:999px;padding:2px 9px;background:#f1ecff}.pick .q a:hover{background:var(--neo-y);color:#000}.pick .q a.fv{color:#7a3d00;border-color:#ff9100;background:#fff3e0}.pick .q a.fv b{margin-left:5px;color:#c62828;font:900 12px Inter}
 .mu{color:var(--mu)}.up{color:var(--up)}.dn{color:var(--dn)}
 h3.sec{font:900 14.5px Inter;color:var(--tx);margin:14px 0 6px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}h3.sec small{font:600 11.5px Inter;color:var(--mu)}
 h3.sec::before{content:"";width:6px;height:16px;border-radius:3px;background:linear-gradient(var(--neo-c),var(--neo-p));align-self:center}
@@ -38,8 +38,10 @@ table.x td{padding:5px 7px;border-bottom:1px solid #edf1f8;white-space:nowrap}ta
 .tr{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;font:900 12px Inter;white-space:nowrap}.tr i{font-style:normal;font-size:18px;line-height:1}
 .tr.B{background:var(--neo-g);color:#062b00;box-shadow:0 0 12px rgba(57,255,20,.55)}.tr.S{background:var(--neo-p);color:#fff;box-shadow:0 0 12px rgba(255,45,149,.55)}.tr.N{background:var(--neo-y);color:#3a2f00;box-shadow:0 0 12px rgba(255,234,0,.6)}
 .card table{width:100%;border-collapse:collapse;font:700 12.5px ui-monospace,Consolas,monospace}
-.card td{padding:3px 9px;border-bottom:1px solid #eef2f9}.card td.n{text-align:right}.card td.l{font:900 11.5px Inter;width:104px;white-space:nowrap}
-.card tr.R td.l{color:var(--dn)}.card tr.S td.l{color:var(--up)}.card tr.P td.l{color:var(--neo-v)}.card tr.P td{background:#f5f1ff}
+.card td{padding:3px 9px;border-bottom:1px solid #eef2f9}.card td.n{text-align:right}.card td.l{font:900 11.5px Inter;width:150px;white-space:nowrap}
+.card tr.R td.l{color:var(--dn)}.card tr.S td.l{color:var(--up)}.card tr.R td.n:nth-child(2){color:#a3003f}.card tr.S td.n:nth-child(2){color:#00703e}.card tr.P td{background:#f5f1ff}
+.card tr.rh td,.card tr.sh td{font:900 9.5px Inter;letter-spacing:.08em;padding:2px 9px;color:#fff}.card tr.rh td{background:linear-gradient(90deg,#ff2d95,#ff7ab8)}.card tr.sh td{background:linear-gradient(90deg,#00b860,#39ff14);color:#062b00}
+.tg{display:inline-block;margin-left:5px;padding:0 6px;border-radius:5px;font:900 9.5px Inter;vertical-align:1px}.tg.S{background:#39ff14;color:#062b00}.tg.R{background:#ff2d95;color:#fff}.xt{font:800 8.5px Inter;color:#7a6200;background:#fff3a8;border-radius:4px;padding:0 3px;margin-left:3px}
 .card tr.near td{background:#fffbd6}.card tr.near td.l::after{content:" ◀ nearest";font:800 9.5px Inter;color:#b36b00}
 .card tr.cmp td{background:var(--cmp);color:#000;font-weight:900;border-top:2px solid #13182b;border-bottom:2px solid #13182b}
 .card .ft{padding:6px 10px;font:600 11.5px/1.4 Inter;color:#2b3550;border-top:1px solid var(--line);background:#fbfcff}
@@ -73,7 +75,7 @@ table.x tr.blR td b,table.x tr.blS td b{color:inherit}
  <nav class="nav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw" href="watchlist.html">WATCHLIST</a><a class="sw" href="plan.html">TOMORROW'S CALLS</a><a class="sw on" href="calculator.html">PIVOT CALCULATOR</a></nav></div>
 <div class="wrap">
  <div class="pick"><h2>🧮 Pivot <span>Calculator</span></h2>
-  <select id="symSel" title="All symbols"><option value="">▾ Select a symbol…</option></select><input id="sym" list="syms" placeholder="or type e.g. RELIANCE" autocomplete="off" spellcheck="false"><datalist id="syms"></datalist>
+  <select id="symSel" title="Pick a symbol — type the first letters to jump"><option value="">▾ Select a symbol…</option></select><input id="sym" type="hidden">
   <select id="ex"><option value="NS">NSE</option><option value="BO">BSE</option></select>
   <button id="go">Calculate</button>
   <span class="q" id="quick"></span>
@@ -81,6 +83,7 @@ table.x tr.blR td b,table.x tr.blS td b{color:inherit}
  <div id="out"><div class="empty">Choose a symbol and exchange, then press <b>Calculate</b>.</div></div>
  <div class="note"><b>How the levels are built:</b> Daily pivots use the previous completed session, Weekly the previous completed week, Monthly the previous completed month (high, low, close; DeMark also uses that period's open).
  Classic P = (H+L+C)/3 · Fibonacci = P ± 0.382 / 0.618 / 1.000 × range · Camarilla = C ± range × 1.1/12, /6, /4, /2 · Woodie P = (H+L+2C)/4 · DeMark from the period's open/close relation · CPR = P with BC = (H+L)/2 and TC = 2P − BC.
+ <b>Support or resistance is decided by where the level sits against the live price:</b> every level above CMP is resistance (pink), every level below is support (green) — whatever its name. A resistance the price has crossed turns into support (↺); the nearest crossed one is marked <b>trail SL</b>. When the price is beyond R3 / S3 the extension levels (R4, R5 / S4, S5, marked ext) are added so there is always resistance above and support below.
  <b>Trend arrow:</b> ▲ Bullish when the live price is above the pivot (above R1 = strong), ▼ Bearish below it (below S1 = strong), ◆ Neutral inside the pivot zone; Camarilla reads above R3 / below S3 as breakout / breakdown, inside as range-bound; CPR reads above TC / below BC.
  <b>Major levels</b> = price zones where several pivot levels, the previous day / week / month high-low, the 20-day and 52-week high-low and the 20 / 50 / 200-day averages fall together (within ~0.3%); more levels and longer time frames = stronger. Rule-based levels, not advice.</div>
 </div>
@@ -97,17 +100,25 @@ const yf=(s,ex)=>INDICES[s]||(/^\^/.test(s)?s:s+'.'+ex);
 const S={sym:null,ex:'NS',tf:'D',live:null,bars:null,meta:null,timer:null,busy:false};
 
 /* symbols: Nifty 500 from the heat-map feed + indices */
-(async()=>{ const q=['NIFTY 50','BANK NIFTY','SENSEX','RELIANCE','HDFCBANK','SBIN','INFY','TCS'];
-  $('quick').innerHTML=q.map(x=>`<a data-q="${esc(x)}">${esc(x)}</a>`).join('');
+/* quick buttons: the 3 indices always, plus every stock searched TODAY (favourites of the day, cleared next day) */
+const FAVK='jc_pv_fav';
+const favs=()=>{ try{ const f=JSON.parse(localStorage.getItem(FAVK)||'{}'); return f.d===todayS()?f.l||[]:[]; }catch(e){ return []; } };
+const favAdd=(s)=>{ if(INDICES[s]) return; const l=favs().filter(x=>x!==s); l.unshift(s); try{ localStorage.setItem(FAVK,JSON.stringify({d:todayS(),l:l.slice(0,12)})); }catch(e){} quick(); };
+const favDel=(s)=>{ try{ localStorage.setItem(FAVK,JSON.stringify({d:todayS(),l:favs().filter(x=>x!==s)})); }catch(e){} quick(); };
+function quick(){ $('quick').innerHTML=['NIFTY 50','BANK NIFTY','SENSEX'].map(x=>`<a data-q="${esc(x)}">${esc(x)}</a>`).join('')+favs().map(x=>`<a data-q="${esc(x)}" class="fv" title="Searched today">★ ${esc(x)}<b data-fdel="${esc(x)}" title="Remove">×</b></a>`).join(''); }
+quick();
+(async()=>{
   try{ const j=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/heat/heat.json?x='+Date.now()).then(r=>r.json());
-    const st=j.rows.map(r=>r[0]).sort(); $('syms').innerHTML=Object.keys(INDICES).concat(st).map(s=>`<option value="${esc(s)}">`).join('');
-    $('symSel').innerHTML='<option value="">▾ Select a symbol ('+(st.length+Object.keys(INDICES).length)+')…</option><optgroup label="Indices">'+Object.keys(INDICES).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')+'</optgroup><optgroup label="Stocks — Nifty 500 (A–Z)">'+st.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')+'</optgroup>';
-    if(S.sym) $('symSel').value=S.sym; }catch(e){ $('syms').innerHTML=Object.keys(INDICES).map(s=>`<option value="${esc(s)}">`).join(''); $('symSel').innerHTML='<option value="">▾ Select…</option>'+Object.keys(INDICES).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join(''); } })();
-$('symSel').addEventListener('change',e=>{ const v=e.target.value; if(!v) return; $('sym').value=v; if(v==='SENSEX') $('ex').value='BO'; go(); });
+    const st=j.rows.map(r=>r[0]).sort();
+    $('symSel').innerHTML='<option value="">▾ Select a symbol ('+(st.length+Object.keys(INDICES).length)+')…</option><optgroup label="Indices">'+Object.keys(INDICES).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')+'</optgroup><optgroup label="Stocks — Nifty 500 (A–Z)">'+st.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')+'</optgroup><option value="__other">✎ Other symbol (type the NSE / BSE code)…</option>';
+    if(S.sym) symShow(S.sym); }catch(e){ $('symSel').innerHTML='<option value="">▾ Select…</option>'+Object.keys(INDICES).map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join(''); } })();
+function symShow(v){ const sel=$('symSel'); if(![...sel.options].some(o=>o.value===v)){ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.insertBefore(o,sel.options[1]||null); } sel.value=v; }
+$('symSel').addEventListener('change',e=>{ let v=e.target.value; if(!v) return; if(v==='__other'){ v=(prompt('Symbol code (e.g. TMPV, 500325)','')||'').trim().toUpperCase(); if(!v){ symShow(S.sym||''); return; } }
+  $('sym').value=v; if(v==='SENSEX') $('ex').value='BO'; go(); });
 $('ex').addEventListener('change',()=>{ if(S.sym) go(); });
-document.addEventListener('click',e=>{ const q=e.target.closest('[data-q]'); if(q){ $('sym').value=q.dataset.q; $('ex').value=/SENSEX/.test(q.dataset.q)?'BO':'NS'; go(); return; }
+document.addEventListener('click',e=>{ const fd=e.target.closest('[data-fdel]'); if(fd){ e.preventDefault(); e.stopPropagation(); favDel(fd.dataset.fdel); return; } const q=e.target.closest('[data-q]'); if(q){ $('sym').value=q.dataset.q; $('ex').value=/SENSEX/.test(q.dataset.q)?'BO':'NS'; go(); return; }
   const t=e.target.closest('[data-tf]'); if(t){ S.tf=t.dataset.tf; try{localStorage.setItem('jc_pv_tf',S.tf);}catch(_){ } paint(); } });
-$('go').onclick=go; $('sym').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+$('go').onclick=go;
 
 async function be(q){ const r=await fetch(BACKEND+'?'+q); return r.json(); }
 async function daily(ys){ const u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(ys)+'?range=1y&interval=1d&includePrePost=false';
@@ -117,8 +128,8 @@ async function daily(ys){ const u='https://query1.finance.yahoo.com/v8/finance/c
 async function liveQ(ys){ const j=await be('action=liveq&symbols='+encodeURIComponent(ys)); const q=j&&j.q&&j.q[ys]; return q&&q[0]?q:null; }
 
 async function go(){
-  const raw=($('sym').value||'').trim().toUpperCase().replace(/\.(NS|BO)$/,''); if(!raw){ $('sym').focus(); return; }
-  S.sym=raw; S.ex=$('ex').value; S.live=null; S.bars=null; S.life=null; try{ if([...$('symSel').options].some(o=>o.value===raw)) $('symSel').value=raw; }catch(e){} location.hash=encodeURIComponent(raw)+':'+S.ex; try{localStorage.setItem('jc_pv_last',raw+':'+S.ex);}catch(e){}
+  const raw=($('sym').value||'').trim().toUpperCase().replace(/\.(NS|BO)$/,''); if(!raw){ $('symSel').focus(); return; }
+  S.sym=raw; S.ex=$('ex').value; S.live=null; S.bars=null; S.life=null; try{ symShow(raw); }catch(e){} location.hash=encodeURIComponent(raw)+':'+S.ex; try{localStorage.setItem('jc_pv_last',raw+':'+S.ex);}catch(e){}
   $('out').innerHTML='<div class="empty">Fetching '+esc(raw)+' ('+(S.ex==='BO'?'BSE':'NSE')+') …</div>'; $('st').textContent='loading '+raw+'…';
   const ys=yf(raw,S.ex);
   try{ let [d,l]=await Promise.all([daily(ys).catch(e=>({B:[],meta:{},err:e})),liveQ(ys).catch(()=>null)]); S.hist=null;
@@ -126,7 +137,7 @@ async function go(){
       const n=await daily(raw+'.NS').catch(()=>null); if(n&&n.B.length>=30){ if(!l&&d.meta&&d.meta.regularMarketPrice) l=[d.meta.regularMarketPrice,d.meta.chartPreviousClose||null,null,d.meta.regularMarketDayHigh||null,d.meta.regularMarketDayLow||null,d.meta.regularMarketVolume||0,null,d.meta.regularMarketTime||null,d.meta.fiftyTwoWeekHigh||null,d.meta.fiftyTwoWeekLow||null]; S.hist='NSE'; d={B:n.B,meta:Object.assign({},n.meta,{longName:(d.meta&&d.meta.longName)||n.meta.longName})}; } }
     if(d.err&&!d.B.length) throw d.err;
     S.bars=d.B; S.meta=d.meta; S.live=l; S.ys=ys;
-    if(S.bars.length<30) throw new Error(S.ex==='BO'?'no BSE price history in the free data feed and no NSE listing under this code — try the NSE code':'not enough price history'); paint(); arm(); lifetime(S.hist?raw+'.NS':ys,raw); }
+    if(S.bars.length<30) throw new Error(S.ex==='BO'?'no BSE price history in the free data feed and no NSE listing under this code — try the NSE code':'not enough price history'); favAdd(raw); paint(); arm(); lifetime(S.hist?raw+'.NS':ys,raw); }
   catch(e){ $('out').innerHTML='<div class="empty">Could not load <b>'+esc(raw)+'</b> on '+(S.ex==='BO'?'BSE':'NSE')+': '+esc(e.message||e)+'. Check the symbol (NSE code, e.g. RELIANCE).</div>'; $('st').textContent='—'; }
 }
 /* lifetime high / low: monthly bars over the full history, then the daily bars of that month for the exact date (split-adjusted Yahoo history) */
@@ -164,36 +175,56 @@ function methods(p){
   const WP=(h+l+2*c)/4; const woodie={ name:'Woodie', P:WP, L:{R3:h+2*(WP-l),R2:WP+r,R1:2*WP-l,P:WP,S1:2*WP-h,S2:WP-r,S3:l-2*(h-WP)} };
   const X=c<o?h+2*l+c:c>o?2*h+l+c:h+l+2*c; const demark={ name:'DeMark', P:X/4, L:{R1:X/2-l,P:X/4,S1:X/2-h} };
   let BC=(h+l)/2, TC=2*P-BC; if(TC<BC){ const t=TC; TC=BC; BC=t; } const cpr={ name:'CPR (Central Pivot Range)', P, cpr:true, TC, BC, L:{R2:P+r,R1:2*P-l,TC,P,BC,S1:2*P-h,S2:P-r} };
+  /* extension levels, shown only when CMP has moved beyond the method's outer levels */
+  classic.X={R4:h+3*(P-l),R5:h+4*(P-l),S4:l-3*(h-P),S5:l-4*(h-P)};
+  fib.X={R4:P+1.618*r,R5:P+2.618*r,S4:P-1.618*r,S5:P-2.618*r};
+  const R5=l>0?h/l*c:c+r; cam.X={R5,S5:c-(R5-c)};
+  woodie.X={R4:woodie.L.R3+r,R5:woodie.L.R3+2*r,S4:woodie.L.S3-r,S5:woodie.L.S3-2*r};
+  cpr.X={R3:h+2*(P-l),R4:h+3*(P-l),S3:l-2*(h-P),S4:l-3*(h-P)};
   return [classic,fib,cam,woodie,demark,cpr];
+}
+/* levels used for a table at this CMP: base levels + as many extensions as needed to keep 2 levels on each side */
+function lvls(m,cmp){
+  const L=Object.assign({},m.L), X=m.X||{};
+  const ext=(side)=>Object.entries(X).filter(([k])=>k[0]===side).sort((a,b)=>side==='R'?a[1]-b[1]:b[1]-a[1]);
+  for(const [k,v] of ext('R')){ if(Object.values(L).filter(x=>x>cmp).length>=2) break; L[k]=v; }
+  for(const [k,v] of ext('S')){ if(Object.values(L).filter(x=>x<=cmp).length>=2) break; L[k]=v; }
+  return L;
 }
 function trend(m,cmp){
   const L=m.L;
   if(m.cam){ if(cmp>L.R4) return ['B','▲','Breakout above R4 — strong up-move']; if(cmp>L.R3) return ['B','▲','Above R3 — bullish, watch R4 for breakout']; if(cmp<L.S4) return ['S','▼','Breakdown below S4 — strong down-move']; if(cmp<L.S3) return ['S','▼','Below S3 — bearish, watch S4']; return ['N','◆','Between S3 and R3 — range-bound, fade the edges']; }
   if(m.cpr){ const w=(m.TC-m.BC)/m.P*100, nw=w<0.25?' · narrow CPR ('+w.toFixed(2)+'%) → trending day likely':w>0.75?' · wide CPR ('+w.toFixed(2)+'%) → sideways day likely':' · CPR width '+w.toFixed(2)+'%';
     if(cmp>m.TC) return ['B','▲','Above TC — bullish bias'+nw]; if(cmp<m.BC) return ['S','▼','Below BC — bearish bias'+nw]; return ['N','◆','Inside the CPR — undecided'+nw]; }
-  if(cmp>L.R1) return ['B','▲','Above R1 — strong bullish']; if(cmp>L.P) return ['B','▲','Above the pivot — bullish']; if(L.S1!=null&&cmp<L.S1) return ['S','▼','Below S1 — strong bearish']; if(cmp<L.P) return ['S','▼','Below the pivot — bearish']; return ['N','◆','At the pivot — neutral'];
+  if(L.R3!=null&&cmp>L.R3) return ['B','▲','Above R3 — very strong; R3 now acts as support / trailing stop-loss'];
+  if(L.S3!=null&&cmp<L.S3) return ['S','▼','Below S3 — very weak; S3 now acts as resistance / trailing stop-loss for shorts'];
+  if(cmp>L.R1) return ['B','▲','Above R1 — strong bullish; R1 turns into support']; if(cmp>L.P) return ['B','▲','Above the pivot — bullish']; if(L.S1!=null&&cmp<L.S1) return ['S','▼','Below S1 — strong bearish']; if(cmp<L.P) return ['S','▼','Below the pivot — bearish']; return ['N','◆','At the pivot — neutral'];
 }
 const TL={B:'Bullish',S:'Bearish',N:'Neutral'};
 function table(m,cmp,p,MJ){
-  const zones=MJ?MJ.res.map(z=>['R',z]).concat(MJ.sup.map(z=>['S',z])).filter(([k,z])=>z.tfs.has(S.tf)):[], pick={};
+  const LV=lvls(m,cmp), zones=MJ?MJ.res.map(z=>['R',z]).concat(MJ.sup.map(z=>['S',z])).filter(([k,z])=>z.tfs.has(S.tf)):[], pick={};
   /* one flag per major zone per table: the level of this table closest to the zone centre, if it lies inside the zone */
-  zones.forEach(([k,z])=>{ let best=null; Object.entries(m.L).forEach(([lk,v])=>{ if(v>=Math.min(z.lo,z.v)-cmp*0.0008&&v<=Math.max(z.hi,z.v)+cmp*0.0008&&(!best||Math.abs(v-z.v)<Math.abs(best[1]-z.v))) best=[lk,v]; }); if(best) pick[best[0]]=[k,z]; });
-  const inZ=(v,lk)=>pick[lk];
-  const ent=Object.entries(m.L).sort((a,b)=>b[1]-a[1]); const above=ent.filter(e=>e[1]>cmp), below=ent.filter(e=>e[1]<=cmp);
-  const nR=above.length?above[above.length-1][0]:null, nS=below.length?below[0][0]:null, t=trend(m,cmp);
-  const row=([k,v])=>{ const c=/^R/.test(k)?'R':/^S/.test(k)?'S':'P', d=pct(v,cmp); const zz=inZ(v,k); return `<tr class="${c}${k===nR||k===nS?' near':''}${zz?' mz':''}"${zz?` title="Inside major ${zz[0]==='R'?'resistance':'support'} zone ${fx(zz[1].v)}"`:''}><td class="l">${k}</td><td class="n">${fx(v)}</td><td class="n ${d>=0?'up':'dn'}">${sg(d)}</td></tr>`; };
+  zones.forEach(([k,z])=>{ let best=null; Object.entries(LV).forEach(([lk,v])=>{ if(v>=Math.min(z.lo,z.v)-cmp*0.0008&&v<=Math.max(z.hi,z.v)+cmp*0.0008&&(!best||Math.abs(v-z.v)<Math.abs(best[1]-z.v))) best=[lk,v]; }); if(best) pick[best[0]]=[k,z]; });
+  const ent=Object.entries(LV).sort((a,b)=>b[1]-a[1]), above=ent.filter(e=>e[1]>cmp), below=ent.filter(e=>e[1]<=cmp), t=trend(m,cmp);
+  /* ROLE follows the position against CMP: above = resistance, below = support. A resistance level the price has crossed has flipped into support (and vice versa). */
+  const nR=above.length?above[above.length-1][0]:null, nS=below.length?below[0][0]:null;
+  const flipUp=below.filter(([k])=>/^R/.test(k)), flipDn=above.filter(([k])=>/^S/.test(k));
+  const trail=flipUp.length?flipUp[0][0]:flipDn.length?flipDn[flipDn.length-1][0]:null; // nearest crossed level = swing / trailing stop-loss
+  const isX=k=>m.X&&m.X[k]!=null&&m.L[k]==null;
+  const row=([k,v])=>{ const role=v>cmp?'R':'S', d=pct(v,cmp), flip=(role==='S'&&/^R/.test(k))||(role==='R'&&/^S/.test(k)), zz=pick[k];
+    const tag=k===trail?`<span class="tg ${role}">${role==='S'?'trail SL':'trail SL (short)'}</span>`:flip?`<span class="tg ${role}">↺ now ${role==='S'?'support':'resistance'}</span>`:'';
+    return `<tr class="${role}${k==='P'||k==='TC'||k==='BC'?' P':''}${k===nR||k===nS?' near':''}${zz?' mz':''}"${zz?` title="Inside major ${role==='R'?'resistance':'support'} zone ${fx(zz[1].v)}"`:''}><td class="l">${k}${isX(k)?'<small class="xt">ext</small>':''}${tag}</td><td class="n">${fx(v)}</td><td class="n ${d>=0?'dn':'up'}">${sg(d)}</td></tr>`; };
   const cm=`<tr class="cmp"><td class="l">▶ CMP</td><td class="n">${fx(cmp)}</td><td class="n">${t[1]} ${TL[t[0]]}</td></tr>`;
+  const res=nR?`next resistance <b class="dn">${nR} ${fx(LV[nR])}</b>`:'no level above — open sky', sup=trail&&flipUp.length?`trail SL / support <b class="up">${trail} ${fx(LV[trail])}</b>`:nS?`next support <b class="up">${nS} ${fx(LV[nS])}</b>`:'no level below';
   return `<div class="card"><div class="hd"><div><b>${esc(m.name)}</b><small>${esc(p.lab)}${m.cpr?' · TC '+fx(m.TC)+' / BC '+fx(m.BC):''}</small></div><span class="tr ${t[0]}"><i>${t[1]}</i>${TL[t[0]]}</span></div>
-   <table>${above.map(row).join('')}${cm}${below.map(row).join('')}</table>
-   <div class="ft">${esc(t[2])}${nR?` · next resistance <b class="dn">${nR} ${fx(m.L[nR])}</b>`:''}${nS?` · next support <b class="up">${nS} ${fx(m.L[nS])}</b>`:''}</div></div>`;
+   <table><tr class="rh"><td colspan="3">▲ RESISTANCE (above CMP)</td></tr>${above.map(row).join('')||'<tr><td colspan="3" class="mu">none — price above every level</td></tr>'}${cm}${below.map(row).join('')||'<tr><td colspan="3" class="mu">none — price below every level</td></tr>'}<tr class="sh"><td colspan="3">▼ SUPPORT (below CMP)</td></tr></table>
+   <div class="ft">${esc(t[2])} · ${res} · ${sup}${m.name==='DeMark'&&!above.length?' · DeMark has no level above R1':''}</div></div>`;
 }
-const fdate=d=>d.length===7?new Date(d+'-01T00:00:00Z').toLocaleDateString('en-IN',{month:'short',year:'numeric',timeZone:'UTC'}):new Date(d+'T00:00:00Z').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'});
-const hlRow=(n,v,d,cmp,c)=>{ const dp=pct(cmp,v), big=Math.abs(dp)>=1000; return `<tr><td><b>${n}</b></td><td class="n ${c}"><b>${fx(v)}</b></td><td>${esc(fdate(d))}</td><td class="n ${dp>=0?'up':'dn'}">${Math.abs(dp)<0.005?'AT the level':big?(cmp/v).toFixed(0)+'× above':(dp>=0?sg(dp)+' above':sg(dp)+' below')}</td></tr>`; };
 /* ---------- major support / resistance: confluence of levels ---------- */
 const ema=(v,n)=>{ const k=2/(n+1); let e=v[0]; v.forEach(x=>{ e=x*k+e*(1-k); }); return e; };
 function majors(P,cmp){
   const B=S.bars, cl=B.map(b=>b.c), lv=[]; const add=(v,lab,w)=>{ if(v&&isFinite(v)) lv.push({v,lab,w}); };
-  [['D',1],['W',2],['M',3]].forEach(([tf,w])=>{ const p=P[tf]; if(!p) return; methods(p).forEach(m=>Object.entries(m.L).forEach(([k,v])=>add(v,tf+' '+m.name.split(' ')[0]+' '+k,w*(k==='P'?1.2:1)))); add(p.h,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' high',w*1.5); add(p.l,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' low',w*1.5); });
+  [['D',1],['W',2],['M',3]].forEach(([tf,w])=>{ const p=P[tf]; if(!p) return; methods(p).forEach(m=>Object.entries(lvls(m,cmp)).forEach(([k,v])=>add(v,tf+' '+m.name.split(' ')[0]+' '+k,w*(k==='P'?1.2:1)))); add(p.h,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' high',w*1.5); add(p.l,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' low',w*1.5); });
   const b20=B.slice(-21,-1), b52=B.slice(-250); add(Math.max(...b20.map(b=>b.h)),'20-day high',2); add(Math.min(...b20.map(b=>b.l)),'20-day low',2);
   add(Math.max(...b52.map(b=>b.h)),'52-week high',4); add(Math.min(...b52.map(b=>b.l)),'52-week low',4);
   if(cl.length>=20) add(ema(cl.slice(-60),20),'20-DMA (EMA)',2); if(cl.length>=50) add(ema(cl.slice(-150),50),'50-DMA (EMA)',3); if(cl.length>=200) add(ema(cl,200),'200-DMA (EMA)',4);
@@ -217,7 +248,7 @@ function paint(){
   const ch=pc?cmp-pc:null, cp=pc?pct(cmp,pc):null, pos=h>l?(cmp-l)/(h-l)*100:50, name=meta.longName||meta.shortName||S.sym;
   $('st').innerHTML=(mktOpen()?'<b>● LIVE</b> ':'')+esc(S.sym)+' '+(qt?qt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'');
   const P=periods(), cur=S.tf==='W'?P.W:S.tf==='M'?P.M:P.D;
-  const all=[]; ['D','W','M'].forEach(tf=>{ if(P[tf]) methods(P[tf]).forEach(m=>all.push({tf,t:trend(m,cmp)})); });
+  const all=[]; ['D','W','M'].forEach(tf=>{ if(P[tf]) methods(P[tf]).forEach(m=>all.push({tf,t:trend(Object.assign({},m,{L:lvls(m,cmp)}),cmp)})); });
   const bu=all.filter(x=>x.t[0]==='B').length, br=all.filter(x=>x.t[0]==='S').length, ov=bu>br*1.5?'B':br>bu*1.5?'S':'N';
   const cl=B.map(b=>b.c), e20=ema(cl.slice(-60),20), e50=ema(cl.slice(-150),50), e200=cl.length>=200?ema(cl,200):null;
   const MJ=majors(P,cmp);
@@ -250,7 +281,7 @@ function paint(){
    <div class="legend">Blinking<i style="background:#ff2d95"></i>resistance<i style="background:#39ff14"></i>support = zones built with <b>${({D:'Daily',W:'Weekly',M:'Monthly'})[S.tf]}</b> levels · <span class="tfc D">D</span><span class="tfc W">W</span><span class="tfc M">M</span> = time frames inside each zone · ⚑ in the pivot tables = level sits in a major zone</div>
    <div class="major"><div>${majTable(MJ.res,cmp,'R',MJ.max)}</div><div>${majTable(MJ.sup,cmp,'S',MJ.max)}</div></div>
    <h3 class="sec">📐 ${({D:'Daily',W:'Weekly',M:'Monthly'})[S.tf]} pivot tables <small>CMP marked in each · ⚑ blinking = inside a major zone</small></h3>
-   <div class="grid">${cur?methods(cur).map(m=>table(m,cmp,cur,MJ)).join(''):'<div class="empty">Not enough history for this time frame.</div>'}</div>`;
+   <div class="grid">${cur?methods(cur).map(m=>table(Object.assign({},m),cmp,cur,MJ)).join(''):'<div class="empty">Not enough history for this time frame.</div>'}</div>`;
 }
 /* open from #SYMBOL:NS or the last symbol */
 (()=>{ let h=decodeURIComponent(location.hash.slice(1)); if(!h) try{ h=localStorage.getItem('jc_pv_last')||''; }catch(e){}
