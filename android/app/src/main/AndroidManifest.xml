@@ -3,7 +3,7 @@
   <!-- the ONLY permission: internet. No contacts, files, location, camera, SMS, phone or accounts. -->
   <uses-permission android:name="android.permission.INTERNET" />
   <application
-      android:label="Joshi's Corner"
+      android:label="Joshi's Corner - Dashboard"
       android:icon="@mipmap/ic_launcher"
       android:roundIcon="@mipmap/ic_launcher"
       android:allowBackup="false"
