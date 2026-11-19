@@ -52,8 +52,24 @@ table.x td{padding:6px 8px;border-bottom:1px solid #edf0f5;white-space:nowrap}ta
 .votes{display:flex;flex-wrap:wrap;gap:5px}.votes span{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font:700 11.5px Inter;background:#fff}
 .tfc{display:inline-block;margin-right:3px;padding:0 6px;border-radius:5px;font:800 10px Inter;color:var(--navy);border:1px solid}.tfc.D{background:#eaf2f8;border-color:#c8dbea}.tfc.W{background:#efedf7;border-color:#d6d1ea}.tfc.M{background:#fbf3df;border-color:#ead6a3}
 /* gentle highlight for major zones of the selected time frame (slow, soft) */
-@keyframes blinkR{0%,100%{background:#fff}50%{background:#fbe6e3}}
-@keyframes blinkS{0%,100%{background:#fff}50%{background:#e3f3ea}}
+/* ROWS AS TILES: every level is its own bordered tile with a gap, columns divided by lines - readable on a phone */
+.card table{border-collapse:separate;border-spacing:0 5px;padding:2px 8px 4px;background:#f6f8fb}
+.card td{border-top:1px solid #dfe5ee;border-bottom:1px solid #dfe5ee;background:#fff;padding:6px 10px}
+.card td+td{border-left:1px solid #e7ebf2}
+.card td:first-child{border-left:1px solid #dfe5ee;border-radius:8px 0 0 8px}.card td:last-child{border-right:1px solid #dfe5ee;border-radius:0 8px 8px 0}
+.card td[colspan]{border-radius:8px}
+.card tr.R td{background:#fdf3f2;border-color:#f1d2cd}.card tr.R td:first-child{border-left:4px solid #d9887e}
+.card tr.S td{background:#f1f9f4;border-color:#cde6d7}.card tr.S td:first-child{border-left:4px solid #7cbf9b}
+.card tr.P td{background:#f1f3f9;border-color:#d9deea}.card tr.P td:first-child{border-left-color:#8a96b3}
+.card tr.near td{background:#fdf6e3;border-color:#ead9a6}
+.card tr.cmp td{background:var(--cmp);border-color:var(--cmpb);border-top:1px solid var(--cmpb);border-bottom:1px solid var(--cmpb);box-shadow:0 1px 4px rgba(185,137,43,.25)}.card tr.cmp td:first-child{border-left:4px solid var(--gold)}
+.card tr.rh td,.card tr.sh td{border:0;background:transparent!important;padding:2px 4px;border-radius:0}
+.card tr.rh td{color:#a8261b}.card tr.sh td{color:#146c43}
+/* full grid lines on the other tables */
+table.x td,table.x th{border:1px solid #e3e8f0}
+table.x th{border-color:#2a3c5c}
+@keyframes blinkR{0%,100%{background:#fdf3f2}50%{background:#f8d9d4}}
+@keyframes blinkS{0%,100%{background:#f1f9f4}50%{background:#d3ecdd}}
 table.x tr.blR td{animation:blinkR 3.2s ease-in-out infinite}table.x tr.blS td{animation:blinkS 3.2s ease-in-out infinite}
 table.x tr.blR td:first-child{box-shadow:inset 3px 0 0 #d9887e}table.x tr.blS td:first-child{box-shadow:inset 3px 0 0 #7cbf9b}
 table.x tr.blR td b,table.x tr.blS td b{color:inherit}
