@@ -35,6 +35,8 @@
     } catch (e) { }
   }
   function later() { if (!busy) { busy = true; setTimeout(fix, 300); } }
+  /* installable app: register the service worker (never caches prices - see sw.js); not inside the Android app or an iframe */
+  try { if ('serviceWorker' in navigator && window.top === window && !/JoshisCornerApp/.test(navigator.userAgent)) navigator.serviceWorker.register('sw.js', { scope: './' }).catch(function () { }); } catch (e) { }
   document.addEventListener('DOMContentLoaded', function () {
     var v = document.querySelector('meta[name=viewport]');
     if (!v) { v = document.createElement('meta'); v.name = 'viewport'; v.content = 'width=device-width,initial-scale=1'; document.head.appendChild(v); }
