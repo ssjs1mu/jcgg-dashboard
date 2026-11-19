@@ -220,6 +220,8 @@ function table(m,cmp,p,MJ){
    <table><tr class="rh"><td colspan="3">▲ RESISTANCE (above CMP)</td></tr>${above.map(row).join('')||'<tr><td colspan="3" class="mu">none — price above every level</td></tr>'}${cm}${below.map(row).join('')||'<tr><td colspan="3" class="mu">none — price below every level</td></tr>'}<tr class="sh"><td colspan="3">▼ SUPPORT (below CMP)</td></tr></table>
    <div class="ft">${esc(t[2])} · ${res} · ${sup}${m.name==='DeMark'&&!above.length?' · DeMark has no level above R1':''}</div></div>`;
 }
+const fdate=d=>d.length===7?new Date(d+'-01T00:00:00Z').toLocaleDateString('en-IN',{month:'short',year:'numeric',timeZone:'UTC'}):new Date(d+'T00:00:00Z').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'});
+const hlRow=(n,v,d,cmp,c)=>{ const dp=pct(cmp,v), big=Math.abs(dp)>=1000; return `<tr><td><b>${n}</b></td><td class="n ${c}"><b>${fx(v)}</b></td><td>${esc(fdate(d))}</td><td class="n ${dp>=0?'up':'dn'}">${Math.abs(dp)<0.005?'AT the level':big?(cmp/v).toFixed(0)+'× above':(dp>=0?sg(dp)+' above':sg(dp)+' below')}</td></tr>`; };
 /* ---------- major support / resistance: confluence of levels ---------- */
 const ema=(v,n)=>{ const k=2/(n+1); let e=v[0]; v.forEach(x=>{ e=x*k+e*(1-k); }); return e; };
 function majors(P,cmp){
