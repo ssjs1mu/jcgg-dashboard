@@ -44,6 +44,8 @@ img,video,canvas,svg{max-width:100%}
 
 @media (max-width:600px){
   .top h1{font-size:34px!important}
+  /* watchlist tile strip scrolls away with the page (pinned it would eat a quarter of the screen) */
+  #tiles{position:static!important}
   /* day-trade signal popups: only the newest one, as a bottom sheet; the bell keeps the full list */
   #jcSig{left:8px!important;right:8px!important;width:auto!important;bottom:56px!important;max-height:55vh;overflow-y:auto}
   #jcSig .jcs:not(:last-child){display:none}
