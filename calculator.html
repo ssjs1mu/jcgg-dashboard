@@ -51,11 +51,13 @@ table.x td{padding:5px 7px;border-bottom:1px solid #edf1f8;white-space:nowrap}ta
 .votes{display:flex;flex-wrap:wrap;gap:5px}.votes span{border:1px solid var(--line);border-radius:999px;padding:2px 9px;font:800 11.5px Inter;background:#fff}
 .tfc{display:inline-block;margin-right:3px;padding:0 6px;border-radius:5px;font:900 10px Inter;color:#13182b}.tfc.D{background:#c8f7ff}.tfc.W{background:#e3d8ff}.tfc.M{background:#ffd3ea}
 /* BLINK: major zones of the selected time frame, and pivot levels that sit inside a major zone */
-@keyframes blinkR{0%,100%{background:#fff}50%{background:#ff2d95;color:#fff}}
-@keyframes blinkS{0%,100%{background:#fff}50%{background:#39ff14;color:#062b00}}
-table.x tr.blR td{animation:blinkR 1.2s ease-in-out infinite}table.x tr.blS td{animation:blinkS 1.2s ease-in-out infinite}
-table.x tr.blR td b,table.x tr.blS td b{color:inherit}
-.card tr.mz td{animation:blinkS 1.2s ease-in-out infinite}.card tr.mz.R td{animation-name:blinkR}.card tr.mz td.l::before{content:"⚑ ";}
+@keyframes blinkR{0%,100%{background:#fff}50%{background:#ffe4ef}}
+@keyframes blinkS{0%,100%{background:#fff}50%{background:#e0f7ea}}
+/* gentle, slow pulse (3.2 s) in soft pastels with a steady coloured edge - easy on the eyes */
+table.x tr.blR td{animation:blinkR 3.2s ease-in-out infinite}table.x tr.blS td{animation:blinkS 3.2s ease-in-out infinite}
+table.x tr.blR td:first-child{box-shadow:inset 4px 0 0 #f48fb1}table.x tr.blS td:first-child{box-shadow:inset 4px 0 0 #81c995}
+.card tr.mz td{animation:blinkS 3.2s ease-in-out infinite}.card tr.mz.R td{animation-name:blinkR}.card tr.mz td.l::before{content:"⚑ ";}
+.card tr.mz.R td.l{box-shadow:inset 4px 0 0 #f48fb1}.card tr.mz.S td.l{box-shadow:inset 4px 0 0 #81c995}
 .legend{font:700 11px Inter;color:var(--mu);margin:2px 0 4px}.legend i{font-style:normal;display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin:0 3px 0 8px}
 @media(prefers-reduced-motion:reduce){table.x tr.blR td,table.x tr.blS td,.card tr.mz td{animation:none;outline:2px solid var(--neo-p)}}
 .note{margin:14px 0 0;color:var(--mu);font:12px/1.55 Inter;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.note b{color:#4a2bd6}
@@ -280,7 +282,7 @@ function paint(){
    <div class="tf"><b class="lbl">⏱ Time frame:</b><button data-tf="D" class="${S.tf==='D'?'on':''}">Daily</button><button data-tf="W" class="${S.tf==='W'?'on':''}" ${P.W?'':'disabled'}>Weekly</button><button data-tf="M" class="${S.tf==='M'?'on':''}" ${P.M?'':'disabled'}>Monthly</button>
     <span class="mu" style="font:600 11.5px Inter">Pivots based on ${esc(cur?cur.lab:'—')} · H ${fx(cur&&cur.h)} · L ${fx(cur&&cur.l)} · C ${fx(cur&&cur.c)}</span></div>
    <h3 class="sec">🧱 Major support &amp; resistance from CMP <small>where several levels and time frames meet</small></h3>
-   <div class="legend">Blinking<i style="background:#ff2d95"></i>resistance<i style="background:#39ff14"></i>support = zones built with <b>${({D:'Daily',W:'Weekly',M:'Monthly'})[S.tf]}</b> levels · <span class="tfc D">D</span><span class="tfc W">W</span><span class="tfc M">M</span> = time frames inside each zone · ⚑ in the pivot tables = level sits in a major zone</div>
+   <div class="legend">Softly pulsing<i style="background:#f8bbd0"></i>resistance<i style="background:#b9e8c8"></i>support = zones built with <b>${({D:'Daily',W:'Weekly',M:'Monthly'})[S.tf]}</b> levels · <span class="tfc D">D</span><span class="tfc W">W</span><span class="tfc M">M</span> = time frames inside each zone · ⚑ in the pivot tables = level sits in a major zone</div>
    <div class="major"><div>${majTable(MJ.res,cmp,'R',MJ.max)}</div><div>${majTable(MJ.sup,cmp,'S',MJ.max)}</div></div>
    <h3 class="sec">📐 ${({D:'Daily',W:'Weekly',M:'Monthly'})[S.tf]} pivot tables <small>CMP marked in each · ⚑ blinking = inside a major zone</small></h3>
    <div class="grid">${cur?methods(cur).map(m=>table(Object.assign({},m),cmp,cur,MJ)).join(''):'<div class="empty">Not enough history for this time frame.</div>'}</div>`;
