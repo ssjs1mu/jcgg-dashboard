@@ -1,0 +1,59 @@
+/* Joshi's Corner - phone & tablet layer. Loaded LAST on every page, so it only adjusts small screens; desktop is untouched.
+   Breakpoints: tablet <= 1024px, tablet portrait / large phone <= 820px, phone <= 600px. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+img,video,canvas,svg{max-width:100%}
+/* wide tables scroll inside their own box (added by mobile.js), first column stays visible */
+.m-sx{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%}
+.m-sx>table{margin:0}
+
+@media (max-width:1024px){
+  html,body{overflow-x:clip}
+  button,a,select,input,label,summary{touch-action:manipulation}
+  .m-sx table tr>*:first-child{position:sticky;left:0;z-index:1;background:var(--m-bg,#0f1a2b);box-shadow:2px 0 0 rgba(0,0,0,.18)}
+}
+
+@media (max-width:820px){
+  body{padding-left:8px!important;padding-right:8px!important}
+  /* page menu: one swipeable row instead of a tall wrapped block */
+  .nav,.tnav{flex-wrap:nowrap!important;overflow-x:auto;justify-content:flex-start!important;scrollbar-width:none;-webkit-overflow-scrolling:touch;max-width:100%;padding:2px 2px 4px!important}
+  .nav::-webkit-scrollbar,.tnav::-webkit-scrollbar{display:none}
+  .sw{flex:0 0 auto;white-space:nowrap;padding:8px 13px!important}
+  .tbtn{padding:8px 13px!important;margin-top:6px}
+  /* bigger tap targets */
+  button,select,input[type=button],.mb{min-height:34px}
+  /* text-size buttons out of the way of content */
+  #jcZ{right:8px!important;bottom:60px!important}#jcZ button{width:34px!important;height:34px!important}
+
+  /* WATCHLIST: one column; tiles = swipeable strip; 2 x 2 view stacks */
+  .app{grid-template-columns:minmax(0,1fr)!important}
+  .app>*{min-width:0;max-width:100%}
+  #tiles{max-width:100%;min-width:0}
+  .pnl.multi{grid-template-columns:minmax(0,1fr)!important}
+  .pnl.multi>*{min-width:0}
+  .nwt{max-width:100%;overflow:hidden}
+
+  /* modals / popups fit the screen */
+  .pop>div,.ppc,.rpc,.chc,.pdc,#pdM>div,.mdb{max-width:calc(100vw - 16px)!important}
+  #pdM,#jpDrill{padding:8px 4px!important}
+
+  /* PIVOT CALCULATOR / PLAN tweaks */
+  .grid{grid-template-columns:minmax(0,1fr)!important}
+  .pick{gap:6px!important}.pick select#symSel{min-width:0!important;flex:1 1 180px}
+  .lv{grid-template-columns:repeat(3,1fr)!important}
+}
+
+@media (max-width:600px){
+  .top h1{font-size:34px!important}
+  /* day-trade signal popups: only the newest one, as a bottom sheet; the bell keeps the full list */
+  #jcSig{left:8px!important;right:8px!important;width:auto!important;bottom:56px!important;max-height:55vh;overflow-y:auto}
+  #jcSig .jcs:not(:last-child){display:none}
+  #jcSig .jcs{padding:8px 10px!important}
+  #jcSigB{font-size:11px!important;bottom:8px!important;max-width:calc(100vw - 110px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* tables a touch tighter */
+  table td,table th{padding-left:5px!important;padding-right:5px!important}
+  .row{padding:10px!important}
+  .sum{grid-template-columns:repeat(2,1fr)!important}
+  .major{grid-template-columns:minmax(0,1fr)!important}
+  .hl{grid-template-columns:minmax(0,1fr)!important}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
