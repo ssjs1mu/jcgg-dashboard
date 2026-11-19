@@ -6,7 +6,7 @@ android {
     applicationId 'com.joshiscorner.dashboard'
     minSdk 24
     targetSdk 34
-    versionCode (System.getenv('BUILD_NO') ?: '1') as int
+    versionCode Integer.parseInt(System.getenv('BUILD_NO') ?: '1')
     versionName '1.0.' + (System.getenv('BUILD_NO') ?: '1')
   }
   signingConfigs {
