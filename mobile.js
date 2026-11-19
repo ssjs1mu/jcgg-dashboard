@@ -20,6 +20,7 @@
   function fix() {
     busy = false;
     if (window.innerWidth > MAXW) return;
+    try {
     var W = document.documentElement.clientWidth;
     document.querySelectorAll('table').forEach(function (t) {
       if (t.closest('.m-sx') || t.offsetParent === null) return;
@@ -31,8 +32,9 @@
       p.insertBefore(box, t); box.appendChild(t);
       box.style.setProperty('--m-bg', bgOf(t));
     });
+    } catch (e) { }
   }
-  function later() { if (!busy) { busy = true; (window.requestIdleCallback || setTimeout)(fix, 250); } }
+  function later() { if (!busy) { busy = true; setTimeout(fix, 300); } }
   document.addEventListener('DOMContentLoaded', function () {
     var v = document.querySelector('meta[name=viewport]');
     if (!v) { v = document.createElement('meta'); v.name = 'viewport'; v.content = 'width=device-width,initial-scale=1'; document.head.appendChild(v); }
