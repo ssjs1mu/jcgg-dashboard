@@ -47,6 +47,7 @@ table.x td{padding:6px 8px;border-bottom:1px solid #edf0f5;white-space:nowrap}ta
 .dash{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:10px;align-items:start}
 @media(max-width:1100px){.dash{grid-template-columns:minmax(0,1fr)}}
 .hl{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.hl td.rp{vertical-align:middle;text-align:center!important;background:#f7f9fc!important;border-left:1px solid #edf0f5}.hl td.rp b{display:block;font:800 16px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--navy)}.hl td.rp small{font:600 10px Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--mu)}
 /* live details as aligned tiles: label over value, same size everywhere, never scrolls sideways */
 .kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(18,35,63,.05)}
 .kv>div{padding:7px 10px;border-right:1px solid #edf0f5;border-bottom:1px solid #edf0f5;min-width:0}
@@ -270,7 +271,8 @@ function table(m,cmp,p,MJ){
    <div class="ft">${esc(t[2])} · ${res} · ${sup}${m.name==='DeMark'&&!above.length?' · DeMark has no level above R1':''}</div></div>`;
 }
 const fdate=d=>d.length===7?new Date(d+'-01T00:00:00Z').toLocaleDateString('en-IN',{month:'short',year:'numeric',timeZone:'UTC'}):new Date(d+'T00:00:00Z').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'});
-const hlRow=(n,v,d,cmp,c)=>{ const dp=pct(cmp,v), big=Math.abs(dp)>=1000; return `<tr><td><b>${n}</b></td><td class="n ${c}"><b>${fx(v)}</b></td><td>${esc(fdate(d))}</td><td class="n ${dp>=0?'up':'dn'}">${Math.abs(dp)<0.005?'AT the level':big?(cmp/v).toFixed(0)+'× above':(dp>=0?sg(dp)+' above':sg(dp)+' below')}</td></tr>`; };
+const hlRow=(n,v,d,cmp,c,rp)=>{ const dp=pct(cmp,v), big=Math.abs(dp)>=1000, mv=pct(v,cmp); return `<tr><td><b>${n}</b></td><td class="n ${c}"><b>${fx(v)}</b></td><td>${esc(fdate(d))}</td><td class="n ${dp>=0?'up':'dn'}">${Math.abs(dp)<0.005?'AT the level':big?(cmp/v).toFixed(0)+'× above':(dp>=0?sg(dp)+' above':sg(dp)+' below')}</td><td class="n ${mv>=0?'up':'dn'}">${Math.abs(mv)<0.005?'–':sg(mv)}</td>${rp==null?'':`<td class="n rp" rowspan="2">${rp}</td>`}</tr>`; };
+const rpos=(lo,hi,cmp,lab)=>hi>lo?`<b>${((cmp-lo)/(hi-lo)*100).toFixed(0)}%</b><small>of ${lab} range</small>`:'–';
 /* ---------- TRADE VIEW: one colour-coded reading on top (rule-based, from daily / weekly pivot votes, averages, major zones) ---------- */
 function verdict(P,cmp,MJ,x){
   const d=methods(P.D), C=lvls(d[0],cmp), cam=d[2].L, cpr=d[5], dT=x.dT, wT=x.wT, up=x.al==='up', dn=x.al==='down';
@@ -355,13 +357,9 @@ function paint(){
     <div><small>Avg alignment</small><b class="${cmp>e20&&e20>e50?'up':cmp<e20&&e20<e50?'dn':''}">${cmp>e20&&e20>e50?'▲ up':cmp<e20&&e20<e50?'▼ down':'◆ mixed'}</b></div>
     <div><small>52-week high</small><b class="up">${fx(W52.h)}</b></div><div><small>52-week low</small><b class="dn">${fx(W52.l)}</b></div>
    </div>
-   <div class="hl"><table class="x"><thead><tr><th>Highs &amp; lows</th><th style="text-align:right">Price</th><th>Date</th><th style="text-align:right">CMP is</th></tr></thead><tbody>
-    ${hlRow('52-week high',W52.h,W52.hd,cmp,'up')}${hlRow('52-week low',W52.l,W52.ld,cmp,'dn')}
-    ${S.life?hlRow('Lifetime high',S.life.H.v,S.life.H.d,cmp,'up')+hlRow('Lifetime low',S.life.L.v,S.life.L.d,cmp,'dn'):'<tr><td colspan="4" class="mu">Lifetime high / low loading…</td></tr>'}
-   </tbody></table>
-   <table class="x"><thead><tr><th>From CMP</th><th style="text-align:right">to 52W high</th><th style="text-align:right">above 52W low</th><th style="text-align:right">to lifetime high</th></tr></thead><tbody>
-    <tr><td>Distance</td><td class="n">${sg(pct(W52.h,cmp))}</td><td class="n">${sg(pct(cmp,W52.l))}</td><td class="n">${S.life?sg(pct(S.life.H.v,cmp)):'…'}</td></tr>
-    <tr><td>Range position</td><td class="n" colspan="2">${W52.h>W52.l?((cmp-W52.l)/(W52.h-W52.l)*100).toFixed(0)+'% of the 52-week range':'–'}</td><td class="n">${S.life?((cmp-S.life.L.v)/(S.life.H.v-S.life.L.v)*100).toFixed(0)+'% of lifetime range':'…'}</td></tr>
+   <div class="hl"><table class="x"><thead><tr><th>Highs &amp; lows</th><th style="text-align:right">Price</th><th>Date</th><th style="text-align:right">CMP is</th><th style="text-align:right" title="move needed from CMP to reach the level">Move to level</th><th style="text-align:right">Range position</th></tr></thead><tbody>
+    ${hlRow('52-week high',W52.h,W52.hd,cmp,'up',rpos(W52.l,W52.h,cmp,'52-week'))}${hlRow('52-week low',W52.l,W52.ld,cmp,'dn')}
+    ${S.life?hlRow('Lifetime high',S.life.H.v,S.life.H.d,cmp,'up',rpos(S.life.L.v,S.life.H.v,cmp,'lifetime'))+hlRow('Lifetime low',S.life.L.v,S.life.L.d,cmp,'dn'):'<tr><td colspan="6" class="mu">Lifetime high / low loading…</td></tr>'}
    </tbody></table></div></div>
    ${S.life?`<div class="legend">Lifetime figures from the full ${S.hist?'NSE ':''}price history since ${esc(S.life.from)} (split-adjusted).</div>`:''}
    <h3 class="sec">🧭 Expected trend <small>vote of ${all.length} pivot tables (daily, weekly, monthly) at CMP ${fx(cmp)}</small></h3>
