@@ -65,6 +65,7 @@ table.x td{padding:6px 8px;border-bottom:1px solid #edf0f5;white-space:nowrap}ta
 .card tr.cmp td{background:var(--cmp);border-color:var(--cmpb);border-top:1px solid var(--cmpb);border-bottom:1px solid var(--cmpb);box-shadow:0 1px 4px rgba(185,137,43,.25)}.card tr.cmp td:first-child{border-left:4px solid var(--gold)}
 .card tr.rh td,.card tr.sh td{border:0;background:transparent!important;padding:2px 4px;border-radius:0}
 .card tr.rh td{color:#a8261b}.card tr.sh td{color:#146c43}
+.major td.bf{min-width:260px}
 /* full grid lines on the other tables */
 table.x td,table.x th{border:1px solid #e3e8f0}
 table.x th{border-color:#2a3c5c}
@@ -261,7 +262,7 @@ function majors(P,cmp){
 const stars=(s)=>{ const n=s>=16?5:s>=10?4:s>=6?3:s>=3?2:1; return '<span title="strength '+s.toFixed(1)+'">'+'★'.repeat(n)+'<span style="color:#d5dbe5">'+'☆'.repeat(5-n)+'</span></span>'; };
 function majTable(arr,cmp,kind,mx){ if(!arr.length) return '<div class="empty">None within reach.</div>';
   const tfc=z=>['D','W','M'].filter(t=>z.tfs.has(t)).map(t=>`<span class="tfc ${t}">${t}</span>`).join('');
-  return `<table class="x"><thead><tr><th>${kind==='R'?'Resistance':'Support'}</th><th style="text-align:right">Level</th><th style="text-align:right">From CMP</th><th>Strength</th><th>Built from</th></tr></thead><tbody>${arr.map((z,i)=>{ const d=pct(z.v,cmp); return `<tr class="${z.tfs.has(S.tf)?'bl'+kind:''}" title="${z.tfs.has(S.tf)?'Contains '+({D:'daily',W:'weekly',M:'monthly'})[S.tf]+' levels — blinking':''}"><td><b class="${kind==='R'?'dn':'up'}">${kind}${i+1}</b> ${tfc(z)}</td><td class="n"><b>${fx(z.v)}</b>${z.hi-z.lo>0.01?`<br><small class="mu">${fx(z.lo)} – ${fx(z.hi)}</small>`:''}</td><td class="n ${d>=0?'up':'dn'}">${sg(d)}</td><td class="str">${stars(z.s)}</td><td style="white-space:normal;font:500 11px Inter;color:#3c4759">${esc(z.labs.slice(0,6).join(' · '))}${z.labs.length>6?' · +'+(z.labs.length-6):''}</td></tr>`; }).join('')}</tbody></table>`; }
+  return `<table class="x"><thead><tr><th>${kind==='R'?'Resistance':'Support'}</th><th style="text-align:right">Level</th><th style="text-align:right">From CMP</th><th>Strength</th><th>Built from</th></tr></thead><tbody>${arr.map((z,i)=>{ const d=pct(z.v,cmp); return `<tr class="${z.tfs.has(S.tf)?'bl'+kind:''}" title="${z.tfs.has(S.tf)?'Contains '+({D:'daily',W:'weekly',M:'monthly'})[S.tf]+' levels — blinking':''}"><td><b class="${kind==='R'?'dn':'up'}">${kind}${i+1}</b> ${tfc(z)}</td><td class="n"><b>${fx(z.v)}</b>${z.hi-z.lo>0.01?`<br><small class="mu">${fx(z.lo)} – ${fx(z.hi)}</small>`:''}</td><td class="n ${d>=0?'up':'dn'}">${sg(d)}</td><td class="str">${stars(z.s)}</td><td class="bf" style="white-space:normal;font:500 11px Inter;color:#3c4759">${esc(z.labs.slice(0,6).join(' · '))}${z.labs.length>6?' · +'+(z.labs.length-6):''}</td></tr>`; }).join('')}</tbody></table>`; }
 
 function paint(){
   if(!S.bars) return; const B=S.bars, last=B[B.length-1], L=S.live, meta=S.meta||{};
