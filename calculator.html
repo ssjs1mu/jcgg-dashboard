@@ -26,7 +26,9 @@ table.x th{background:linear-gradient(90deg,#13182b,#2a1f5c);color:#fff;font:800
 table.x td{padding:5px 7px;border-bottom:1px solid #edf1f8;white-space:nowrap}table.x td.n{text-align:right}table.x tbody tr:nth-child(even) td{background:#fafbff}
 .live td:nth-child(odd){color:var(--mu);font:800 10.5px Inter;text-transform:uppercase;background:#f3f6fd!important}.live td:nth-child(even){font:800 14px ui-monospace,Consolas,monospace}
 .rng{position:relative;height:8px;border-radius:5px;background:linear-gradient(90deg,var(--neo-p),var(--neo-y) 50%,var(--neo-g));min-width:120px}.rng i{position:absolute;top:-4px;width:5px;height:16px;margin-left:-2px;border-radius:2px;background:#13182b;box-shadow:0 0 0 2px #fff}
+.sx,.major>div,.hl>table{overflow-x:auto;max-width:100%}.hl>table{display:block}.hl>table>*{display:table;width:100%}
 .hl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}@media(max-width:820px){.hl{grid-template-columns:1fr}}
+.hl>div{min-width:0}.major>div{min-width:0}
 .tf{display:flex;gap:6px;margin:14px 0 6px;flex-wrap:wrap;align-items:center}.tf b.lbl{font:900 12px Inter;margin-right:2px}
 .tf button{border:2px solid var(--neo-v);background:#fff;color:#4a2bd6;border-radius:999px;padding:5px 14px;font:900 12px Inter;cursor:pointer}.tf button.on{background:linear-gradient(90deg,var(--neo-v),var(--neo-p));color:#fff;border-color:transparent;box-shadow:0 0 14px rgba(255,45,149,.5)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
@@ -223,12 +225,12 @@ function paint(){
   const byTf=tf=>{ const x=all.filter(a=>a.tf===tf), b=x.filter(a=>a.t[0]==='B').length, s=x.filter(a=>a.t[0]==='S').length; return b>s?['B','▲']:s>b?['S','▼']:['N','◆']; };
   $('out').innerHTML=`
    <h3 class="sec">📈 ${esc(S.sym)} <small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'}${S.hist?' · <b style="color:#ffd35c">live price from BSE; levels from NSE price history (no BSE history in the free feed)</b>':''} · ${qt?'quote '+qt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'last close '+esc(last.d)}${mktOpen()?' · refreshes every 15 s':''}</small></h3>
-   <table class="x live"><tbody>
+   <div class="sx"><table class="x live"><tbody>
     <tr><td>LTP (CMP)</td><td><span style="background:var(--cmp);color:#000;padding:1px 8px;border-radius:6px;box-shadow:0 0 10px rgba(255,234,0,.8);font-size:15px">${fx(cmp)}</span></td><td>Change</td><td class="${ch>=0?'up':'dn'}">${ch==null?'–':(ch>=0?'+':'')+fx(ch)+' ('+sg(cp)+')'}</td><td>Open</td><td>${fx(o)}</td><td>Prev close</td><td>${fx(pc)}</td></tr>
     <tr><td>Day high</td><td class="up">${fx(h)}</td><td>Day low</td><td class="dn">${fx(l)}</td><td>Day range</td><td><div class="rng" title="where the price sits in today's range"><i style="left:${Math.max(0,Math.min(100,pos)).toFixed(1)}%"></i></div></td><td>Position</td><td>${pos.toFixed(0)}% of range</td></tr>
     <tr><td>Volume</td><td>${fx(v,0)}</td><td>Avg volume</td><td>${av?fx(av,0)+' <small class="mu">('+(v/av).toFixed(2)+'x)</small>':'–'}</td><td>Prev day H / L</td><td>${fx(P.D.h)} / ${fx(P.D.l)}</td><td>Day position</td><td>${pos.toFixed(0)}% of range</td></tr>
     <tr><td>20-DMA</td><td class="${cmp>=e20?'up':'dn'}">${fx(e20)}</td><td>50-DMA</td><td class="${cmp>=e50?'up':'dn'}">${fx(e50)}</td><td>200-DMA</td><td class="${e200&&cmp>=e200?'up':'dn'}">${fx(e200)}</td><td>Avg alignment</td><td class="${cmp>e20&&e20>e50?'up':cmp<e20&&e20<e50?'dn':''}">${cmp>e20&&e20>e50?'▲ up':cmp<e20&&e20<e50?'▼ down':'◆ mixed'}</td></tr>
-   </tbody></table>
+   </tbody></table></div>
    <div class="hl"><table class="x"><thead><tr><th>Highs &amp; lows</th><th style="text-align:right">Price</th><th>Date</th><th style="text-align:right">CMP is</th></tr></thead><tbody>
     ${hlRow('52-week high',W52.h,W52.hd,cmp,'up')}${hlRow('52-week low',W52.l,W52.ld,cmp,'dn')}
     ${S.life?hlRow('Lifetime high',S.life.H.v,S.life.H.d,cmp,'up')+hlRow('Lifetime low',S.life.L.v,S.life.L.d,cmp,'dn'):'<tr><td colspan="4" class="mu">Lifetime high / low loading…</td></tr>'}
