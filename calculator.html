@@ -101,8 +101,12 @@ async function go(){
   S.sym=raw; S.ex=$('ex').value; S.live=null; S.bars=null; location.hash=encodeURIComponent(raw)+':'+S.ex; try{localStorage.setItem('jc_pv_last',raw+':'+S.ex);}catch(e){}
   $('out').innerHTML='<div class="empty">Fetching '+esc(raw)+' ('+(S.ex==='BO'?'BSE':'NSE')+') …</div>'; $('st').textContent='loading '+raw+'…';
   const ys=yf(raw,S.ex);
-  try{ const [d,l]=await Promise.all([daily(ys),liveQ(ys).catch(()=>null)]); S.bars=d.B; S.meta=d.meta; S.live=l; S.ys=ys;
-    if(S.bars.length<30) throw new Error('not enough price history'); paint(); arm(); }
+  try{ let [d,l]=await Promise.all([daily(ys).catch(e=>({B:[],meta:{},err:e})),liveQ(ys).catch(()=>null)]); S.hist=null;
+    if(d.B.length<30&&S.ex==='BO'&&!INDICES[raw]&&!/^\^/.test(raw)){ /* the free feed has no BSE price history: levels from the same company's NSE history, live price stays BSE */
+      const n=await daily(raw+'.NS').catch(()=>null); if(n&&n.B.length>=30){ if(!l&&d.meta&&d.meta.regularMarketPrice) l=[d.meta.regularMarketPrice,d.meta.chartPreviousClose||null,null,d.meta.regularMarketDayHigh||null,d.meta.regularMarketDayLow||null,d.meta.regularMarketVolume||0,null,d.meta.regularMarketTime||null,d.meta.fiftyTwoWeekHigh||null,d.meta.fiftyTwoWeekLow||null]; S.hist='NSE'; d={B:n.B,meta:Object.assign({},n.meta,{longName:(d.meta&&d.meta.longName)||n.meta.longName})}; } }
+    if(d.err&&!d.B.length) throw d.err;
+    S.bars=d.B; S.meta=d.meta; S.live=l; S.ys=ys;
+    if(S.bars.length<30) throw new Error(S.ex==='BO'?'no BSE price history in the free data feed and no NSE listing under this code — try the NSE code':'not enough price history'); paint(); arm(); }
   catch(e){ $('out').innerHTML='<div class="empty">Could not load <b>'+esc(raw)+'</b> on '+(S.ex==='BO'?'BSE':'NSE')+': '+esc(e.message||e)+'. Check the symbol (NSE code, e.g. RELIANCE).</div>'; $('st').textContent='—'; }
 }
 function arm(){ clearInterval(S.timer); S.timer=setInterval(async()=>{ if(document.hidden||!S.ys||!mktOpen()) return; try{ const l=await liveQ(S.ys); if(l){ S.live=l; paint(); } }catch(e){} },15000); }
@@ -180,7 +184,7 @@ function paint(){
   const MJ=majors(P,cmp);
   const byTf=tf=>{ const x=all.filter(a=>a.tf===tf), b=x.filter(a=>a.t[0]==='B').length, s=x.filter(a=>a.t[0]==='S').length; return b>s?['B','▲']:s>b?['S','▼']:['N','◆']; };
   $('out').innerHTML=`
-   <h3 class="sec">📈 ${esc(S.sym)} <small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'} · ${qt?'quote '+qt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'last close '+esc(last.d)}${mktOpen()?' · refreshes every 15 s':''}</small></h3>
+   <h3 class="sec">📈 ${esc(S.sym)} <small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'}${S.hist?' · <b style="color:#ffd35c">live price from BSE; levels from NSE price history (no BSE history in the free feed)</b>':''} · ${qt?'quote '+qt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'last close '+esc(last.d)}${mktOpen()?' · refreshes every 15 s':''}</small></h3>
    <table class="x live"><tbody>
     <tr><td>LTP (CMP)</td><td style="color:var(--cmp)">${fx(cmp)}</td><td>Change</td><td class="${ch>=0?'up':'dn'}">${ch==null?'–':(ch>=0?'+':'')+fx(ch)+' ('+sg(cp)+')'}</td><td>Open</td><td>${fx(o)}</td><td>Prev close</td><td>${fx(pc)}</td></tr>
     <tr><td>Day high</td><td class="up">${fx(h)}</td><td>Day low</td><td class="dn">${fx(l)}</td><td>Day range</td><td><div class="rng" title="where the price sits in today's range"><i style="left:${Math.max(0,Math.min(100,pos)).toFixed(1)}%"></i></div></td><td>Position</td><td>${pos.toFixed(0)}% of range</td></tr>
