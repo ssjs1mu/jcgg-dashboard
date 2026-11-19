@@ -6,6 +6,12 @@ img,video,canvas,svg{max-width:100%}
 .m-sx{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%}
 .m-sx>table{margin:0}
 
+/* watchlist header: barometer and menu each get their own row on tablets (they overlapped) */
+@media (max-width:1100px){
+  .top:has(.bmw){grid-template-columns:minmax(0,1fr)!important}
+  .top:has(.bmw)>.bmw,.top:has(.bmw)>.tnav{grid-column:1/-1!important;grid-row:auto!important;min-width:0;max-width:100%}
+  .top:has(.bmw)>.tnav{justify-content:center}
+}
 @media (max-width:1024px){
   html,body{overflow-x:clip}
   button,a,select,input,label,summary{touch-action:manipulation}
