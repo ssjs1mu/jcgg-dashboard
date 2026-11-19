@@ -178,7 +178,7 @@ function methods(p){
   /* extension levels, shown only when CMP has moved beyond the method's outer levels */
   classic.X={R4:h+3*(P-l),R5:h+4*(P-l),S4:l-3*(h-P),S5:l-4*(h-P)};
   fib.X={R4:P+1.618*r,R5:P+2.618*r,S4:P-1.618*r,S5:P-2.618*r};
-  const R5=l>0?h/l*c:c+r; cam.X={R5,S5:c-(R5-c)};
+  const R5=l>0?h/l*c:c+r, R6=R5+1.168*(R5-cam.L.R4), S5=c-(R5-c), S6=S5-1.168*(cam.L.S4-S5); cam.X={R5,R6,S5,S6};
   woodie.X={R4:woodie.L.R3+r,R5:woodie.L.R3+2*r,S4:woodie.L.S3-r,S5:woodie.L.S3-2*r};
   cpr.X={R3:h+2*(P-l),R4:h+3*(P-l),S3:l-2*(h-P),S4:l-3*(h-P)};
   return [classic,fib,cam,woodie,demark,cpr];
@@ -217,7 +217,7 @@ function table(m,cmp,p,MJ){
   const cm=`<tr class="cmp"><td class="l">▶ CMP</td><td class="n">${fx(cmp)}</td><td class="n">${t[1]} ${TL[t[0]]}</td></tr>`;
   const res=nR?`next resistance <b class="dn">${nR} ${fx(LV[nR])}</b>`:'no level above — open sky', sup=trail&&flipUp.length?`trail SL / support <b class="up">${trail} ${fx(LV[trail])}</b>`:nS?`next support <b class="up">${nS} ${fx(LV[nS])}</b>`:'no level below';
   return `<div class="card"><div class="hd"><div><b>${esc(m.name)}</b><small>${esc(p.lab)}${m.cpr?' · TC '+fx(m.TC)+' / BC '+fx(m.BC):''}</small></div><span class="tr ${t[0]}"><i>${t[1]}</i>${TL[t[0]]}</span></div>
-   <table><tr class="rh"><td colspan="3">▲ RESISTANCE (above CMP)</td></tr>${above.map(row).join('')||'<tr><td colspan="3" class="mu">none — price above every level</td></tr>'}${cm}${below.map(row).join('')||'<tr><td colspan="3" class="mu">none — price below every level</td></tr>'}<tr class="sh"><td colspan="3">▼ SUPPORT (below CMP)</td></tr></table>
+   <table><tr class="rh"><td colspan="3">▲ RESISTANCE (above CMP)</td></tr>${above.map(row).join('')||'<tr><td colspan="3" class="mu">none — price is above every '+esc(m.name.split(' ')[0])+' level; see the other tables / major zones for the next resistance</td></tr>'}${cm}${below.map(row).join('')||'<tr><td colspan="3" class="mu">none — price is below every '+esc(m.name.split(' ')[0])+' level; see the other tables / major zones for the next support</td></tr>'}<tr class="sh"><td colspan="3">▼ SUPPORT (below CMP)</td></tr></table>
    <div class="ft">${esc(t[2])} · ${res} · ${sup}${m.name==='DeMark'&&!above.length?' · DeMark has no level above R1':''}</div></div>`;
 }
 const fdate=d=>d.length===7?new Date(d+'-01T00:00:00Z').toLocaleDateString('en-IN',{month:'short',year:'numeric',timeZone:'UTC'}):new Date(d+'T00:00:00Z').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'});
