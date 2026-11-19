@@ -156,15 +156,16 @@ function majors(P,cmp){
   add(Math.max(...b52.map(b=>b.h)),'52-week high',4); add(Math.min(...b52.map(b=>b.l)),'52-week low',4);
   if(cl.length>=20) add(ema(cl.slice(-60),20),'20-DMA (EMA)',2); if(cl.length>=50) add(ema(cl.slice(-150),50),'50-DMA (EMA)',3); if(cl.length>=200) add(ema(cl,200),'200-DMA (EMA)',4);
   lv.sort((a,b)=>a.v-b.v); const Z=[], tol=cmp*0.003;
-  lv.forEach(x=>{ const z=Z[Z.length-1]; if(z&&x.v-z.hi<=tol){ z.items.push(x); z.hi=x.v; } else Z.push({lo:x.v,hi:x.v,items:[x]}); });
+  lv.forEach(x=>{ const z=Z[Z.length-1]; if(z&&x.v-z.lo<=tol*1.35){ z.items.push(x); z.hi=x.v; } else Z.push({lo:x.v,hi:x.v,items:[x]}); });
   Z.forEach(z=>{ const W=z.items.reduce((a,x)=>a+x.w,0); z.v=z.items.reduce((a,x)=>a+x.v*x.w,0)/W; z.s=W; z.labs=[...new Set(z.items.map(x=>x.lab))]; });
   const res=Z.filter(z=>z.v>cmp*1.0015).sort((a,b)=>a.v-b.v), sup=Z.filter(z=>z.v<cmp*0.9985).sort((a,b)=>b.v-a.v);
   const pickTop=(arr)=>{ const near=arr.slice(0,12); const top=near.slice().sort((a,b)=>b.s-a.s).slice(0,4); return near.filter(z=>top.includes(z)); };
   return {res:pickTop(res),sup:pickTop(sup),max:Math.max(1,...Z.map(z=>z.s))};
 }
-const stars=(s,mx)=>{ const n=Math.max(1,Math.round(s/mx*5)); return '★'.repeat(n)+'<span class="mu">'+'★'.repeat(5-n)+'</span>'; };
+/* strength on a fixed scale (sum of weights: daily level 1, weekly 2, monthly 3, prev H/L x1.5, 20-day 2, 52-week 4, averages 2-4) */
+const stars=(s)=>{ const n=s>=16?5:s>=10?4:s>=6?3:s>=3?2:1; return '<span title="strength '+s.toFixed(1)+'">'+'★'.repeat(n)+'<span style="color:#3d5272">'+'☆'.repeat(5-n)+'</span></span>'; };
 function majTable(arr,cmp,kind,mx){ if(!arr.length) return '<div class="empty">None within reach.</div>';
-  return `<table class="x"><thead><tr><th>${kind==='R'?'Resistance':'Support'}</th><th style="text-align:right">Level</th><th style="text-align:right">From CMP</th><th>Strength</th><th>Built from</th></tr></thead><tbody>${arr.map((z,i)=>{ const d=pct(z.v,cmp); return `<tr><td><b class="${kind==='R'?'dn':'up'}">${kind}${i+1}</b></td><td class="n"><b>${fx(z.v)}</b>${z.hi-z.lo>0.01?`<br><small class="mu">${fx(z.lo)} – ${fx(z.hi)}</small>`:''}</td><td class="n ${d>=0?'up':'dn'}">${sg(d)}</td><td class="str">${stars(z.s,mx)}</td><td style="white-space:normal;font:600 11px Inter;color:#d9e2ee">${esc(z.labs.slice(0,6).join(' · '))}${z.labs.length>6?' · +'+(z.labs.length-6):''}</td></tr>`; }).join('')}</tbody></table>`; }
+  return `<table class="x"><thead><tr><th>${kind==='R'?'Resistance':'Support'}</th><th style="text-align:right">Level</th><th style="text-align:right">From CMP</th><th>Strength</th><th>Built from</th></tr></thead><tbody>${arr.map((z,i)=>{ const d=pct(z.v,cmp); return `<tr><td><b class="${kind==='R'?'dn':'up'}">${kind}${i+1}</b></td><td class="n"><b>${fx(z.v)}</b>${z.hi-z.lo>0.01?`<br><small class="mu">${fx(z.lo)} – ${fx(z.hi)}</small>`:''}</td><td class="n ${d>=0?'up':'dn'}">${sg(d)}</td><td class="str">${stars(z.s)}</td><td style="white-space:normal;font:600 11px Inter;color:#d9e2ee">${esc(z.labs.slice(0,6).join(' · '))}${z.labs.length>6?' · +'+(z.labs.length-6):''}</td></tr>`; }).join('')}</tbody></table>`; }
 
 function paint(){
   if(!S.bars) return; const B=S.bars, last=B[B.length-1], L=S.live, meta=S.meta||{};
