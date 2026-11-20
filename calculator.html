@@ -257,6 +257,8 @@ function methods(p){
   cpr.X={R3:h+2*(P-l),R4:h+3*(P-l),S3:l-2*(h-P),S4:l-3*(h-P)};
   return [classic,fib,cam,woodie,demark,cpr];
 }
+/* pivot tables the market actually uses: Classic, Camarilla, CPR (+ Fibonacci retracement card); Woodie, DeMark and the Fibonacci pivot are not shown */
+const mm=p=>methods(p).filter(m=>/^(Classic|Camarilla|CPR)/.test(m.name));
 /* levels used for a table at this CMP: base levels + as many extensions as needed to keep 2 levels on each side */
 function lvls(m,cmp){
   const L=Object.assign({},m.L), X=m.X||{};
@@ -333,29 +335,52 @@ function verdict(P,cmp,MJ,x){
 }
 
 /* ---------- 🛡 Advisory: the 11-rule entry check applied to whatever stock is searched (generic, no personal trades) ---------- */
-function advisory(cmp,lv,op){
+/* swing levels for a stock whose trend is not confirmed: buy RANGE at support, buy-on-strength level, positional trigger - each with stop, exits and duration */
+function swingPlans(A,cmp,MJ,P){
+  const s=A.S, atr=s.atr||cmp*0.02, ses=d=>Math.max(2,Math.ceil(Math.pow(d/atr,2))), out=[];
+  const tg=(ent,R)=>{ const rs=MJ.res.map(z=>z.v).filter(v=>v>ent*1.004).sort((a,b)=>a-b); const t1=rs.find(v=>v-ent>=R)||ent+1.5*R; const t2=rs.find(v=>v-ent>=2*R&&v>t1*1.003)||Math.max(ent+3*R,t1*1.02); return [t1,t2]; };
+  const mk=(o)=>{ const ent=o.hi, R=ent-o.stop, T=tg(ent,R); return Object.assign(o,{R,rp:R/ent*100,t1:T[0],t2:T[1],s1:ses(T[0]-ent),s2:ses(T[1]-ent)}); };
+  if(A.E.verdict==='RIGHT'){ const p=A.now; out.push(mk({k:'now',lab:'🟢 Buy now (all rules passed)',lo:cmp,hi:cmp,stop:p.stop,why:p.why,size:'Full size, in 3 parts',inr:true})); return out; }
+  const ctr=A.E.rows.some(r=>r.k==='trend'&&r.ok===false);
+  const near=MJ.sup.filter(z=>z.v<=cmp*1.002&&z.v>=cmp*0.96&&z.s>=5);
+  if(near.length){ const lo=Math.min.apply(null,near.map(z=>z.lo)), top=Math.min(cmp,Math.max.apply(null,near.map(z=>z.hi))*1.004);
+    out.push(mk({k:'bounce',lab:'🟢 Bounce swing at support'+(ctr?' (counter-trend)':''),lo:lo,hi:top,stop:lo*0.99,why:'just under the support zone '+fx(lo),size:ctr?'Half size — trend is down':'Normal size',inr:cmp<=top*1.003&&cmp>=lo})); }
+  else { const z=MJ.sup.find(z=>z.s>=5&&z.v>=cmp*0.88); if(z) out.push(mk({k:'pull',lab:'⏳ Wait for a pullback into support',lo:z.lo,hi:z.hi*1.004,stop:z.lo*0.99,why:'just under the support zone '+fx(z.lo),size:ctr?'Half size — trend is down':'Normal size',inr:false})); }
+  const pv=methods(P.D)[0].P, lvl=pv>cmp*1.012?pv:(MJ.res.find(z=>z.v>cmp*1.015)||{}).v;
+  if(lvl){ const ent=lvl*1.002, p=JCR.plan(s,ent); out.push(mk({k:'str',lab:'🔵 Buy on strength — close above '+fx(lvl),lo:ent,hi:ent,stop:p.stop,why:p.why,size:'Needs 1.3x volume on the day',inr:false})); }
+  const t=A.trig&&A.trig[0]; if(t&&t.p.entry<=cmp*1.10) out.push(mk({k:'pos',lab:'⚪ Positional — '+t.label.toLowerCase(),lo:t.p.entry,hi:t.p.entry,stop:t.p.stop,why:t.p.why,size:'Needs 1.3x volume',inr:false}));
+  return out; }
+function advisory(cmp,lv,op,MJ,P){
   let A; try{ A=JCR.advisory(S.bars,cmp,todayS(),mktOpen()?null:lv,op); }catch(e){ A=null; } if(!A) return '<div class="adv"><div class="ah"><b class="t">🛡 Advisory</b><small>needs at least 60 sessions of history</small></div></div>';
-  const E=A.E, s=A.S, v=E.verdict, K=v==='RIGHT'?'OK':v==='RISKY'?'WAIT':'AVOID';
-  const crit=E.fails.filter(f=>f.crit), why=(crit.length?crit:E.fails).slice(0,2).map(f=>f.name).join(' · ');
-  const head=K==='OK'?'✔ BUY ZONE — enter in 3 parts, stop written first':'⛔ NO TRADE AT CMP '+fx(cmp)+' — '+why;
-  const ses=n=>'≈ '+n+' sessions'+(n>=10?' (~'+Math.round(n/5)+' wk)':'');
-  const prow=(lab,p,sub)=>`<tr><td style="white-space:normal;min-width:190px;font:700 12px Inter,system-ui,Segoe UI,Arial,sans-serif">${lab}${sub?'<br><span class="mu" style="font-weight:600">'+esc(sub)+'</span>':''}</td><td class="n">${fx(p.entry)}</td><td class="n dn">${fx(p.stop)}<br><span class="mu" style="font:600 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${esc(p.why)}</span></td><td class="n">${fx(p.R)} (${p.rp.toFixed(1)}%)</td><td class="n up">${fx(p.t1)}<br><span class="mu" style="font:600 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${ses(p.s1)}</span></td><td class="n up">${fx(p.t2)}<br><span class="mu" style="font:600 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${ses(p.s2)}</span></td></tr>`;
-  let plans; if(K==='OK') plans=prow('Buy now at CMP',A.now,'all entry rules passed'); else if(A.trig.length) plans=A.trig.map(t=>prow(esc(t.label),t.p,t.why+(t.vol?' · with 1.3x volume':''))).join(''); else plans='';
-  const planBox=plans?`<table class="x"><thead><tr><th>${K==='OK'?'Entry':'Conditional entry (nothing to do until then)'}</th><th style="text-align:right">Entry</th><th style="text-align:right">Stop (close basis)</th><th style="text-align:right">Risk / share</th><th style="text-align:right">T1 · 1.5R</th><th style="text-align:right">T2 · 3R</th></tr></thead><tbody>${plans}</tbody></table>`:`<div class="tip">No clean entry level yet — re-check after the next close.</div>`;
+  const E=A.E, s=A.S, K=E.verdict==='RIGHT'?'OK':E.verdict==='RISKY'?'WAIT':'AVOID', pl=swingPlans(A,cmp,MJ,P);
+  const stamp=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false});
+  const head=K==='OK'?'✔ BUY ZONE — all entry rules passed':'⚠ TREND NOT CONFIRMED — trade only these levels';
+  const ses=n=>'≈ '+n+' session'+(n>1?'s':'');
+  const sub=t=>'<br><span class="mu" style="font:600 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif">'+t+'</span>';
+  const rec=pl.length?`<div class="sx"><table class="x"><thead><tr><th>Setup</th><th style="text-align:right">Buy at / range</th><th style="text-align:right">Stop (closing basis)</th><th style="text-align:right">Exit T1</th><th style="text-align:right">Exit T2</th><th style="text-align:right">Duration</th><th style="text-align:right">Risk</th><th>Size</th></tr></thead><tbody>${pl.map(p=>`<tr${p.inr?' style="background:#eef8f2"':''}><td style="white-space:normal;min-width:210px;font:800 12px Inter,system-ui,Segoe UI,Arial,sans-serif">${esc(p.lab)}${p.inr?' <span class="ok">· IN RANGE NOW</span>':''}</td><td class="n"><b>${p.lo===p.hi?fx(p.hi):fx(p.lo)+' – '+fx(p.hi)}</b></td><td class="n dn"><b>${fx(p.stop)}</b>${sub(esc(p.why))}</td><td class="n up"><b>${fx(p.t1)}</b>${sub('+'+((p.t1/p.hi-1)*100).toFixed(1)+'%')}</td><td class="n up"><b>${fx(p.t2)}</b>${sub('+'+((p.t2/p.hi-1)*100).toFixed(1)+'%')}</td><td class="n">T1 ${ses(p.s1)}<br>T2 ${ses(p.s2)}</td><td class="n">${fx(p.R)} (${p.rp.toFixed(1)}%)</td><td style="white-space:normal;font:600 11.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${esc(p.size)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="tip">No clean level near the price — re-check after the next close.</div>`;
   const rows=E.rows.map(r=>`<tr><td>${esc(r.name)}${r.crit?' <span class="no" title="critical rule">●</span>':''}</td><td class="c ${r.ok===true?'okc':r.ok===false?'noc':''}">${r.ok===true?'<span class="ok">✔</span>':r.ok===false?'<span class="no">✖</span>':'<span class="na">–</span>'}</td><td>${esc(r.val)}</td><td style="white-space:normal;min-width:210px;font:700 11.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${r.ok===false?esc(r.need||r.fix):''}</td></tr>`).join('');
-  const ref=K==='OK'?A.now:null;
-  return `<div class="adv"><div class="ah"><b class="t">🛡 Advisory · ${esc(S.sym)}</b><span class="vd2 ${K}">${esc(head)}</span><small>${E.pass}/${E.total} rules passed · 11-rule entry check · ● = critical rule</small></div>
-   <div class="ab"><div class="sx"><table class="x"><thead><tr><th>Entry rule</th><th></th><th>Reading now (with price levels)</th><th>To pass — price / level needed</th></tr></thead><tbody>${rows}</tbody></table></div>
-   <div>${planBox}
-   <div class="tip" style="background:#f3f5f9;border-color:#dfe4ec;color:#3c4759">Sessions = rough time from the stock's ATR (${s.atr?fx(s.atr)+' a day':'–'}), not a promise. Position size: (1% of client capital) ÷ risk per share, same quantity for every client. Book ⅓ at T1, ⅓ at T2, trail the rest under the 20-DMA (${fx(s.e20)}). Exit only on a <b>closing</b> basis below the stop.</div>
-   <div class="tip r"><b>If stopped out:</b> re-buy only on a close above ${fx(s.hi20)} (20-day high) with 1.3x volume, or a retest of the 20-day floor ${fx(s.lo20)} with momentum turning up — 3+ sessions after the exit, half size first.</div></div></div></div>`; }
+  return `<div class="adv"><div class="ah"><b class="t">🛡 ${esc(S.sym)} · recommendation</b><span class="vd2 ${K}">${esc(head)}</span><small>CMP ${fx(cmp)} · ${esc(stamp)} IST · ${E.pass}/${E.total} trend rules passed</small></div>
+   <div style="padding:8px 10px">${rec}
+   <div class="tip" style="margin-top:8px;background:#f3f5f9;border-color:#dfe4ec;color:#3c4759">Support and resistance come from the major zones (Fibonacci retracement, Classic / Camarilla / CPR pivots, DMAs). Duration = rough sessions from the stock's daily range (ATR ${s.atr?fx(s.atr):'–'}), not a promise. Size = (1% of client capital) ÷ risk per share, same quantity for every client. Book ⅓ at T1, ⅓ at T2, trail the rest under the 20-DMA ${fx(s.e20)}; exit only on a <b>closing</b> basis below the stop. If stopped out, re-buy only on a close above ${fx(s.hi20)} with 1.3x volume or a retest of ${fx(s.lo20)} with momentum turning up.</div>
+   <details style="margin-top:8px"><summary style="cursor:pointer;font:800 12px Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--navy)">▸ Why — the 11 entry rules (${E.pass}/${E.total} passed)</summary><div class="sx" style="margin-top:6px"><table class="x"><thead><tr><th>Entry rule</th><th></th><th>Reading now (with price levels)</th><th>To pass — price / level needed</th></tr></thead><tbody>${rows}</tbody></table></div></details></div></div>`; }
+
+/* Fibonacci RETRACEMENT of the latest swing (last 100 sessions): the classic pause points of a bounce / pullback, used as support & resistance */
+function fibRet(){ const B=S.bars.slice(-100); if(B.length<30) return null; let hi=0,lo=0; B.forEach((b,i)=>{ if(b.h>B[hi].h) hi=i; if(b.l<B[lo].l) lo=i; }); const H=B[hi].h, L=B[lo].l; if(!(H>L)) return null; const up=lo<hi;
+  return {H,L,hd:B[hi].d,ld:B[lo].d,up,lv:[.236,.382,.5,.618,.786].map(r=>({r,v:up?H-(H-L)*r:L+(H-L)*r}))}; }
+function fibCard(cmp){ const F=fibRet(); if(!F) return '';
+  const rows=F.lv.map(x=>({k:(x.r*100).toFixed(1)+'%',v:x.v})).concat([{k:'Swing high',v:F.H},{k:'Swing low',v:F.L}]).sort((a,b)=>b.v-a.v), ab=rows.filter(r=>r.v>cmp), be=rows.filter(r=>r.v<=cmp);
+  const row=r=>{ const role=r.v>cmp?'R':'S', d=pct(r.v,cmp), key=r.k==='50.0%'||r.k==='61.8%'; return `<tr class="${role}"><td class="l">${r.k}${key?' <span class="tg '+role+'">key</span>':''}</td><td class="n">${fx(r.v)}</td><td class="n ${d>=0?'dn':'up'}">${sg(d)}</td></tr>`; };
+  return `<div class="card"><div class="hd"><div><b>Fibonacci retracement</b><small>${F.up?'up-swing':'down-swing'} ${esc(fdate(F.up?F.ld:F.hd))} → ${esc(fdate(F.up?F.hd:F.ld))} · ${fx(F.up?F.L:F.H)} → ${fx(F.up?F.H:F.L)}</small></div></div>
+   <table><tr class="rh"><td colspan="3">▲ RESISTANCE (above CMP)</td></tr>${ab.map(row).join('')||'<tr><td colspan="3" class="mu">none above</td></tr>'}<tr class="cmp"><td class="l">▶ CMP</td><td class="n">${fx(cmp)}</td><td class="n"></td></tr>${be.map(row).join('')||'<tr><td colspan="3" class="mu">none below</td></tr>'}<tr class="sh"><td colspan="3">▼ SUPPORT (below CMP)</td></tr></table>
+   <div class="ft">${F.up?'Pullback levels of the last up-swing':'Bounce levels of the last down-swing'}; 50% and 61.8% are the strongest. They are also counted in the major zones above.</div></div>`; }
 /* ---------- major support / resistance: confluence of levels ---------- */
 const ema=(v,n)=>{ const k=2/(n+1); let e=v[0]; v.forEach(x=>{ e=x*k+e*(1-k); }); return e; };
 function majors(P,cmp){
   const B=S.bars, cl=B.map(b=>b.c), lv=[]; const add=(v,lab,w)=>{ if(v&&isFinite(v)) lv.push({v,lab,w}); };
-  [['D',1],['W',2],['M',3]].forEach(([tf,w])=>{ const p=P[tf]; if(!p) return; methods(p).forEach(m=>Object.entries(lvls(m,cmp)).forEach(([k,v])=>add(v,tf+' '+m.name.split(' ')[0]+' '+k,w*(k==='P'?1.2:1)))); add(p.h,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' high',w*1.5); add(p.l,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' low',w*1.5); });
+  [['D',1],['W',2],['M',3]].forEach(([tf,w])=>{ const p=P[tf]; if(!p) return; mm(p).forEach(m=>Object.entries(lvls(m,cmp)).forEach(([k,v])=>add(v,tf+' '+m.name.split(' ')[0]+' '+k,w*(k==='P'?1.2:1)))); add(p.h,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' high',w*1.5); add(p.l,'Prev '+({D:'day',W:'week',M:'month'})[tf]+' low',w*1.5); });
   const b20=B.slice(-21,-1), b52=B.slice(-250); add(Math.max(...b20.map(b=>b.h)),'20-day high',2); add(Math.min(...b20.map(b=>b.l)),'20-day low',2);
   add(Math.max(...b52.map(b=>b.h)),'52-week high',4); add(Math.min(...b52.map(b=>b.l)),'52-week low',4);
+  { const F=fibRet(); if(F) F.lv.forEach(x=>add(x.v,'Fib '+(x.r*100).toFixed(1)+'%',x.r===.5||x.r===.618?3.5:3)); }
   if(cl.length>=20) add(ema(cl.slice(-60),20),'20-DMA (EMA)',2); if(cl.length>=50) add(ema(cl.slice(-150),50),'50-DMA (EMA)',3); if(cl.length>=200) add(ema(cl,200),'200-DMA (EMA)',4);
   lv.sort((a,b)=>a.v-b.v); const Z=[], tol=cmp*0.003;
   lv.forEach(x=>{ const z=Z[Z.length-1]; if(z&&x.v-z.lo<=tol*1.35){ z.items.push(x); z.hi=x.v; } else Z.push({lo:x.v,hi:x.v,items:[x]}); });
@@ -377,7 +402,7 @@ function paint(){
   const ch=pc?cmp-pc:null, cp=pc?pct(cmp,pc):null, pos=h>l?(cmp-l)/(h-l)*100:50, name=meta.longName||meta.shortName||S.sym;
   $('st').innerHTML=(mktOpen()?'<b>● LIVE</b> ':'')+esc(S.sym)+' '+(qt?qt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'');
   const P=periods(), cur=S.tf==='W'?P.W:S.tf==='M'?P.M:P.D;
-  const all=[]; ['D','W','M'].forEach(tf=>{ if(P[tf]) methods(P[tf]).forEach(m=>all.push({tf,t:trend(Object.assign({},m,{L:lvls(m,cmp)}),cmp)})); });
+  const all=[]; ['D','W','M'].forEach(tf=>{ if(P[tf]) mm(P[tf]).forEach(m=>all.push({tf,t:trend(Object.assign({},m,{L:lvls(m,cmp)}),cmp)})); });
   const bu=all.filter(x=>x.t[0]==='B').length, br=all.filter(x=>x.t[0]==='S').length, ov=bu>br*1.5?'B':br>bu*1.5?'S':'N';
   const cl=B.map(b=>b.c), e20=ema(cl.slice(-60),20), e50=ema(cl.slice(-150),50), e200=cl.length>=200?ema(cl,200):null;
   const MJ=majors(P,cmp); S.lvP=P; S.lvMJ=MJ; S.cmp=cmp; if(CW.on) cwLevels();
@@ -385,8 +410,8 @@ function paint(){
   const byTf=tf=>{ const x=all.filter(a=>a.tf===tf), b=x.filter(a=>a.t[0]==='B').length, s=x.filter(a=>a.t[0]==='S').length; return b>s?['B','▲']:s>b?['S','▼']:['N','◆']; };
   $('out').innerHTML=`
    <h3 class="sec"><button type="button" class="chb" id="chOpen" title="Live chart with these pivot levels and major zones drawn on it">📈 Chart</button> ${esc(S.sym)} <small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'}${S.hist?' · <b style="color:#9a7322">live price from BSE; levels from NSE price history (no BSE history in the free feed)</b>':''} · ${qt?'quote '+qt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'last close '+esc(last.d)}${mktOpen()?' · refreshes every 15 s':''}</small></h3>
+   ${advisory(cmp,v,o,MJ,P)}
    ${verdict(P,cmp,MJ,{dT:byTf('D')[0],wT:P.W?byTf('W')[0]:'N',al:cmp>e20&&e20>e50?'up':cmp<e20&&e20<e50?'down':'mixed',pos,w52h:W52.h,w52l:W52.l})}
-   ${advisory(cmp,v,o)}
    <div class="dash"><div class="kv">
     <div><small>LTP (CMP)</small><b><span style="background:var(--cmp);color:var(--navy);padding:1px 8px;border-radius:6px;border:1px solid var(--cmpb)">${fx(cmp)}</span></b></div>
     <div><small>Change</small><b class="${ch>=0?'up':'dn'}">${ch==null?'–':(ch>=0?'+':'')+fx(ch)+' ('+sg(cp)+')'}</b></div>
@@ -415,7 +440,7 @@ function paint(){
    <div class="legend">Softly highlighted<i style="background:#f3cfc9"></i>resistance<i style="background:#c3e6d2"></i>support = zones built with <b>${({D:'Daily',W:'Weekly',M:'Monthly'})[S.tf]}</b> levels · <span class="tfc D">D</span><span class="tfc W">W</span><span class="tfc M">M</span> = time frames inside each zone · ⚑ in the pivot tables = level sits in a major zone</div>
    <div class="major"><div>${majTable(MJ.res,cmp,'R',MJ.max)}</div><div>${majTable(MJ.sup,cmp,'S',MJ.max)}</div></div>
    <h3 class="sec">📐 ${({D:'Daily',W:'Weekly',M:'Monthly'})[S.tf]} pivot tables <small>CMP marked in each · ⚑ blinking = inside a major zone</small></h3>
-   <div class="grid">${cur?methods(cur).map(m=>table(Object.assign({},m),cmp,cur,MJ)).join(''):'<div class="empty">Not enough history for this time frame.</div>'}</div>`;
+   <div class="grid">${cur?mm(cur).map(m=>table(Object.assign({},m),cmp,cur,MJ)).join('')+fibCard(cmp):'<div class="empty">Not enough history for this time frame.</div>'}</div>`;
 }
 /* ---------- 📈 chart window: live candles with the page's levels drawn on them ---------- */
 const LWC='https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js';
