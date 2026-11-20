@@ -159,7 +159,7 @@ table.x tr.blR td b,table.x tr.blS td b{color:inherit}
  <b>Trend arrow:</b> ▲ Bullish when the live price is above the pivot (above R1 = strong), ▼ Bearish below it (below S1 = strong), ◆ Neutral inside the pivot zone; Camarilla reads above R3 / below S3 as breakout / breakdown, inside as range-bound; CPR reads above TC / below BC.
  <b>Major levels</b> = price zones where several pivot levels, the previous day / week / month high-low, the 20-day and 52-week high-low and the 20 / 50 / 200-day averages fall together (within ~0.3%); more levels and longer time frames = stronger. Rule-based levels, not advice.</div>
 </div>
-<script src="review.js?v=1"></script>
+<script src="review.js?v=2"></script>
 <script>
 const $=id=>document.getElementById(id);
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -337,15 +337,18 @@ function advisory(cmp,lv,op){
   let A; try{ A=JCR.advisory(S.bars,cmp,todayS(),mktOpen()?null:lv,op); }catch(e){ A=null; } if(!A) return '<div class="adv"><div class="ah"><b class="t">🛡 Advisory</b><small>needs at least 60 sessions of history</small></div></div>';
   const E=A.E, s=A.S, v=E.verdict, K=v==='RIGHT'?'OK':v==='RISKY'?'WAIT':'AVOID';
   const crit=E.fails.filter(f=>f.crit), why=(crit.length?crit:E.fails).slice(0,2).map(f=>f.name).join(' · ');
-  const head=K==='OK'?'✔ ENTRY CHECK PASSED — buy in 3 parts, stop written first':K==='WAIT'?'⚠ WAIT — '+why:'⛔ AVOID NEW BUY — '+why;
-  const qty1=s.R>0?'Qty = (1% of client capital) ÷ ₹'+fx(s.R)+' per share':'';
-  const rows=E.rows.map(r=>`<tr><td>${esc(r.name)}${r.crit?' <span class="no" title="critical rule">●</span>':''}</td><td class="c ${r.ok===true?'okc':r.ok===false?'noc':''}">${r.ok===true?'<span class="ok">✔</span>':r.ok===false?'<span class="no">✖</span>':'<span class="na">–</span>'}</td><td>${esc(r.val)}</td><td style="white-space:normal;min-width:200px;font:600 11.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${r.ok===false?esc(r.fix):''}</td></tr>`).join('');
-  let tips='';
-  tips+=`<div class="tip r"><b>If you are stopped out:</b> re-buy only on a close above ${fx(s.hi20)} (20-day high) with 1.3x volume, or a retest of the 20-day floor ${fx(s.lo20)} with momentum turning up — at least 3 sessions after the exit, half size first. Never re-buy higher than your exit without that trigger.</div>`;
+  const head=K==='OK'?'✔ BUY ZONE — enter in 3 parts, stop written first':'⛔ NO TRADE AT CMP '+fx(cmp)+' — '+why;
+  const ses=n=>'≈ '+n+' sessions'+(n>=10?' (~'+Math.round(n/5)+' wk)':'');
+  const prow=(lab,p,sub)=>`<tr><td style="white-space:normal;min-width:190px;font:700 12px Inter,system-ui,Segoe UI,Arial,sans-serif">${lab}${sub?'<br><span class="mu" style="font-weight:600">'+esc(sub)+'</span>':''}</td><td class="n">${fx(p.entry)}</td><td class="n dn">${fx(p.stop)}<br><span class="mu" style="font:600 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${esc(p.why)}</span></td><td class="n">${fx(p.R)} (${p.rp.toFixed(1)}%)</td><td class="n up">${fx(p.t1)}<br><span class="mu" style="font:600 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${ses(p.s1)}</span></td><td class="n up">${fx(p.t2)}<br><span class="mu" style="font:600 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${ses(p.s2)}</span></td></tr>`;
+  let plans; if(K==='OK') plans=prow('Buy now at CMP',A.now,'all entry rules passed'); else if(A.trig.length) plans=A.trig.map(t=>prow(esc(t.label),t.p,t.why+(t.vol?' · with 1.3x volume':''))).join(''); else plans='';
+  const planBox=plans?`<table class="x"><thead><tr><th>${K==='OK'?'Entry':'Conditional entry (nothing to do until then)'}</th><th style="text-align:right">Entry</th><th style="text-align:right">Stop (close basis)</th><th style="text-align:right">Risk / share</th><th style="text-align:right">T1 · 1.5R</th><th style="text-align:right">T2 · 3R</th></tr></thead><tbody>${plans}</tbody></table>`:`<div class="tip">No clean entry level yet — re-check after the next close.</div>`;
+  const rows=E.rows.map(r=>`<tr><td>${esc(r.name)}${r.crit?' <span class="no" title="critical rule">●</span>':''}</td><td class="c ${r.ok===true?'okc':r.ok===false?'noc':''}">${r.ok===true?'<span class="ok">✔</span>':r.ok===false?'<span class="no">✖</span>':'<span class="na">–</span>'}</td><td>${esc(r.val)}</td><td style="white-space:normal;min-width:210px;font:700 11.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${r.ok===false?esc(r.need||r.fix):''}</td></tr>`).join('');
+  const ref=K==='OK'?A.now:null;
   return `<div class="adv"><div class="ah"><b class="t">🛡 Advisory · ${esc(S.sym)}</b><span class="vd2 ${K}">${esc(head)}</span><small>${E.pass}/${E.total} rules passed · 11-rule entry check · ● = critical rule</small></div>
-   <div class="ab"><div class="sx"><table class="x"><thead><tr><th>Entry rule</th><th></th><th>Reading now</th><th>If failed — do this</th></tr></thead><tbody>${rows}</tbody></table></div>
-   <div><div class="pl"><div><small>Entry (CMP)</small><b>${fx(cmp)}</b></div><div><small>Stop (1.5 ATR, 3–6%)</small><b class="dn">${fx(s.stop)}</b></div><div><small>T1 · 1.5R</small><b class="up">${fx(s.t1)}</b></div><div><small>T2 · 3R</small><b class="up">${fx(s.t2)}</b></div><div><small>Risk per share</small><b>${fx(s.R)} (${(s.R/cmp*100).toFixed(1)}%)</b></div><div><small>ATR 14</small><b>${s.atr?fx(s.atr)+' ('+s.atrp.toFixed(1)+'%)':'–'}</b></div><div style="grid-column:1/-1"><small>Position size · same quantity for every client</small><b style="font-size:12px">${esc(qty1)} — set it for the smallest client, apply to all</b></div></div>
-   ${tips}<div class="tip" style="background:#f3f5f9;border-color:#dfe4ec;color:#3c4759">Book ⅓ at T1, ⅓ at T2, trail the rest under the 20-DMA (${fx(s.e20)}). Exit on a <b>closing</b> basis below the stop. Max 2 new positions a day. Rule-based, not advice.</div></div></div></div>`; }
+   <div class="ab"><div class="sx"><table class="x"><thead><tr><th>Entry rule</th><th></th><th>Reading now (with price levels)</th><th>To pass — price / level needed</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div>${planBox}
+   <div class="tip" style="background:#f3f5f9;border-color:#dfe4ec;color:#3c4759">Sessions = rough time from the stock's ATR (${s.atr?fx(s.atr)+' a day':'–'}), not a promise. Position size: (1% of client capital) ÷ risk per share, same quantity for every client. Book ⅓ at T1, ⅓ at T2, trail the rest under the 20-DMA (${fx(s.e20)}). Exit only on a <b>closing</b> basis below the stop.</div>
+   <div class="tip r"><b>If stopped out:</b> re-buy only on a close above ${fx(s.hi20)} (20-day high) with 1.3x volume, or a retest of the 20-day floor ${fx(s.lo20)} with momentum turning up — 3+ sessions after the exit, half size first.</div></div></div></div>`; }
 /* ---------- major support / resistance: confluence of levels ---------- */
 const ema=(v,n)=>{ const k=2/(n+1); let e=v[0]; v.forEach(x=>{ e=x*k+e*(1-k); }); return e; };
 function majors(P,cmp){

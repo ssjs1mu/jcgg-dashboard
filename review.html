@@ -53,10 +53,10 @@ details.bk{background:#fff;border:1px solid var(--line);border-radius:10px;paddi
  <div id="out"><div class="empty">Loading the trade book and price history…</div></div>
  <div class="note"><b>How an entry is judged.</b> Only what was known before the entry day is used (previous completed bar, the 20-day range, the fill price itself). 11 rules, ✔ = passed, ✖ = failed, – = not enough data.
  <b>Critical rules</b> (trend above the 50-DMA, not chasing a gap or spike, not at the range top without a breakout, 2%+ room to the next resistance, not a relief bounce) — one critical failure = <span class="v RISKY">RISKY</span>; the trend rule failing, or two critical failures = <span class="v WRONG">WRONG</span>; otherwise <span class="v RIGHT">RIGHT</span>.
- <b>Stop and targets</b> shown for each entry are what the plan would have been: stop = 1.5 × ATR kept between 3% and 6% below the fill, T1 = 1.5R, T2 = 3R. The trade book carries <b>no client names or account codes</b> (letters A–G are arbitrary tags). Daily prices are the free Yahoo feed through the app's data backend; rule-based review, not advice.</div>
+ <b>Stop and targets</b> shown for each entry are what the plan would have been: stop = just under the nearest support (20 / 50-DMA, 10-day low, last week's low, daily S1) 1.5–4% below the fill, else a 4% cap; T1 = 1.5R, T2 = 3R. The trade book carries <b>no client names or account codes</b> (letters A–G are arbitrary tags). Daily prices are the free Yahoo feed through the app's data backend; rule-based review, not advice.</div>
 </div>
 <div id="pop"><div class="pw"><div class="ph"><b id="pt"></b><button type="button" id="px">✕ Close</button></div><div class="pb" id="pb"></div></div></div>
-<script src="review.js?v=1"></script>
+<script src="review.js?v=2"></script>
 <script>
 const $=id=>document.getElementById(id);
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
