@@ -465,6 +465,7 @@ function repChart(MJ,cmp){ const B=S.bars.slice(-110), W=760, H=300, VH=56, pl=4
   const ema=(arr,p)=>{ const k=2/(p+1); let e=arr[0]; return arr.map(v=>e=v*k+e*(1-k)); }, all=S.bars.map(b=>b.c), off=S.bars.length-n;
   const m20=ema(all,20).slice(off), m50=ema(all,50).slice(off), m200=ema(all,200).slice(off);
   const zs=MJ.sup.filter(z=>z.s>=5).slice(0,3).map(z=>({z,t:'S'})).concat(MJ.res.filter(z=>z.s>=7).slice(0,3).map(z=>({z,t:'R'})));
+  zs.sort((p,q)=>p.z.v-q.z.v); for(let i=zs.length-1;i>0;i--){ if(Math.abs(zs[i].z.v/zs[i-1].z.v-1)<0.025&&zs[i].t===zs[i-1].t) zs.splice(zs[i].z.s>=zs[i-1].z.s?i-1:i,1); }
   let hi=Math.max(...B.map(b=>b.h),cmp), lo=Math.min(...B.map(b=>b.l),cmp); zs.forEach(o=>{ if(o.z.v>lo*0.9&&o.z.v<hi*1.1){ hi=Math.max(hi,o.z.v); lo=Math.min(lo,o.z.v); } }); const pd=(hi-lo)*0.04; hi+=pd; lo-=pd;
   const x=i=>pl+(i+0.5)*(W-pl-pr)/n, y=v=>pt+(hi-v)/(hi-lo)*(H-pt), vm=Math.max(...B.map(b=>b.v||0))||1, bw=Math.max(2,(W-pl-pr)/n*0.62);
   let s=`<svg viewBox="0 0 ${W} ${H+VH+18}" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Arial,sans-serif">`;
