@@ -681,7 +681,10 @@ async function start(){ on=true; go.style.display='none'; st.textContent='connec
  function back(){ if(pip){ try{ pip.close(); }catch(e){} return; } if(document.pictureInPictureElement) document.exitPictureInPicture().catch(()=>{}); }
  ph.querySelector('.tvbk').onclick=back; window.tvBack=back; window.tvPopped=()=>!!(pip||document.pictureInPictureElement);
  function homeAgain(){ if(ph.parentNode){ ph.parentNode.insertBefore(box,ph); ph.remove(); } pip=null; $('tvPi').textContent='⧉'; $('tvPi').title='Pop out (stays on top while you work)'; if(on) v.play().catch(()=>{}); }
- $('tvPi').onclick=async()=>{ if(pip||document.pictureInPictureElement){ back(); return; } if(!on) await start();
+ $('tvPi').onclick=async()=>{ if(pip||document.pictureInPictureElement){ back(); return; }
+   /* Android app: the web view has no picture-in-picture - put the TV full screen (inside the tap) and ask the app for Android's own floating window */
+   if(/JoshisCornerApp/.test(navigator.userAgent)){ try{ const f=v.requestFullscreen||v.webkitRequestFullscreen||box.requestFullscreen; const r=f&&f.call(f===box.requestFullscreen?box:v); if(r&&r.catch) r.catch(()=>{}); }catch(e){} if(!on) start(); setTimeout(()=>{ location.href='jcapp://pip'; },400); return; }
+   if(!on) await start();
    if(window.documentPictureInPicture){ try{
      pip=await documentPictureInPicture.requestWindow({width:520,height:330});
      const d=pip.document, stl=d.createElement('style'); stl.textContent='html,body{margin:0;height:100%;background:#000;font:700 12px Inter,Segoe UI,Arial,sans-serif;overflow:hidden}#bar{position:fixed;left:0;right:0;top:0;display:flex;gap:6px;padding:6px;background:linear-gradient(180deg,rgba(0,0,0,.8),transparent);z-index:2}#bar button{border:1px solid #e0cd96;background:#1d2236;color:#fff;border-radius:7px;padding:4px 10px;cursor:pointer;font:800 12px Inter,Arial}#bar .bk{background:#e0cd96;color:#1a1030}.tvv{position:absolute;left:0;right:0;top:38px;bottom:0;border-radius:0;aspect-ratio:auto}.tvv video{width:100%;height:100%;object-fit:contain}.tvgo{display:none!important}';

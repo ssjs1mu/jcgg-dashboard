@@ -1,7 +1,11 @@
 package com.joshiscorner.dashboard;
 
 import android.app.Activity;
+import android.app.PictureInPictureParams;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.os.Build;
+import android.util.Rational;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -167,6 +171,7 @@ public class MainActivity extends Activity {
         if ("jcapp".equals(sc)) {
             if ("skip".equals(u.getHost())) hideSplash();
             if ("retry".equals(u.getHost())) web.loadUrl(lastUrl);
+            if ("pip".equals(u.getHost())) enterPip();
             return true;
         }
         if (!main) return false;
@@ -241,6 +246,32 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** TV pop-out: Android's own floating window (picture-in-picture), shown over other apps and the home screen */
+    void enterPip() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) { Toast.makeText(this, "Pop-out needs Android 7 or newer", Toast.LENGTH_SHORT).show(); return; }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                enterPictureInPictureMode(new PictureInPictureParams.Builder().setAspectRatio(new Rational(16, 9)).build());
+            else enterPictureInPictureMode();
+        } catch (Exception e) {
+            Toast.makeText(this, "Turn on Picture-in-picture for this app in Android Settings → Apps", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    boolean inPip() { return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode(); }
+
+    @Override
+    protected void onUserLeaveHint() {             // Home pressed while the TV is full screen: keep it playing in the floating window
+        super.onUserLeaveHint();
+        if (fullView != null) enterPip();
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean on, Configuration cfg) {
+        super.onPictureInPictureModeChanged(on, cfg);
+        bar.setVisibility(on ? View.GONE : View.VISIBLE);
+    }
+
     void exitFull() {
         if (fullView == null) return;
         fullBox.removeView(fullView);
@@ -268,7 +299,13 @@ public class MainActivity extends Activity {
     protected void onResume() { super.onResume(); web.onResume(); }
 
     @Override
-    protected void onPause() { web.onPause(); super.onPause(); }
+    protected void onPause() { if (!inPip()) web.onPause(); super.onPause(); }   // keep the TV running in the floating window
+
+    @Override
+    protected void onStop() {                      // app closed / floating window dismissed: stop the stream (no data or sound in the background)
+        if (!inPip() && web != null) web.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){v.pause();})", null);
+        super.onStop();
+    }
 
     @Override
     protected void onDestroy() { if (web != null) web.destroy(); super.onDestroy(); }
