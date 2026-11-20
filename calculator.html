@@ -348,7 +348,7 @@ function swingPlans(A,cmp,MJ,P){
   else { const z=MJ.sup.find(z=>z.s>=5&&z.v>=cmp*0.88); if(z) out.push(mk({k:'pull',lab:'⏳ Wait for a pullback into support',lo:z.lo,hi:z.hi*1.004,stop:z.lo*0.99,why:'just under the support zone '+fx(z.lo),size:ctr?'Half size — trend is down':'Normal size',inr:false})); }
   const pv=methods(P.D)[0].P, lvl=pv>cmp*1.012?pv:(MJ.res.find(z=>z.v>cmp*1.015)||{}).v;
   if(lvl){ const ent=lvl*1.002, p=JCR.plan(s,ent); out.push(mk({k:'str',lab:'🔵 Buy on strength — close above '+fx(lvl),lo:ent,hi:ent,stop:p.stop,why:p.why,size:'Needs 1.3x volume on the day',inr:false})); }
-  const t=A.trig&&A.trig[0]; if(t&&t.p.entry<=cmp*1.10) out.push(mk({k:'pos',lab:'⚪ Positional — '+t.label.toLowerCase(),lo:t.p.entry,hi:t.p.entry,stop:t.p.stop,why:t.p.why,size:'Needs 1.3x volume',inr:false}));
+  const t=A.trig&&A.trig[0]; if(t&&t.p.entry<=cmp*1.10&&!out.some(o=>o.k==='str'&&Math.abs(o.hi/t.p.entry-1)<0.015)) out.push(mk({k:'pos',lab:'⚪ Positional — '+t.label.toLowerCase(),lo:t.p.entry,hi:t.p.entry,stop:t.p.stop,why:t.p.why,size:'Needs 1.3x volume',inr:false}));
   return out; }
 function advisory(cmp,lv,op,MJ,P){
   let A; try{ A=JCR.advisory(S.bars,cmp,todayS(),mktOpen()?null:lv,op); }catch(e){ A=null; } if(!A) return '<div class="adv"><div class="ah"><b class="t">🛡 Advisory</b><small>needs at least 60 sessions of history</small></div></div>';
