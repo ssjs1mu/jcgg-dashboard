@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Joshi's Corner - Trade Audit (trial)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f5f9;--card:#ffffff;--line:#dfe4ec;--tx:#1b2433;--mu:#677489;--navy:#12233f;--navy2:#1d3557;--gold:#b8892b;--goldl:#f6ecd2;--up:#1f8a5b;--upbg:#e9f6ef;--dn:#c0392b;--dnbg:#fcecea;--amb:#b7791f;--ambbg:#fdf3dc}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:linear-gradient(180deg,#eef2f8 0,#f6f7fa 320px),var(--bg);color:var(--tx);font:13px/1.4 Inter,"Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;padding:8px 12px 60px;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;max-width:1500px;margin:0 auto 10px;padding:8px 14px;background:var(--navy);border-radius:14px;box-shadow:0 6px 18px rgba(18,35,63,.18)}
+.top h1{font:700 44px/1 "Brush Script MT","Segoe Script",cursive;color:#e0c27a;text-align:center;white-space:nowrap;text-shadow:0 2px 8px rgba(0,0,0,.35)}
+.nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;grid-column:1/-1}.sw{display:inline-block;padding:5px 13px;border-radius:999px;background:linear-gradient(180deg,#e9cf8a,#c9a24c);color:#1a1030;font:800 12px Inter,"Segoe UI",sans-serif;text-decoration:none}
+.sw.on{background:transparent;color:#e0c27a;border:1px solid #e0c27a;pointer-events:none}
+.st{font:700 12px ui-monospace,Consolas,monospace;color:#b9c4d6;grid-column:1;grid-row:1}.st b{color:#7fd8a9}.top h1{grid-column:2;grid-row:1}
+.wrap{max-width:1500px;margin:0 auto}
+h3.sec{font:800 14.5px Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--navy);margin:18px 0 7px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}h3.sec small{font:600 11.5px Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--mu)}
+h3.sec::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--gold);align-self:center}
+.sx{overflow-x:auto;max-width:100%;border-radius:10px}
+table.x{width:100%;border-collapse:collapse;font:600 12.5px ui-monospace,SFMono-Regular,Consolas,monospace;background:#fff;border:1px solid var(--line);box-shadow:0 2px 10px rgba(18,35,63,.05)}
+table.x th{background:var(--navy);color:#e8edf5;font:700 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif;text-transform:uppercase;letter-spacing:.05em;padding:7px 8px;text-align:left;white-space:nowrap;border:1px solid #2a3c5c;position:sticky;top:0}
+table.x td{padding:6px 8px;border:1px solid #e3e8f0;white-space:nowrap}table.x td.n{text-align:right}table.x td.c{text-align:center}table.x tbody tr:nth-child(even) td{background:#fafbfd}
+table.x tr.ck{cursor:pointer}table.x tr.ck:hover td{background:#fdf6e3}
+table.x td.w{white-space:normal;min-width:220px;font:600 12px Inter,system-ui,Segoe UI,Arial,sans-serif}
+.up{color:var(--up)}.dn{color:var(--dn)}.mu{color:var(--mu)}
+.v{display:inline-block;padding:2px 10px;border-radius:999px;font:900 11.5px Inter,system-ui,Segoe UI,Arial,sans-serif;border:1px solid;letter-spacing:.03em}
+.v.RIGHT,.v.VALID{background:var(--upbg);color:#146c43;border-color:#b9dfc9}.v.RISKY,.v.DEBATABLE{background:var(--ambbg);color:#8a5a10;border-color:#ead6a3}.v.WRONG,.v.WEAK,.v.NOTRIGGER{background:var(--dnbg);color:#a8261b;border-color:#efc3bd}
+.ok{color:var(--up);font-weight:900}.no{color:var(--dn);font-weight:900}.na{color:#9aa6b8}
+td.okc{background:#eef8f2!important}td.noc{background:#fdeeec!important}
+.legend{font:600 11px Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--mu);margin:2px 0 5px}
+.note{margin:14px 0 0;color:var(--mu);font:12px/1.6 Inter,system-ui,Segoe UI,Arial,sans-serif;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}.note b{color:var(--navy)}
+.empty{margin:30px auto;text-align:center;color:var(--mu);font:600 14px Inter,system-ui,Segoe UI,Arial,sans-serif}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;background:var(--goldl);color:#7a5a12;font:800 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif;border:1px solid #e3cd96}
+details.bk{background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 10px}details.bk summary{cursor:pointer;font:800 12.5px Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--navy)}details.bk[open] summary{margin-bottom:6px}
+#pop{position:fixed;inset:0;z-index:9000;background:rgba(10,20,38,.55);display:none;align-items:center;justify-content:center;padding:14px}#pop.on{display:flex}
+#pop .pw{background:#fff;border-radius:14px;width:min(1000px,100%);max-height:90vh;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+#pop .ph{display:flex;gap:10px;align-items:center;padding:9px 14px;background:var(--navy);color:#e8edf5;position:sticky;top:0}#pop .ph b{font:800 15px Inter,system-ui,Segoe UI,Arial,sans-serif;color:#e0c27a}#pop .ph button{margin-left:auto;border:1px solid #3a5076;background:#1d3557;color:#e8edf5;border-radius:999px;padding:4px 12px;font:700 12px Inter,sans-serif;cursor:pointer}
+#pop .pb{padding:10px 14px 16px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}@media(max-width:800px){#pop .pb{grid-template-columns:minmax(0,1fr)}#pop{padding:0}#pop .pw{max-height:100vh;border-radius:0}}
+.top .st{grid-column:1}@media(max-width:900px){.top{grid-template-columns:1fr}.top h1{font-size:38px;grid-column:1;grid-row:auto}.top .st{grid-row:auto;text-align:center}}
+#jcZ{position:fixed;right:56px;bottom:10px;z-index:99999;display:flex;gap:4px}
+#jcZ button{width:38px;height:38px;border-radius:50%;border:1px solid #c9a24c;background:var(--navy);color:#e0c27a;font:700 15px/1 Inter,Arial,sans-serif!important;cursor:pointer;box-shadow:0 2px 8px rgba(18,35,63,.3)}
+</style>
+<script>(function(){ var z=1; try{ z=parseFloat(localStorage.getItem('jc_zoom'))||1; }catch(e){}
+ function ap(){ if(document.body) document.body.style.zoom=z; }
+ document.addEventListener('DOMContentLoaded',function(){ ap(); var d=document.createElement('div'); d.id='jcZ';
+  d.innerHTML='<button type="button" title="Smaller text" id="jcZm">A−</button><button type="button" title="Larger text" id="jcZp">A+</button>'; document.body.appendChild(d);
+  function st(n){ z=Math.min(1.5,Math.max(.8,Math.round((z+n)*100)/100)); try{ localStorage.setItem('jc_zoom',z); }catch(e){} ap(); }
+  d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0e1621"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="icons/icon-192.png"><link rel="stylesheet" href="mobile.css?v=3"><script src="mobile.js?v=2"></script>
+</head><body>
+<div class="top"><span class="st" id="st">loading…</span><h1>Joshi's Corner</h1>
+ <nav class="nav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw" href="watchlist.html">WATCHLIST</a><a class="sw" href="plan.html">TOMORROW'S CALLS</a><a class="sw" href="calculator.html">PIVOT CALCULATOR</a><a class="sw on" href="review.html">TRADE AUDIT</a></nav></div>
+<div class="wrap">
+ <h3 class="sec">🔍 Trade Audit <span class="tag">TRIAL</span><small id="sub">entry · exit · re-entry checked against the chart as it stood on the day</small></h3>
+ <div id="out"><div class="empty">Loading the trade book and price history…</div></div>
+ <div class="note"><b>How an entry is judged.</b> Only what was known before the entry day is used (previous completed bar, the 20-day range, the fill price itself). 11 rules, ✔ = passed, ✖ = failed, – = not enough data.
+ <b>Critical rules</b> (trend above the 50-DMA, not chasing a gap or spike, not at the range top without a breakout, 2%+ room to the next resistance, not a relief bounce) — one critical failure = <span class="v RISKY">RISKY</span>; the trend rule failing, or two critical failures = <span class="v WRONG">WRONG</span>; otherwise <span class="v RIGHT">RIGHT</span>.
+ <b>Stop and targets</b> shown for each entry are what the plan would have been: stop = 1.5 × ATR kept between 3% and 6% below the fill, T1 = 1.5R, T2 = 3R. The trade book carries <b>no client names or account codes</b> (letters A–G are arbitrary tags). Daily prices are the free Yahoo feed through the app's data backend; rule-based review, not advice.</div>
+</div>
+<div id="pop"><div class="pw"><div class="ph"><b id="pt"></b><button type="button" id="px">✕ Close</button></div><div class="pb" id="pb"></div></div></div>
+<script src="review.js?v=1"></script>
+<script>
+const $=id=>document.getElementById(id);
+const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fx=(v,d)=>v==null||!isFinite(v)?'–':Number(v).toLocaleString('en-IN',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d});
+const sg=v=>v==null||!isFinite(v)?'–':(v>=0?'+':'')+v.toFixed(2)+'%';
+const cls=v=>v>=0?'up':'dn';
+const dmy=d=>d?d.slice(8)+'-'+d.slice(5,7)+'-'+d.slice(2,4):'–';
+const vtag=v=>'<span class="v '+String(v).replace(/\s/g,'')+'">'+esc(v)+'</span>';
+const mark=ok=>ok===true?'<span class="ok">✔</span>':ok===false?'<span class="no">✖</span>':'<span class="na">–</span>';
+async function daily(sym){ const u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym+'.NS')+'?range=2y&interval=1d&includePrePost=false';
+  let last; for(let k=0;k<3;k++){ try{ const r=await fetch(BACKEND+'?action=fetch&url='+encodeURIComponent(u)); const j=await r.json(); const x=j&&j.chart&&j.chart.result&&j.chart.result[0]; if(!x) throw new Error('no price history'); const q=x.indicators.quote[0], B=[];
+      (x.timestamp||[]).forEach((t,i)=>{ if([q.open[i],q.high[i],q.low[i],q.close[i]].some(v=>v==null)) return; B.push({d:new Date((t+19800)*1000).toISOString().slice(0,10),o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]||0}); }); return B; }catch(e){ last=e; await new Promise(r=>setTimeout(r,800)); } } throw last; }
+/* group client fills into lots: one row per symbol + date + side */
+function lots(tr){ const m={}; tr.forEach(t=>{ const k=t.sym+'|'+t.d+'|'+t.side; const L=m[k]=m[k]||{sym:t.sym,d:t.d,side:t.side,cl:[],q:0,val:0,rmin:1e12,rmax:0}; L.cl.push(t.c); L.q+=t.q; L.val+=t.q*t.r; L.rmin=Math.min(L.rmin,t.r); L.rmax=Math.max(L.rmax,t.r); });
+  return Object.values(m).map(L=>Object.assign(L,{r:L.val/L.q,n:L.cl.length,qc:L.q/L.cl.length})).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.sym<b.sym?-1:1); }
+let R={};   /* results kept for the popup */
+async function main(){
+  const T=await fetch('data/trades.json?x='+Date.now()).then(r=>r.json()); const tr=T.trades, L=lots(tr), syms=[...new Set(tr.map(t=>t.sym))];
+  const BAR={}, X={}, err={}; $('st').textContent='fetching prices…';
+  await Promise.all(syms.map(async s=>{ try{ BAR[s]=await daily(s); X[s]=JCR.prep(BAR[s]); }catch(e){ err[s]=e.message||String(e); } }));
+  const buys=L.filter(l=>l.side==='B'), sells=L.filter(l=>l.side==='S');
+  const aud=buys.map(l=>({l:l,a:X[l.sym]?JCR.auditEntry(X[l.sym],l):null}));
+  const lastD=Object.values(BAR).map(b=>b[b.length-1].d).sort().pop();
+  $('st').innerHTML='<b>●</b> prices to '+dmy(lastD); $('sub').textContent='entry · exit · re-entry checked against the chart as it stood on the day · prices to '+dmy(lastD);
+  let h='';
+  /* 1. trade book */
+  h+=`<details class="bk"><summary>📒 Trade book — ${tr.length} fills, ${L.length} lots · client names and codes removed (click to open)</summary><div class="sx"><table class="x"><thead><tr><th>Date</th><th>Symbol</th><th>Side</th><th>Client tag</th><th style="text-align:right">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Value ₹</th></tr></thead><tbody>${tr.map(t=>`<tr><td>${dmy(t.d)}</td><td><b>${esc(t.sym)}</b></td><td class="${t.side==='B'?'up':'dn'}">${t.side==='B'?'BUY':'SELL'}</td><td class="c">${esc(t.c)}</td><td class="n">${fx(t.q,0)}</td><td class="n">${fx(t.r)}</td><td class="n">${fx(t.q*t.r)}</td></tr>`).join('')}</tbody></table></div></details>`;
+  if(Object.keys(err).length) h+='<div class="note" style="border-left:4px solid #c0392b">Price history missing for: '+Object.entries(err).map(([s,e])=>'<b>'+esc(s)+'</b> ('+esc(e)+')').join(', ')+' — those rows cannot be audited.</div>';
+  /* 2. entry audit */
+  h+=`<h3 class="sec">✅❌ Entry audit <small>was each buy right or wrong? click a row for every parameter</small></h3><div class="sx"><table class="x"><thead><tr><th>Date</th><th>Symbol</th><th>Clients</th><th style="text-align:right">Qty/client</th><th style="text-align:right">Avg rate</th><th>Verdict</th><th style="text-align:right">Score</th>${JCR.RULES.map(r=>`<th title="${esc(r.name)}">${esc(r.name.replace(/^Price /,'').replace(/^Not /,'No ').slice(0,22))}</th>`).join('')}<th style="text-align:right">Now vs entry</th><th style="text-align:right">Worst dip</th><th style="text-align:right">Best run</th><th>First hit</th></tr></thead><tbody>`;
+  aud.forEach((x,ix)=>{ const a=x.a, l=x.l; if(!a||a.err){ h+=`<tr><td>${dmy(l.d)}</td><td><b>${esc(l.sym)}</b></td><td colspan="${6+JCR.RULES.length+4}" class="mu">${esc(a&&a.err||err[l.sym]||'no data')}</td></tr>`; return; }
+    h+=`<tr class="ck" data-e="${ix}"><td>${dmy(l.d)}</td><td><b>${esc(l.sym)}</b></td><td class="c">${l.n}</td><td class="n">${fx(l.qc,0)}</td><td class="n">${fx(l.r)}</td><td>${vtag(a.E.verdict)}</td><td class="n">${a.E.score}%</td>${a.E.rows.map(r=>`<td class="c ${r.ok===true?'okc':r.ok===false?'noc':''}">${mark(r.ok)}</td>`).join('')}`+
+      (a.out?`<td class="n ${cls(a.out.pl)}">${sg(a.out.pl)}</td><td class="n dn">${sg(a.out.mae)}</td><td class="n up">${sg(a.out.mfe)}</td><td>${a.out.first==='stop'?'<span class="no">stop first</span>':a.out.first==='target'?'<span class="ok">T1 first</span>':'open'}</td>`:'<td colspan="4"></td>')+'</tr>'; });
+  h+='</tbody></table></div><div class="legend">Worst dip / best run = lowest low / highest high since entry versus the fill. First hit = whether the planned stop or the 1.5R target came first.</div>';
+  R.aud=aud;
+  /* 3. exit & re-entry */
+  const ex=[]; sells.forEach(s=>{ const b=buys.filter(x=>x.sym===s.sym&&x.d<s.d).pop(); if(b&&X[s.sym]){ const e=JCR.auditExit(X[s.sym],s,b); const re=buys.find(x=>x.sym===s.sym&&x.d>s.d); const r=re?JCR.auditReentry(X[s.sym],s,re):null; ex.push({s,b,e,re,r}); } });
+  R.ex=ex;
+  if(ex.length){ h+=`<h3 class="sec">🚪 Exit &amp; re-entry audit <small>was the stop-out valid, and was the way back in right?</small></h3><div class="sx"><table class="x"><thead><tr><th>Symbol</th><th>Bought</th><th>Sold</th><th style="text-align:right">Loss</th><th style="text-align:right">Held (sessions)</th><th>Structure broken at exit</th><th>Next 10 sessions (high / low / close)</th><th>Exit verdict</th><th>Re-entry</th><th style="text-align:right">vs exit price</th><th style="text-align:right">Sessions later</th><th>20-day range position</th><th>Trigger</th><th>Re-entry verdict</th></tr></thead><tbody>`;
+    ex.forEach((z,ix)=>{ const e=z.e, r=z.r; if(!e||e.err){ return; }
+      h+=`<tr class="ck" data-x="${ix}"><td><b>${esc(z.s.sym)}</b></td><td>${dmy(z.b.d)} @ ${fx(z.b.r)}</td><td>${dmy(z.s.d)} @ ${fx(z.s.r)}</td><td class="n dn">${sg(e.loss)}</td><td class="n">${e.held}</td><td class="w">${e.broke.length?esc(e.broke.join(' · ')):'<span class="mu">none — no structure break</span>'}</td><td>${e.post?fx(e.post.hi)+' / '+fx(e.post.lo)+' / '+fx(e.post.c):'–'}</td><td>${vtag(e.verdict)}</td>`+
+       (r&&!r.err?`<td>${dmy(z.re.d)} @ ${fx(z.re.r)}</td><td class="n ${r.vsExit>0?'dn':'up'}">${sg(r.vsExit)}</td><td class="n">${r.gap}</td><td class="n">${r.S.rpos.toFixed(0)}%</td><td>${r.brk?'breakout':r.retest?'retest of range floor':'<span class="no">none</span>'}${(r.S.day>3.5||r.S.gap>2)?' · <span class="no">gap/spike</span>':''}</td><td>${vtag(r.verdict)}</td>`:'<td colspan="6" class="mu">no re-entry in the book</td>')+'</tr>'; });
+    h+='</tbody></table></div><div class="legend">Exit: VALID = 2+ structure breaks (20 / 50-DMA, 10-day low, last week\'s low) · DEBATABLE = 1 · WEAK = none (a panic or time stop). Re-entry is VALID only with a breakout above the 20-day high on 1.3x volume, or a retest of the range floor with momentum turning up, at least 3 sessions after the exit and not on a gap or spike.</div>'; }
+  /* 4. mistake pivot */
+  h+=`<h3 class="sec">🧮 Mistake pivot <small>which rules failed, how often, on which stocks</small></h3><div class="sx"><table class="x"><thead><tr><th>Rule</th><th>Type</th><th style="text-align:right">Failed</th><th style="text-align:right">Of lots</th><th>Failed on</th><th>What to do instead</th></tr></thead><tbody>`;
+  const tot=aud.filter(x=>x.a&&!x.a.err).length;
+  JCR.RULES.forEach((r,ri)=>{ const f=aud.filter(x=>x.a&&!x.a.err&&x.a.E.rows[ri].ok===false), ev=aud.filter(x=>x.a&&!x.a.err&&x.a.E.rows[ri].ok!==null).length; h+=`<tr><td><b>${esc(r.name)}</b></td><td>${r.crit?'<span class="no">critical</span>':'<span class="mu">supporting</span>'}</td><td class="n ${f.length?'dn':'up'}">${f.length}</td><td class="n">${ev}</td><td>${f.map(x=>esc(x.l.sym)+' '+dmy(x.l.d).slice(0,5)).join(', ')||'<span class="up">none</span>'}</td><td class="w">${esc(r.fix)}</td></tr>`; });
+  h+='</tbody></table></div>';
+  /* 5. book-level checks */
+  const byDay={}; buys.forEach(b=>{ (byDay[b.d]=byDay[b.d]||[]).push(b.sym); });
+  const val=buys.map(b=>({sym:b.sym,d:b.d,v:b.val})), totV=val.reduce((s,x)=>s+x.v,0), sp=buys.filter(b=>b.rmax>b.rmin).map(b=>({b,sp:(b.rmax-b.rmin)*b.q/b.n}));
+  h+=`<h3 class="sec">📚 Book-level checks <small>position size, clustering, fills, stops</small></h3><div class="sx"><table class="x"><thead><tr><th>Check</th><th>Finding</th><th>Rule going forward</th></tr></thead><tbody>
+   <tr><td><b>Same-day clustering</b></td><td class="w">${Object.entries(byDay).filter(([d,s])=>new Set(s).size>1).map(([d,s])=>dmy(d)+': '+[...new Set(s)].join(' + ')).join(' · ')||'none'}</td><td class="w">Max 2 new positions a day; scale in over 2-3 sessions.</td></tr>
+   <tr><td><b>Position size by symbol</b></td><td class="w">${[...new Set(buys.map(b=>b.sym))].map(s=>{ const v=buys.filter(b=>b.sym===s).reduce((a,b)=>a+b.val,0); return esc(s)+' '+(v/totV*100).toFixed(0)+'% of buys'; }).join(' · ')}</td><td class="w">Size by rupee risk to the stop (1% of client capital), not by a fixed quantity; cap one stock at 10-15% of the book.</td></tr>
+   <tr><td><b>Fill uniformity</b></td><td class="w">${sp.length?sp.map(x=>esc(x.b.sym)+' '+dmy(x.b.d).slice(0,5)+': '+fx(x.b.rmin)+' to '+fx(x.b.rmax)+' (₹'+fx(x.sp,0)+' per client between best and worst fill)').join(' · '):'all fills at one rate'}</td><td class="w">Allocate every client on a trade at one average price.</td></tr>
+   <tr><td><b>Stops recorded</b></td><td class="w">None of the ${buys.length} entry lots carries a stop or target in the book.</td><td class="w">Write stop, T1 and T2 with the entry. Exit on a closing basis.</td></tr>
+   <tr><td><b>Realised loss</b></td><td class="w">${sells.map(s=>{ const b=buys.filter(x=>x.sym===s.sym&&x.d<s.d).pop(); return b?esc(s.sym)+' '+dmy(s.d)+': ₹'+fx((s.r-b.r)*s.q,0)+' ('+sg(JCR.pct(s.r,b.r))+') across '+s.n+' clients':''; }).join(' · ')||'none'}</td><td class="w">Re-enter only on a trigger (see exit &amp; re-entry audit).</td></tr></tbody></table></div>`;
+  $('out').innerHTML=h; try{ window.__audit={aud:aud.map(x=>x.a&&!x.a.err?{sym:x.l.sym,d:x.l.d,r:x.l.r,verdict:x.a.E.verdict,score:x.a.E.score,fails:x.a.E.fails.map(f=>f.k),vals:x.a.E.rows.map(r=>[r.k,r.ok,r.val])}:null),ex:ex.map(z=>({sym:z.s.sym,exit:z.e&&z.e.verdict,broke:z.e&&z.e.broke,loss:z.e&&z.e.loss,re:z.r&&z.r.verdict,reTrig:z.r&&(z.r.brk?'breakout':z.r.retest?'retest':'none'),vsExit:z.r&&z.r.vsExit}))}; }catch(e){} }
+/* popups */
+function paramTable(S){ const P=[['Prev close',fx(S.prev)],['Gap at open',sg(S.gap)],['Day move at fill',sg(S.day)],['20-DMA',fx(S.e20)+' ('+sg(S.e20?JCR.pct(S.price,S.e20):null)+')'],['50-DMA',fx(S.e50)+' ('+sg(S.e50?JCR.pct(S.price,S.e50):null)+')'],['100-DMA',fx(S.e100)+' ('+sg(S.e100?JCR.pct(S.price,S.e100):null)+')'],['200-DMA',fx(S.e200)+' ('+sg(S.e200?JCR.pct(S.price,S.e200):null)+')'],['RSI 14',S.rsi==null?'–':S.rsi.toFixed(1)],['MACD histogram',S.hist==null?'–':S.hist.toFixed(2)],['ATR 14',S.atr==null?'–':fx(S.atr)+' ('+S.atrp.toFixed(1)+'%)'],['Volume vs 20-day',S.vr==null?'–':S.vr.toFixed(2)+'x'],['20-day high / low',fx(S.hi20)+' / '+fx(S.lo20)],['Position in 20-day range',S.rpos.toFixed(0)+'%'],['52-week high / low',fx(S.hi52)+' / '+fx(S.lo52)],['Position in 52-week range',S.pos52.toFixed(0)+'%'],['Daily pivot · R1 · S1',fx(S.P)+' · '+fx(S.R1)+' · '+fx(S.S1)],['Weekly pivot · low · high',S.WP==null?'–':fx(S.WP)+' · '+fx(S.Wl)+' · '+fx(S.Wh)],['Next wall above',S.wall?S.wall[0]+' '+fx(S.wall[1])+' ('+S.room.toFixed(1)+'% away)':'none'],['Bounce off 10-day low',sg(S.bounce10)],['20-session return',sg(S.ret20)],['Plan: stop · T1 · T2',fx(S.stop)+' · '+fx(S.t1)+' · '+fx(S.t2)]];
+  return `<table class="x"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>${P.map(p=>`<tr><td>${esc(p[0])}</td><td class="n">${esc(p[1])}</td></tr>`).join('')}</tbody></table>`; }
+function ruleTable(E){ return `<table class="x"><thead><tr><th>Rule</th><th></th><th>Reading</th></tr></thead><tbody>${E.rows.map(r=>`<tr><td>${esc(r.name)}${r.crit?' <span class="no" title="critical">●</span>':''}</td><td class="c ${r.ok===true?'okc':r.ok===false?'noc':''}">${mark(r.ok)}</td><td>${esc(r.val)}</td></tr>`).join('')}</tbody></table>`; }
+function openPop(t,b){ $('pt').innerHTML=t; $('pb').innerHTML=b; $('pop').classList.add('on'); }
+$('px').onclick=()=>$('pop').classList.remove('on'); $('pop').addEventListener('click',e=>{ if(e.target.id==='pop') $('pop').classList.remove('on'); }); document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('pop').classList.remove('on'); });
+document.addEventListener('click',e=>{ const tr=e.target.closest('tr.ck'); if(!tr) return;
+  if(tr.dataset.e!=null){ const x=R.aud[+tr.dataset.e], a=x.a; openPop(esc(x.l.sym)+' · bought '+dmy(x.l.d)+' @ '+fx(x.l.r)+' · '+vtag(a.E.verdict)+' '+a.E.score+'%', `<div>${ruleTable(a.E)}${a.E.fails.length?'<div class="note"><b>What to do instead:</b><br>'+a.E.fails.map(f=>'• '+esc(f.fix)).join('<br>')+'</div>':''}${a.out?`<div class="note"><b>After the entry (${a.out.days} sessions to ${dmy(a.out.lastDate)}):</b> now ${sg(a.out.pl)} (last close ${fx(a.out.last)}) · worst dip ${sg(a.out.mae)} · best run ${sg(a.out.mfe)} · ${a.out.stopDate?'planned stop hit '+dmy(a.out.stopDate):'planned stop not hit'} · ${a.out.t1Date?'T1 hit '+dmy(a.out.t1Date):'T1 not hit'}.</div>`:''}${a.fillIn?'':'<div class="note">Fill price is outside that day\'s high-low range in the free feed — check the contract note.</div>'}</div><div>${paramTable(a.S)}</div>`); }
+  else if(tr.dataset.x!=null){ const z=R.ex[+tr.dataset.x], e=z.e, r=z.r; openPop(esc(z.s.sym)+' · exit '+dmy(z.s.d)+' @ '+fx(z.s.r)+' · '+vtag(e.verdict), `<div><table class="x"><tbody><tr><td>Bought</td><td class="n">${dmy(z.b.d)} @ ${fx(z.b.r)}</td></tr><tr><td>Sold</td><td class="n">${dmy(z.s.d)} @ ${fx(z.s.r)} (${sg(e.loss)})</td></tr><tr><td>Sessions held</td><td class="n">${e.held}</td></tr><tr><td>Structure broken</td><td class="n">${esc(e.broke.join(' · ')||'none')}</td></tr><tr><td>Exit day range</td><td class="n">${fx(e.bar.l)} – ${fx(e.bar.h)}</td></tr>${e.post?`<tr><td>Next ${e.post.n} sessions</td><td class="n">high ${fx(e.post.hi)} · low ${fx(e.post.lo)} · close ${fx(e.post.c)}</td></tr>`:''}</tbody></table>${r&&!r.err?`<div class="note"><b>Re-entry ${dmy(z.re.d)} @ ${fx(z.re.r)}</b> — ${vtag(r.verdict)}: ${sg(r.vsExit)} versus the exit price, ${r.gap} sessions later, ${r.S.rpos.toFixed(0)}% up the 20-day range, ${r.brk?'a breakout':r.retest?'a retest of the floor':'no trigger'}.</div>`:''}</div><div>${r&&!r.err?ruleTable(r.E):paramTable(e.S)}</div>`); } });
+main().catch(e=>{ $('out').innerHTML='<div class="empty">Could not build the audit: '+esc(e.message||e)+'</div>'; });
+</script>
+</body></html>
