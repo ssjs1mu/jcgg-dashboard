@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Joshi's Corner - Live TV</title>
+<!-- Docked TV for the Android app: the same official Zee Business stream as the Watchlist, in its own panel so every page stays usable. -->
+<style>
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font:700 12px Inter,system-ui,Segoe UI,Arial,sans-serif;color:#fff}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#bar{position:absolute;top:6px;right:6px;display:flex;gap:6px;z-index:2;transition:opacity .4s}
+#bar button{border:1px solid #e0cd96;background:rgba(18,35,63,.85);color:#fff;border-radius:999px;padding:6px 11px;font:800 12px Inter,system-ui,Segoe UI,Arial,sans-serif;min-width:36px}
+#st{position:absolute;left:8px;top:8px;z-index:2;font:800 11px ui-monospace,Consolas,monospace;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:6px}
+body.idle #bar{opacity:.25}
+</style></head><body>
+<video id="v" playsinline autoplay></video>
+<div id="st">connecting…</div>
+<div id="bar"><button id="mu" title="Sound on / off">🔊</button><button id="lv" title="Jump to live">⚡ Live</button><button id="sz" title="Bigger / smaller">⇕</button><button id="fl" title="Float over other apps">⧉</button><button id="x" title="Close the TV">✕</button></div>
+<script>
+(function(){
+ const $=id=>document.getElementById(id), v=$('v'), st=$('st');
+ const TOK='https://03nwj0csy5.execute-api.ap-south-1.amazonaws.com/prod/cf-token', SRC='https://dwby15d04agvq.cloudfront.net/index.m3u8', LIB='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.17/hls.min.js';
+ let hls=null, fails=0; const ch=window.BroadcastChannel?new BroadcastChannel('jc-tv'):null, me='d'+Math.random().toString(36).slice(2);
+ const lib=()=>window.Hls?Promise.resolve():new Promise((ok,no)=>{ const e=document.createElement('script'); e.src=LIB; e.onload=ok; e.onerror=()=>no(new Error('player blocked')); document.head.appendChild(e); });
+ const stop=()=>{ try{ hls&&hls.destroy(); }catch(e){} hls=null; try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} };
+ async function start(){ st.textContent='connecting…'; stop();
+  try{ const [,r]=await Promise.all([lib(),fetch(TOK,{cache:'no-store'})]); if(!r.ok) throw new Error('token '+r.status); let tk=String((await r.json()).video_token||''); if(!tk) throw new Error('no token'); if(tk[0]!=='?') tk='?akes='+tk;
+   if(window.Hls&&Hls.isSupported()){ hls=new Hls({maxBufferLength:10,backBufferLength:6,liveSyncDuration:6,liveMaxLatencyDuration:12,maxLiveSyncPlaybackRate:1.5,liveDurationInfinity:true,startLevel:1,capLevelToPlayerSize:true,enableWorker:true});
+     hls.on(Hls.Events.MANIFEST_PARSED,()=>{ try{ let cap=0; hls.levels.forEach((l,i)=>{ if(l.height<=480) cap=i; }); hls.autoLevelCapping=cap; }catch(e){} });
+     hls.loadSource(SRC+tk); hls.attachMedia(v); hls.on(Hls.Events.ERROR,(e,d)=>{ if(d&&d.fatal) fail(d.details); }); }
+   else if(v.canPlayType('application/vnd.apple.mpegurl')) v.src=SRC+tk; else throw new Error('cannot play this stream');
+   v.play().catch(()=>{ v.muted=true; mu(); v.play().catch(()=>{}); }); fails=0; st.textContent='● LIVE · Zee Business'; if(ch) ch.postMessage({t:'play',me}); setTimeout(()=>{ st.style.display='none'; },4000);
+  }catch(e){ fail(String(e.message||e)); } }
+ function fail(why){ fails++; stop(); st.style.display=''; if(fails>=3){ st.textContent='TV not reachable ('+why+') — tap ⚡ to retry'; return; } st.textContent='retrying '+fails+'/3…'; setTimeout(start,3000*fails); }
+ const mu=()=>{ $('mu').textContent=v.muted?'🔇':'🔊'; };
+ $('mu').onclick=()=>{ v.muted=!v.muted; if(!v.muted) v.play().catch(()=>{}); mu(); };
+ const live=()=>{ if(!hls){ fails=0; start(); return; } const lp=hls.liveSyncPosition; if(lp!=null&&isFinite(lp)) v.currentTime=lp; v.play().catch(()=>{}); };
+ $('lv').onclick=live; $('sz').onclick=()=>{ location.href='jcapp://tvsize'; }; $('fl').onclick=()=>{ location.href='jcapp://tvpip'; }; $('x').onclick=()=>{ stop(); location.href='jcapp://tvclose'; };
+ /* stay at the live edge; resume when the app comes back */
+ setInterval(()=>{ if(!hls||document.hidden) return; const lp=hls.liveSyncPosition; if(lp!=null&&isFinite(lp)&&v.currentTime<lp-10) v.currentTime=lp; if(v.paused) v.play().catch(()=>{}); },5000);
+ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) live(); });
+ let t=null; const wake=()=>{ document.body.classList.remove('idle'); clearTimeout(t); t=setTimeout(()=>document.body.classList.add('idle'),4000); }; ['touchstart','mousemove'].forEach(e=>addEventListener(e,wake)); wake();
+ start();
+})();
+</script></body></html>

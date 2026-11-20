@@ -47,7 +47,11 @@ public class MainActivity extends Activity {
             {"🧮", "Pivot", "calculator.html"}, {"🌐", "Movers", "indices.html"}};
     static final int GOLD = 0xFFE0CD96, BAR = 0xFF0B1220, MUTED = 0xFF8A97AD;
 
-    WebView web, splash;
+    WebView web, splash, tv;
+    FrameLayout tvBox;
+    boolean tvOn = false;
+    float tvFrac = 0.34f;   // docked TV height as a share of the screen
+    LinearLayout root;
     FrameLayout stage, fullBox;
     LinearLayout bar;
     View fullView;
@@ -64,7 +68,7 @@ public class MainActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); // market screen: keep awake while open
         t0 = System.currentTimeMillis();
 
-        LinearLayout root = new LinearLayout(this);
+        root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(0xFF060D22);
 
@@ -75,6 +79,12 @@ public class MainActivity extends Activity {
         web.setBackgroundColor(0xFF0E1621);
         setup(web, false);
         stage.addView(web, new FrameLayout.LayoutParams(-1, -1));
+
+        /* docked TV: its own panel between the page and the menu bar - pages above stay fully usable */
+        tvBox = new FrameLayout(this);
+        tvBox.setBackgroundColor(Color.BLACK);
+        tvBox.setVisibility(View.GONE);
+        root.addView(tvBox, new LinearLayout.LayoutParams(-1, 0));
 
         bar = buildBar();
         root.addView(bar, new LinearLayout.LayoutParams(-1, dp(56)));
@@ -171,7 +181,10 @@ public class MainActivity extends Activity {
         if ("jcapp".equals(sc)) {
             if ("skip".equals(u.getHost())) hideSplash();
             if ("retry".equals(u.getHost())) web.loadUrl(lastUrl);
-            if ("pip".equals(u.getHost())) enterPip();
+            if ("pip".equals(u.getHost()) || "tv".equals(u.getHost())) showTv();
+            if ("tvclose".equals(u.getHost())) hideTv();
+            if ("tvsize".equals(u.getHost())) { tvFrac = tvFrac < 0.3f ? 0.34f : tvFrac < 0.4f ? 0.48f : 0.25f; sizeTv(); }
+            if ("tvpip".equals(u.getHost())) enterPip();
             return true;
         }
         if (!main) return false;
@@ -246,6 +259,38 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** docked TV panel (tv.html in its own web view) */
+    void showTv() {
+        if (tv == null) {
+            tv = new WebView(this);
+            tv.setBackgroundColor(Color.BLACK);
+            setup(tv, false);
+            tvBox.addView(tv, new FrameLayout.LayoutParams(-1, -1));
+        }
+        if (!tvOn) tv.loadUrl(BASE + "tv.html");
+        tvOn = true;
+        tvBox.setVisibility(View.VISIBLE);
+        sizeTv();
+    }
+
+    void hideTv() {
+        tvOn = false;
+        if (tv != null) { tv.loadUrl("about:blank"); }
+        tvBox.setVisibility(View.GONE);
+    }
+
+    void sizeTv() {
+        if (!tvOn) return;
+        int w = getResources().getDisplayMetrics().widthPixels, h = getResources().getDisplayMetrics().heightPixels;
+        int want = Math.min(Math.round(w * 9f / 16f), Math.round(h * tvFrac));
+        LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) tvBox.getLayoutParams();
+        if (inPip()) { p.height = 0; p.weight = 1f; } else { p.height = want; p.weight = 0f; }
+        tvBox.setLayoutParams(p);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration c) { super.onConfigurationChanged(c); sizeTv(); }
+
     /** TV pop-out: Android's own floating window (picture-in-picture), shown over other apps and the home screen */
     void enterPip() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) { Toast.makeText(this, "Pop-out needs Android 7 or newer", Toast.LENGTH_SHORT).show(); return; }
@@ -263,13 +308,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onUserLeaveHint() {             // Home pressed while the TV is full screen: keep it playing in the floating window
         super.onUserLeaveHint();
-        if (fullView != null) enterPip();
+        if (fullView != null || tvOn) enterPip();
     }
 
     @Override
     public void onPictureInPictureModeChanged(boolean on, Configuration cfg) {
         super.onPictureInPictureModeChanged(on, cfg);
         bar.setVisibility(on ? View.GONE : View.VISIBLE);
+        if (tvOn && fullView == null) { stage.setVisibility(on ? View.GONE : View.VISIBLE); sizeTv(); }   // floating window shows only the TV
     }
 
     void exitFull() {
@@ -286,6 +332,7 @@ public class MainActivity extends Activity {
     public void onBackPressed() {
         if (fullView != null) { exitFull(); return; }
         if (web.canGoBack()) { web.goBack(); return; }
+        if (tvOn) { hideTv(); return; }
         long now = System.currentTimeMillis();
         if (now - lastBack < 2000) { super.onBackPressed(); return; }
         lastBack = now;
@@ -296,19 +343,20 @@ public class MainActivity extends Activity {
     protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }
 
     @Override
-    protected void onResume() { super.onResume(); web.onResume(); }
+    protected void onResume() { super.onResume(); web.onResume(); if (tv != null) tv.onResume(); }
 
     @Override
-    protected void onPause() { if (!inPip()) web.onPause(); super.onPause(); }   // keep the TV running in the floating window
+    protected void onPause() { if (!inPip()) { web.onPause(); if (tv != null) tv.onPause(); } super.onPause(); }   // keep the TV running in the floating window
 
     @Override
     protected void onStop() {                      // app closed / floating window dismissed: stop the stream (no data or sound in the background)
         if (!inPip() && web != null) web.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){v.pause();})", null);
+        if (!inPip() && tv != null) tv.evaluateJavascript("document.querySelectorAll('video').forEach(function(v){v.pause();})", null);
         super.onStop();
     }
 
     @Override
-    protected void onDestroy() { if (web != null) web.destroy(); super.onDestroy(); }
+    protected void onDestroy() { if (tv != null) tv.destroy(); if (web != null) web.destroy(); super.onDestroy(); }
 
     int dp(int v) { return Math.round(v * getResources().getDisplayMetrics().density); }
 }

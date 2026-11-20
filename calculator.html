@@ -388,11 +388,11 @@ function paint(){
 }
 /* ---------- 📈 chart window: live candles with the page's levels drawn on them ---------- */
 const LWC='https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js';
-const CW={on:false,tf:(()=>{ try{ return localStorage.getItem('jc_pv_ctf')||'5m'; }catch(e){ return '5m'; } })(),show:Object.assign({cl:1,cpr:1,mj:1,cam:0,fib:0,hl:1},(()=>{ try{ return JSON.parse(localStorage.getItem('jc_pv_cshow')||'{}'); }catch(e){ return {}; } })()),chart:null,cs:null,vs:null,lines:[],timer:null,sym:null};
+const CW={on:false,tf:(()=>{ try{ return localStorage.getItem('jc_pv_ctf')||'5m'; }catch(e){ return '5m'; } })(),show:Object.assign({ha:1,cl:1,cpr:1,mj:1,cam:0,fib:0,hl:1},(()=>{ try{ return JSON.parse(localStorage.getItem('jc_pv_cshow')||'{}'); }catch(e){ return {}; } })()),chart:null,cs:null,vs:null,lines:[],timer:null,sym:null};
 const cwLib=()=>window.LightweightCharts?Promise.resolve():new Promise((ok,no)=>{ const e=document.createElement('script'); e.src=LWC; e.onload=ok; e.onerror=()=>no(new Error('chart library blocked')); document.head.appendChild(e); });
 function cwOpen(){
   if(!S.bars) return; let P=$('cpop'); if(!P){ P=document.createElement('div'); P.id='cpop'; document.body.appendChild(P); P.addEventListener('click',e=>{ if(e.target===P) cwClose(); }); }
-  const TF=[['1m','1 min'],['5m','5 min'],['15m','15 min'],['1d','Daily']], SH=[['cl','Classic'],['cpr','CPR'],['cam','Camarilla'],['fib','Fibonacci'],['mj','Major zones'],['hl','52-week H/L']];
+  const TF=[['1m','1 min'],['5m','5 min'],['15m','15 min'],['1d','Daily']], SH=[['ha','Heikin Ashi'],['cl','Classic'],['cpr','CPR'],['cam','Camarilla'],['fib','Fibonacci'],['mj','Major zones'],['hl','52-week H/L']];
   P.innerHTML=`<div class="cw"><div class="ch"><b>📈 ${esc(S.sym)}</b><span class="mu">${S.ex==='BO'?'BSE':'NSE'} · levels = ${({D:'Daily',W:'Weekly',M:'Monthly'})[S.tf]} pivots</span>
     ${TF.map(([k,l])=>`<button type="button" data-ctf="${k}" class="${CW.tf===k?'on':''}">${l}</button>`).join('')}
     ${SH.map(([k,l])=>`<label><input type="checkbox" data-csh="${k}" ${CW.show[k]?'checked':''}>${l}</label>`).join('')}
@@ -405,7 +405,7 @@ async function cwBuild(){
   const L=window.LightweightCharts, box=$('cwBox');
   CW.chart=L.createChart(box,{autoSize:true,layout:{background:{color:'#ffffff'},textColor:'#1b2433',fontFamily:'Inter,system-ui,Segoe UI,Arial,sans-serif'},grid:{vertLines:{color:'#f0f2f6'},horzLines:{color:'#f0f2f6'}},
     rightPriceScale:{borderColor:'#dfe4ec'},timeScale:{borderColor:'#dfe4ec',timeVisible:CW.tf!=='1d',secondsVisible:false,rightOffset:8},crosshair:{mode:L.CrosshairMode.Normal}});
-  CW.cs=CW.chart.addSeries(L.CandlestickSeries,{upColor:'#1f8a5b',downColor:'#c0392b',borderVisible:false,wickUpColor:'#1f8a5b',wickDownColor:'#c0392b',priceLineColor:'#b8892b',
+  CW.cs=CW.chart.addSeries(L.CandlestickSeries,{upColor:'#1f8a5b',downColor:'#c0392b',borderVisible:false,wickUpColor:'#1f8a5b',wickDownColor:'#c0392b',priceLineVisible:false,lastValueVisible:false,
     autoscaleInfoProvider:orig=>{ const r=orig(); if(!r||!CW.near) return r; return {priceRange:{minValue:Math.min(r.priceRange.minValue,CW.near[0]),maxValue:Math.max(r.priceRange.maxValue,CW.near[1])},margins:r.margins}; }});
   CW.vs=CW.chart.addSeries(L.HistogramSeries,{priceScaleId:'vol',priceFormat:{type:'volume'},lastValueVisible:false,priceLineVisible:false});
   CW.chart.priceScale('vol').applyOptions({scaleMargins:{top:.82,bottom:0}});
@@ -419,11 +419,16 @@ async function cwData(){
       const q=x.indicators.quote[0]; (x.timestamp||[]).forEach((t,i)=>{ if([q.open[i],q.high[i],q.low[i],q.close[i]].some(v=>v==null)) return; rows.push({time:t+19800,open:q.open[i],high:q.high[i],low:q.low[i],close:q.close[i],v:q.volume[i]||0}); }); }
     if(!CW.on||CW.sym!==sym||CW.tf!==tf) return; if(!rows.length) throw new Error('no bars');
     const lv=S.live, last=rows[rows.length-1]; if(lv&&lv[0]&&tf!=='1d'&&mktOpen()){ last.close=lv[0]; last.high=Math.max(last.high,lv[0]); last.low=Math.min(last.low,lv[0]); }
-    CW.cs.setData(rows.map(r=>({time:r.time,open:r.open,high:r.high,low:r.low,close:r.close})));
+    /* Heikin Ashi: HA close = (O+H+L+C)/4, HA open = average of the previous HA open and close, wicks to the real high / low */
+    let pO=null,pC=null; const bars=rows.map(r=>{ if(!CW.show.ha) return {time:r.time,open:r.open,high:r.high,low:r.low,close:r.close};
+      const c=(r.open+r.high+r.low+r.close)/4, o=pO==null?(r.open+r.close)/2:(pO+pC)/2; pO=o; pC=c; return {time:r.time,open:o,high:Math.max(r.high,o,c),low:Math.min(r.low,o,c),close:c}; });
+    CW.cs.setData(bars);
+    /* the real last price stays visible (an HA close is an average, not a traded price) */
+    try{ CW.ltp&&CW.cs.removePriceLine(CW.ltp); }catch(e){} CW.ltp=CW.cs.createPriceLine({price:last.close,color:'#b8892b',lineWidth:2,lineStyle:0,axisLabelVisible:true,title:'CMP'});
     CW.vs.setData(rows.map(r=>({time:r.time,value:r.v,color:r.close>=r.open?'rgba(31,138,91,.35)':'rgba(192,57,43,.35)'})));
     cwLevels();
     if(CW.first){ CW.first=false; const n=rows.length, k=tf==='1m'?375:tf==='5m'?150:tf==='15m'?130:130; CW.chart.timeScale().setVisibleLogicalRange({from:Math.max(0,n-k),to:n+6}); }
-    $('cwF').innerHTML=(tf==='1d'?'Daily candles':'Live '+tf+' candles, refreshed every 20 s in market hours')+' · last bar '+esc(typeof last.time==='number'?new Date((last.time-19800)*1000).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':last.time)+' · lines above the price = resistance (red), below = support (green), dashed = major zones · free feed, not tick-by-tick';
+    $('cwF').innerHTML=(CW.show.ha?'Heikin Ashi · ':'')+(tf==='1d'?'Daily candles':'Live '+tf+' candles, refreshed every 20 s in market hours')+' · gold line = real CMP'+' · last bar '+esc(typeof last.time==='number'?new Date((last.time-19800)*1000).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':last.time)+' · lines above the price = resistance (red), below = support (green), dashed = major zones · free feed, not tick-by-tick';
   }catch(e){ if(CW.on) $('cwF').innerHTML='<b style="color:var(--dn)">'+esc(e.message||e)+'</b> — retrying every 20 s; Daily always works.'; } }
 /* draw the same levels as the page: selected time frame's pivots, CPR, major zones, 52-week H/L - role by position against CMP */
 function cwLevels(){
@@ -441,7 +446,7 @@ function cwLevels(){
 }
 document.addEventListener('click',e=>{ if(e.target.closest('#chOpen')){ cwOpen(); return; } if(e.target.closest('#cwX')){ cwClose(); return; }
   const t=e.target.closest('[data-ctf]'); if(t){ CW.tf=t.dataset.ctf; try{ localStorage.setItem('jc_pv_ctf',CW.tf); }catch(_){ } document.querySelectorAll('[data-ctf]').forEach(b=>b.classList.toggle('on',b===t)); cwBuild(); } });
-document.addEventListener('change',e=>{ const c=e.target.closest('[data-csh]'); if(!c) return; CW.show[c.dataset.csh]=c.checked?1:0; try{ localStorage.setItem('jc_pv_cshow',JSON.stringify(CW.show)); }catch(_){ } cwLevels(); });
+document.addEventListener('change',e=>{ const c=e.target.closest('[data-csh]'); if(!c) return; CW.show[c.dataset.csh]=c.checked?1:0; try{ localStorage.setItem('jc_pv_cshow',JSON.stringify(CW.show)); }catch(_){ } if(c.dataset.csh==='ha') cwData(); else cwLevels(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CW.on) cwClose(); });
 /* open from #SYMBOL:NS or the last symbol */
 (()=>{ let h=decodeURIComponent(location.hash.slice(1)); if(!h) try{ h=localStorage.getItem('jc_pv_last')||''; }catch(e){}
