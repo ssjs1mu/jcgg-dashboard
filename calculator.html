@@ -112,6 +112,23 @@ table.x tr.blR td b,table.x tr.blS td b{color:inherit}
 @media(max-width:900px){.top{grid-template-columns:1fr}.top h1{font-size:38px;grid-column:1;grid-row:auto}.top .st{grid-row:auto;text-align:center}.pick input{width:150px}}
 
 /* advisory panel (lessons from the Trade Audit) */
+
+#rpt{display:none}
+@media print{
+ @page{size:A4;margin:10mm}
+ body>*:not(#rpt){display:none!important}
+ #rpt{display:block!important;color:#111;font:500 11px/1.45 Inter,system-ui,Segoe UI,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+#rpt .rh{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #b8892b;padding-bottom:6px;margin-bottom:8px}
+#rpt .rh b{font:900 20px Inter,system-ui,Arial,sans-serif;color:#0b2447}#rpt .rh small{display:block;font:600 10px Inter,Arial,sans-serif;color:#555}
+#rpt h4{margin:10px 0 4px;padding:3px 8px;background:#0b2447;color:#f1d58a;font:800 11px Inter,Arial,sans-serif;letter-spacing:.4px;text-transform:uppercase}
+#rpt table{width:100%;border-collapse:collapse;font:600 10.5px Inter,Arial,sans-serif;page-break-inside:avoid}
+#rpt th{background:#eef1f6;text-align:left;padding:3px 6px;border:1px solid #d5dae3;font-weight:800}
+#rpt td{padding:3px 6px;border:1px solid #d5dae3}#rpt td.n,#rpt th.n{text-align:right;font-variant-numeric:tabular-nums}
+#rpt .up{color:#146c43}#rpt .dn{color:#b3261e}#rpt .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#rpt .ds{margin-top:10px;font:600 9px Inter,Arial,sans-serif;color:#666;border-top:1px solid #ccc;padding-top:4px}
+#rpt .vd{display:inline-block;padding:2px 10px;border-radius:99px;font:800 11px Inter,Arial,sans-serif;border:1px solid #ead6a3;background:#fdf3dc;color:#8a5a10}
+#rpt .vd.OK{background:#e6f4ec;color:#146c43;border-color:#b9dfc9}#rpt .vd.AVOID{background:#fdeeec;color:#b3261e;border-color:#f0c4c0}
 .adv{margin:8px 0 12px;border:1px solid var(--line);border-left:6px solid var(--gold);border-radius:12px;background:#fff;box-shadow:0 2px 10px rgba(18,35,63,.06);overflow:hidden}
 .adv .ah{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:9px 12px;background:#f7f9fc;border-bottom:1px solid var(--line)}
 .adv .ah b.t{font:800 14px Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--navy)}.adv .ah small{font:600 11px Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--mu)}
@@ -352,7 +369,7 @@ function swingPlans(A,cmp,MJ,P){
   return out; }
 function advisory(cmp,lv,op,MJ,P){
   let A; try{ A=JCR.advisory(S.bars,cmp,todayS(),mktOpen()?null:lv,op); }catch(e){ A=null; } if(!A) return '<div class="adv"><div class="ah"><b class="t">🛡 Advisory</b><small>needs at least 60 sessions of history</small></div></div>';
-  const E=A.E, s=A.S, K=E.verdict==='RIGHT'?'OK':E.verdict==='RISKY'?'WAIT':'AVOID', pl=swingPlans(A,cmp,MJ,P);
+  const E=A.E, s=A.S, K=E.verdict==='RIGHT'?'OK':E.verdict==='RISKY'?'WAIT':'AVOID', pl=swingPlans(A,cmp,MJ,P); S.rep={A,pl,K};
   const stamp=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false});
   const head=K==='OK'?'✔ BUY ZONE — all entry rules passed':'⚠ TREND NOT CONFIRMED — trade only these levels';
   const ses=n=>'≈ '+n+' session'+(n>1?'s':'');
@@ -409,7 +426,7 @@ function paint(){
   const b52=B.slice(-250); let ih=0,il=0; b52.forEach((b,i)=>{ if(b.h>b52[ih].h) ih=i; if(b.l<b52[il].l) il=i; }); const W52={h:Math.max(b52[ih].h,h||0),hd:(h&&h>b52[ih].h)?todayS():b52[ih].d,l:Math.min(b52[il].l,l||Infinity),ld:(l&&l<b52[il].l)?todayS():b52[il].d};
   const byTf=tf=>{ const x=all.filter(a=>a.tf===tf), b=x.filter(a=>a.t[0]==='B').length, s=x.filter(a=>a.t[0]==='S').length; return b>s?['B','▲']:s>b?['S','▼']:['N','◆']; };
   $('out').innerHTML=`
-   <h3 class="sec"><button type="button" class="chb" id="chOpen" title="Live chart with these pivot levels and major zones drawn on it">📈 Chart</button> ${esc(S.sym)} <small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'}${S.hist?' · <b style="color:#9a7322">live price from BSE; levels from NSE price history (no BSE history in the free feed)</b>':''} · ${qt?'quote '+qt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'last close '+esc(last.d)}${mktOpen()?' · refreshes every 15 s':''}</small></h3>
+   <h3 class="sec"><button type="button" class="chb" id="chOpen" title="Live chart with these pivot levels and major zones drawn on it">📈 Chart</button> <button type="button" class="chb" id="pdfOpen" title="Download a client-ready PDF report with the chart, levels and trade plan">📄 PDF report</button> ${esc(S.sym)} <small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'}${S.hist?' · <b style="color:#9a7322">live price from BSE; levels from NSE price history (no BSE history in the free feed)</b>':''} · ${qt?'quote '+qt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'last close '+esc(last.d)}${mktOpen()?' · refreshes every 15 s':''}</small></h3>
    ${advisory(cmp,v,o,MJ,P)}
    ${verdict(P,cmp,MJ,{dT:byTf('D')[0],wT:P.W?byTf('W')[0]:'N',al:cmp>e20&&e20>e50?'up':cmp<e20&&e20<e50?'down':'mixed',pos,w52h:W52.h,w52l:W52.l})}
    <div class="dash"><div class="kv">
@@ -442,6 +459,47 @@ function paint(){
    <h3 class="sec">📐 ${({D:'Daily',W:'Weekly',M:'Monthly'})[S.tf]} pivot tables <small>CMP marked in each · ⚑ blinking = inside a major zone</small></h3>
    <div class="grid">${cur?mm(cur).map(m=>table(Object.assign({},m),cmp,cur,MJ)).join('')+fibCard(cmp):'<div class="empty">Not enough history for this time frame.</div>'}</div>`;
 }
+
+/* ---------- 📄 PDF report: one clean A4 page set with the candle chart, trade plan and levels (browser "Save as PDF") ---------- */
+function repChart(MJ,cmp){ const B=S.bars.slice(-110), W=760, H=300, VH=56, pl=44, pr=58, pt=8, n=B.length;
+  const ema=(arr,p)=>{ const k=2/(p+1); let e=arr[0]; return arr.map(v=>e=v*k+e*(1-k)); }, all=S.bars.map(b=>b.c), off=S.bars.length-n;
+  const m20=ema(all,20).slice(off), m50=ema(all,50).slice(off), m200=ema(all,200).slice(off);
+  const zs=MJ.sup.filter(z=>z.s>=5).slice(0,3).map(z=>({z,t:'S'})).concat(MJ.res.filter(z=>z.s>=7).slice(0,3).map(z=>({z,t:'R'})));
+  let hi=Math.max(...B.map(b=>b.h),cmp), lo=Math.min(...B.map(b=>b.l),cmp); zs.forEach(o=>{ if(o.z.v>lo*0.9&&o.z.v<hi*1.1){ hi=Math.max(hi,o.z.v); lo=Math.min(lo,o.z.v); } }); const pd=(hi-lo)*0.04; hi+=pd; lo-=pd;
+  const x=i=>pl+(i+0.5)*(W-pl-pr)/n, y=v=>pt+(hi-v)/(hi-lo)*(H-pt), vm=Math.max(...B.map(b=>b.v||0))||1, bw=Math.max(2,(W-pl-pr)/n*0.62);
+  let s=`<svg viewBox="0 0 ${W} ${H+VH+18}" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Arial,sans-serif">`;
+  for(let k=0;k<=5;k++){ const v=lo+(hi-lo)*k/5; s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="#e4e8ef"/><text x="${pl-4}" y="${y(v)+3}" font-size="9" fill="#667" text-anchor="end">${v.toFixed(v<100?2:0)}</text>`; }
+  zs.forEach(o=>{ const z=o.z, col=o.t==='S'?'#146c43':'#b3261e'; if(z.v<lo||z.v>hi) return; s+=`<rect x="${pl}" width="${W-pl-pr}" y="${y(Math.min(hi,z.hi||z.v))}" height="${Math.max(2,y(Math.max(lo,z.lo||z.v))-y(Math.min(hi,z.hi||z.v)))}" fill="${col}" opacity=".10"/><line x1="${pl}" x2="${W-pr}" y1="${y(z.v)}" y2="${y(z.v)}" stroke="${col}" stroke-dasharray="4 3" stroke-width="1"/><text x="${W-pr+3}" y="${y(z.v)+3}" font-size="9" font-weight="700" fill="${col}">${o.t} ${z.v.toFixed(2)}</text>`; });
+  B.forEach((b,i)=>{ const up=b.c>=b.o, col=up?'#1a9b5d':'#d0382f'; s+=`<line x1="${x(i)}" x2="${x(i)}" y1="${y(b.h)}" y2="${y(b.l)}" stroke="${col}"/><rect x="${x(i)-bw/2}" y="${y(Math.max(b.o,b.c))}" width="${bw}" height="${Math.max(1,Math.abs(y(b.o)-y(b.c)))}" fill="${col}"/><rect x="${x(i)-bw/2}" y="${H+VH-(b.v||0)/vm*VH+8}" width="${bw}" height="${(b.v||0)/vm*VH}" fill="${col}" opacity=".45"/>`; });
+  [[m20,'#e08a00','20'],[m50,'#2563eb','50'],[m200,'#7c3aed','200']].forEach(([m,col,l])=>{ s+=`<polyline fill="none" stroke="${col}" stroke-width="1.4" points="${m.map((v,i)=>x(i).toFixed(1)+','+y(v).toFixed(1)).join(' ')}"/>`; });
+  s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(cmp)}" y2="${y(cmp)}" stroke="#b8892b" stroke-width="1.4"/><rect x="${W-pr}" y="${y(cmp)-8}" width="${pr-2}" height="16" fill="#b8892b"/><text x="${W-pr+3}" y="${y(cmp)+4}" font-size="10" font-weight="800" fill="#fff">${cmp.toFixed(2)}</text>`;
+  const ds=[0,Math.floor(n/4),Math.floor(n/2),Math.floor(3*n/4),n-1]; ds.forEach(i=>{ s+=`<text x="${x(i)}" y="${H+VH+16}" font-size="9" fill="#667" text-anchor="middle">${esc(fdate(B[i].d))}</text>`; });
+  s+=`<g font-size="9" font-weight="700"><text x="${pl+4}" y="${pt+10}" fill="#e08a00">― 20-DMA</text><text x="${pl+60}" y="${pt+10}" fill="#2563eb">― 50-DMA</text><text x="${pl+116}" y="${pt+10}" fill="#7c3aed">― 200-DMA</text></g></svg>`; return s; }
+function repHTML(){ const R=S.rep; if(!R||!S.bars||!S.lvMJ) return ''; const A=R.A, s=A.S, MJ=S.lvMJ, cmp=S.cmp, P=S.lvP;
+  const now=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}), name=(S.meta&&(S.meta.longName||S.meta.shortName))||S.sym;
+  const last=S.bars[S.bars.length-1], pc=S.bars.length>1?S.bars[S.bars.length-2].c:null, chg=pc?pct(cmp,pc):null;
+  const head=R.K==='OK'?'BUY ZONE — all entry rules passed':'TREND NOT CONFIRMED — trade only the levels below';
+  const ses=n=>'≈ '+n+' session'+(n>1?'s':'');
+  const plan=R.pl.length?`<table><tr><th>Setup</th><th class="n">Buy at / range</th><th class="n">Stop (close)</th><th class="n">Exit T1</th><th class="n">Exit T2</th><th class="n">Duration</th><th>Size</th></tr>${R.pl.map(p=>`<tr><td><b>${esc(p.lab.replace(/^[^A-Za-z]+/,''))}</b>${p.inr?' <b class="up">· in range now</b>':''}</td><td class="n"><b>${p.lo===p.hi?fx(p.hi):fx(p.lo)+' – '+fx(p.hi)}</b></td><td class="n dn">${fx(p.stop)}</td><td class="n up">${fx(p.t1)} (+${((p.t1/p.hi-1)*100).toFixed(1)}%)</td><td class="n up">${fx(p.t2)} (+${((p.t2/p.hi-1)*100).toFixed(1)}%)</td><td class="n">T1 ${ses(p.s1)} · T2 ${ses(p.s2)}</td><td>${esc(p.size)}</td></tr>`).join('')}</table>`:'<p>No clean level near the price — re-check after the next close.</p>';
+  const zr=(z,t)=>`<tr><td>${t}</td><td class="n"><b>${fx(z.v)}</b></td><td class="n ${pct(z.v,cmp)>=0?'dn':'up'}">${sg(pct(z.v,cmp))}</td><td>${esc((z.labs||[]).slice(0,4).join(', '))}</td></tr>`;
+  const zones=`<table><tr><th>Zone</th><th class="n">Level</th><th class="n">vs CMP</th><th>Built from</th></tr>${MJ.res.slice(0,4).reverse().map(z=>zr(z,'Resistance')).join('')}<tr style="background:#fbf5e6"><td><b>▶ CMP</b></td><td class="n"><b>${fx(cmp)}</b></td><td></td><td></td></tr>${MJ.sup.slice(0,4).map(z=>zr(z,'Support')).join('')}</table>`;
+  const pv=(m,lab)=>{ const L=lvls(m,cmp); return `<table><tr><th colspan="3">${lab}</th></tr>${Object.entries(L).filter(([k,v])=>v!=null).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${fx(v)}</td><td class="n ${v>cmp?'dn':'up'}">${sg(pct(v,cmp))}</td></tr>`).join('')}</table>`; };
+  const F=fibRet(), fib=F?`<table><tr><th colspan="3">Fibonacci retracement (${F.up?'up':'down'}-swing ${fx(F.L)} → ${fx(F.H)})</th></tr>${F.lv.slice().sort((a,b)=>b.v-a.v).map(x=>`<tr><td>${(x.r*100).toFixed(1)}%</td><td class="n">${fx(x.v)}</td><td class="n ${x.v>cmp?'dn':'up'}">${sg(pct(x.v,cmp))}</td></tr>`).join('')}</table>`:'';
+  const tr=(k,v,sig)=>`<tr><td>${k}</td><td class="n">${v}</td><td>${sig}</td></tr>`, d=(v)=>v==null?'–':fx(v);
+  const ind=`<table><tr><th>Indicator</th><th class="n">Reading</th><th>Signal</th></tr>${tr('20-DMA',d(s.e20),cmp>s.e20?'<b class="up">price above</b>':'<b class="dn">price below</b>')}${tr('50-DMA',d(s.e50),cmp>s.e50?'<b class="up">price above</b>':'<b class="dn">price below</b>')}${tr('200-DMA',d(s.e200),cmp>s.e200?'<b class="up">price above</b>':'<b class="dn">price below</b>')}${tr('RSI 14',s.rsi==null?'–':s.rsi.toFixed(1),s.rsi>=70?'overbought':s.rsi>=50?'<b class="up">bullish momentum</b>':s.rsi>=30?'<b class="dn">weak momentum</b>':'<b class="dn">oversold — bounce possible</b>')}${tr('MACD histogram',s.hist==null?'–':s.hist.toFixed(2),s.hist>=0?'<b class="up">positive</b>':'<b class="dn">negative</b>')}${tr('ATR (daily range)',d(s.atr),'used for durations')}${tr('20-day range',d(s.lo20)+' – '+d(s.hi20),'')}</table>`;
+  const fails=A.E.rows.filter(r=>r.ok===false).map(r=>`<li><b>${esc(r.name)}</b> — ${esc(r.need||r.fix||'')}</li>`).join('');
+  return `<div class="rh"><div><b>${esc(S.sym)} · Stock View</b><small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'} · Joshi's Corner · SSJ Finance</small></div><div style="text-align:right"><b style="font-size:17px">${fx(cmp)}</b> <span class="${chg>=0?'up':'dn'}" style="font-weight:800">${chg==null?'':sg(chg)}</span><small>Report: ${esc(now)} IST · last session ${esc(fdate(last.d))}</small></div></div>
+   <span class="vd ${R.K}">${esc(head)}</span> <span style="font-weight:700;color:#555"> · ${A.E.pass}/${A.E.total} trend rules passed</span>
+   <h4>Chart — last 110 sessions with 20 / 50 / 200-DMA, key support (green) and resistance (red)</h4>${repChart(MJ,cmp)}
+   <h4>Trade plan — buy range, stop, exits and duration</h4>${plan}
+   <ul style="margin:4px 0 0 16px;padding:0"><li>Position size = (1% of client capital) ÷ risk per share; same quantity for every client.</li><li>Book ⅓ at T1, ⅓ at T2, trail the rest under the 20-DMA ${d(s.e20)}. Exit only on a <b>closing</b> basis below the stop.</li><li>If stopped out: re-buy only on a close above ${d(s.hi20)} with 1.3x volume, or a retest of ${d(s.lo20)} with momentum turning up.</li></ul>
+   <h4>Major support &amp; resistance zones</h4>${zones}
+   <h4>Trend &amp; momentum</h4><div class="g2">${ind}<div>${fails?'<b>What must change for a trend buy</b><ul style="margin:3px 0 0 16px;padding:0">'+fails+'</ul>':'<b class="up">All trend rules are satisfied.</b>'}</div></div>
+   <h4>Pivot &amp; Fibonacci levels</h4><div class="g2">${P.D?pv(methods(P.D)[0],'Daily Classic pivots'):''}${fib}</div>
+   <div class="ds">Research commentary based on price history and rule-based levels; not investment advice. Levels are derived from past prices and may fail. Durations are rough estimates from average daily range. — Joshi's Corner · ${esc(S.sym)} · ${esc(now)} IST</div>`; }
+function repPrint(){ if(!S.rep){ alert('Run a stock first'); return; } let r=document.getElementById('rpt'); if(!r){ r=document.createElement('div'); r.id='rpt'; document.body.appendChild(r); } r.innerHTML=repHTML();
+  const t=document.title, d=new Date(Date.now()+19800000).toISOString().slice(0,16).replace('T','_').replace(':',''); document.title=S.sym+'_Stock_View_'+d; const back=()=>{ document.title=t; window.removeEventListener('afterprint',back); }; window.addEventListener('afterprint',back);
+  setTimeout(()=>window.print(),150); }
 /* ---------- 📈 chart window: live candles with the page's levels drawn on them ---------- */
 const LWC='https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js';
 const CW={on:false,tf:(()=>{ try{ return localStorage.getItem('jc_pv_ctf')||'5m'; }catch(e){ return '5m'; } })(),show:Object.assign({ha:1,cl:1,cpr:1,mj:1,cam:0,fib:0,hl:1},(()=>{ try{ return JSON.parse(localStorage.getItem('jc_pv_cshow')||'{}'); }catch(e){ return {}; } })()),chart:null,cs:null,vs:null,lines:[],timer:null,sym:null};
@@ -500,7 +558,7 @@ function cwLevels(){
   if(CW.show.hl){ const b=S.bars.slice(-250); add(Math.max(...b.map(x=>x.h)),'52W HIGH','#7a5a12',1,1); add(Math.min(...b.map(x=>x.l)),'52W LOW','#7a5a12',1,1); }
   const up=all.filter(v=>v>cmp).sort((a,b)=>a-b), dn=all.filter(v=>v<cmp).sort((a,b)=>b-a); CW.near=[dn[0]!=null?dn[0]:cmp,up[0]!=null?up[0]:cmp];
 }
-document.addEventListener('click',e=>{ if(e.target.closest('#chOpen')){ cwOpen(); return; } if(e.target.closest('#cwX')){ cwClose(); return; }
+document.addEventListener('click',e=>{ if(e.target.closest('#pdfOpen')){ repPrint(); return; } if(e.target.closest('#chOpen')){ cwOpen(); return; } if(e.target.closest('#cwX')){ cwClose(); return; }
   const t=e.target.closest('[data-ctf]'); if(t){ CW.tf=t.dataset.ctf; try{ localStorage.setItem('jc_pv_ctf',CW.tf); }catch(_){ } document.querySelectorAll('[data-ctf]').forEach(b=>b.classList.toggle('on',b===t)); cwBuild(); } });
 document.addEventListener('change',e=>{ const c=e.target.closest('[data-csh]'); if(!c) return; CW.show[c.dataset.csh]=c.checked?1:0; try{ localStorage.setItem('jc_pv_cshow',JSON.stringify(CW.show)); }catch(_){ } if(c.dataset.csh==='ha') cwData(); else cwLevels(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CW.on) cwClose(); });
