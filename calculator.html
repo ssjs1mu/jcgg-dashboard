@@ -426,7 +426,7 @@ function paint(){
   const b52=B.slice(-250); let ih=0,il=0; b52.forEach((b,i)=>{ if(b.h>b52[ih].h) ih=i; if(b.l<b52[il].l) il=i; }); const W52={h:Math.max(b52[ih].h,h||0),hd:(h&&h>b52[ih].h)?todayS():b52[ih].d,l:Math.min(b52[il].l,l||Infinity),ld:(l&&l<b52[il].l)?todayS():b52[il].d};
   const byTf=tf=>{ const x=all.filter(a=>a.tf===tf), b=x.filter(a=>a.t[0]==='B').length, s=x.filter(a=>a.t[0]==='S').length; return b>s?['B','▲']:s>b?['S','▼']:['N','◆']; };
   $('out').innerHTML=`
-   <h3 class="sec"><button type="button" class="chb" id="chOpen" title="Live chart with these pivot levels and major zones drawn on it">📈 Chart</button> <button type="button" class="chb" id="pdfOpen" title="Download a client-ready PDF report with the chart, levels and trade plan">📄 PDF report</button> ${esc(S.sym)} <small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'}${S.hist?' · <b style="color:#9a7322">live price from BSE; levels from NSE price history (no BSE history in the free feed)</b>':''} · ${qt?'quote '+qt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'last close '+esc(last.d)}${mktOpen()?' · refreshes every 15 s':''}</small></h3>
+   <h3 class="sec"><button type="button" class="chb" id="chOpen" title="Live chart with these pivot levels and major zones drawn on it">📈 Chart</button> <button type="button" class="chb" id="pdfOpen" title="One-page client note: call, buy / stop / targets, chart">📄 Client PDF</button> <button type="button" class="chb" id="pdfFull" title="Detailed report with all levels, pivots and indicators">📄 Full report</button> ${esc(S.sym)} <small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'}${S.hist?' · <b style="color:#9a7322">live price from BSE; levels from NSE price history (no BSE history in the free feed)</b>':''} · ${qt?'quote '+qt.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'last close '+esc(last.d)}${mktOpen()?' · refreshes every 15 s':''}</small></h3>
    ${advisory(cmp,v,o,MJ,P)}
    ${verdict(P,cmp,MJ,{dT:byTf('D')[0],wT:P.W?byTf('W')[0]:'N',al:cmp>e20&&e20>e50?'up':cmp<e20&&e20<e50?'down':'mixed',pos,w52h:W52.h,w52l:W52.l})}
    <div class="dash"><div class="kv">
@@ -461,7 +461,7 @@ function paint(){
 }
 
 /* ---------- 📄 PDF report: one clean A4 page set with the candle chart, trade plan and levels (browser "Save as PDF") ---------- */
-function repChart(MJ,cmp){ const B=S.bars.slice(-110), W=760, H=300, VH=56, pl=44, pr=58, pt=8, n=B.length;
+function repChart(MJ,cmp,N,HH){ const B=S.bars.slice(-(N||110)), W=760, H=HH||300, VH=56, pl=44, pr=58, pt=8, n=B.length;
   const ema=(arr,p)=>{ const k=2/(p+1); let e=arr[0]; return arr.map(v=>e=v*k+e*(1-k)); }, all=S.bars.map(b=>b.c), off=S.bars.length-n;
   const m20=ema(all,20).slice(off), m50=ema(all,50).slice(off), m200=ema(all,200).slice(off);
   const zs=MJ.sup.filter(z=>z.s>=5).slice(0,3).map(z=>({z,t:'S'})).concat(MJ.res.filter(z=>z.s>=7).slice(0,3).map(z=>({z,t:'R'})));
@@ -498,8 +498,29 @@ function repHTML(){ const R=S.rep; if(!R||!S.bars||!S.lvMJ) return ''; const A=R
    <h4>Trend &amp; momentum</h4><div class="g2">${ind}<div>${fails?'<b>What must change for a trend buy</b><ul style="margin:3px 0 0 16px;padding:0">'+fails+'</ul>':'<b class="up">All trend rules are satisfied.</b>'}</div></div>
    <h4>Pivot &amp; Fibonacci levels</h4><div class="g2">${P.D?pv(methods(P.D)[0],'Daily Classic pivots'):''}${fib}</div>
    <div class="ds">Research commentary based on price history and rule-based levels; not investment advice. Levels are derived from past prices and may fail. Durations are rough estimates from average daily range. — Joshi's Corner · ${esc(S.sym)} · ${esc(now)} IST</div>`; }
-function repPrint(){ if(!S.rep){ alert('Run a stock first'); return; } let r=document.getElementById('rpt'); if(!r){ r=document.createElement('div'); r.id='rpt'; document.body.appendChild(r); } r.innerHTML=repHTML();
-  const t=document.title, d=new Date(Date.now()+19800000).toISOString().slice(0,16).replace('T','_').replace(':',''); document.title=S.sym+'_Stock_View_'+d; const back=()=>{ document.title=t; window.removeEventListener('afterprint',back); }; window.addEventListener('afterprint',back);
+
+/* one-page CLIENT summary: plain-words call, four number boxes, small chart, three reasons */
+function repShort(){ const R=S.rep; if(!R||!S.bars||!S.lvMJ) return ''; const A=R.A, s=A.S, MJ=S.lvMJ, cmp=S.cmp, p=R.pl[0];
+  const now=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}), name=(S.meta&&(S.meta.longName||S.meta.shortName))||S.sym;
+  const last=S.bars[S.bars.length-1], pc=S.bars.length>1?S.bars[S.bars.length-2].c:null, chg=pc?pct(cmp,pc):null;
+  let call,cls; if(!p){ call='NO TRADE for now — no clean level near the price. Re-check after the next close.'; cls='AVOID'; }
+  else if(p.inr){ call='BUY NOW in the range '+(p.lo===p.hi?fx(p.hi):fx(p.lo)+' – '+fx(p.hi))+(p.size.indexOf('Half')===0?' — half size, trend is down':''); cls='OK'; }
+  else if(p.k==='str') { call='WAIT — buy only if it closes above '+fx(p.hi)+' on strong volume'; cls='WAIT'; }
+  else { call='WAIT — buy only if price comes down to '+fx(p.lo)+' – '+fx(p.hi)+(p.size.indexOf('Half')===0?' (half size, trend is down)':''); cls='WAIT'; }
+  const box=(t,v,sub,col)=>`<div style="flex:1;border:1px solid #d5dae3;border-radius:8px;padding:8px 6px;text-align:center"><div style="font:800 9px Inter,Arial,sans-serif;color:#667;letter-spacing:.5px">${t}</div><div style="font:900 18px Inter,Arial,sans-serif;color:${col}">${v}</div><div style="font:600 9.5px Inter,Arial,sans-serif;color:#555">${sub}</div></div>`;
+  const ses=n=>n+' session'+(n>1?'s':'');
+  const boxes=p?`<div style="display:flex;gap:8px;margin:10px 0">${box('BUY AT',p.lo===p.hi?fx(p.hi):fx(p.lo)+' – '+fx(p.hi),p.k==='str'?'on a closing basis':'price range','#0b2447')}${box('STOP LOSS',fx(p.stop),'exit if it closes below · risk '+p.rp.toFixed(1)+'%','#b3261e')}${box('TARGET 1',fx(p.t1),'+'+((p.t1/p.hi-1)*100).toFixed(1)+'% · about '+ses(p.s1),'#146c43')}${box('TARGET 2',fx(p.t2),'+'+((p.t2/p.hi-1)*100).toFixed(1)+'% · about '+ses(p.s2),'#146c43')}</div>`:'';
+  const why=A.E.rows.filter(r=>r.ok===false&&r.crit).concat(A.E.rows.filter(r=>r.ok===false&&!r.crit)).slice(0,3).map(r=>`<li><b>${esc(r.name)}</b> — now ${esc(r.val)}</li>`).join('')||'<li>All entry rules are satisfied.</li>';
+  const near=(arr,t)=>arr.slice(0,2).map(z=>`${t} <b>${fx(z.v)}</b> (${sg(pct(z.v,cmp))})`).join(' &nbsp;·&nbsp; ');
+  return `<div class="rh"><div><b>${esc(S.sym)}</b><small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'} · Joshi's Corner · SSJ Finance</small></div><div style="text-align:right"><b style="font-size:19px">${fx(cmp)}</b> <span class="${chg>=0?'up':'dn'}" style="font-weight:800">${chg==null?'':sg(chg)}</span><small>${esc(now)} IST · last session ${esc(fdate(last.d))}</small></div></div>
+   <div class="vd ${cls}" style="display:block;font-size:14px;padding:8px 12px;border-radius:8px">${esc(call)}</div>
+   ${boxes}
+   <h4>Chart — last 60 sessions</h4>${repChart(MJ,cmp,60,210)}
+   <h4>Why this call</h4><ul style="margin:3px 0 0 16px;padding:0;font-size:11.5px">${why}</ul>
+   <h4>Levels to watch</h4><div style="font:600 11px Inter,Arial,sans-serif;line-height:1.8"><span class="dn">Resistance:</span> ${near(MJ.res,'')}<br><span class="up">Support:</span> ${near(MJ.sup,'')}</div>
+   <div class="ds">How to use: position size = 1% of capital ÷ risk per share. Book ⅓ at Target 1, ⅓ at Target 2, trail the rest. Exit only on a closing basis below the stop. Durations are rough estimates. Research commentary, not investment advice. — Joshi's Corner · ${esc(S.sym)} · ${esc(now)} IST</div>`; }
+function repPrint(full){ if(!S.rep){ alert('Run a stock first'); return; } let r=document.getElementById('rpt'); if(!r){ r=document.createElement('div'); r.id='rpt'; document.body.appendChild(r); } r.innerHTML=full?repHTML():repShort();
+  const t=document.title, d=new Date(Date.now()+19800000).toISOString().slice(0,16).replace('T','_').replace(':',''); document.title=S.sym+(full?'_Full_Report_':'_Client_Note_')+d; const back=()=>{ document.title=t; window.removeEventListener('afterprint',back); }; window.addEventListener('afterprint',back);
   setTimeout(()=>window.print(),150); }
 /* ---------- 📈 chart window: live candles with the page's levels drawn on them ---------- */
 const LWC='https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.8/dist/lightweight-charts.standalone.production.js';
@@ -559,7 +580,7 @@ function cwLevels(){
   if(CW.show.hl){ const b=S.bars.slice(-250); add(Math.max(...b.map(x=>x.h)),'52W HIGH','#7a5a12',1,1); add(Math.min(...b.map(x=>x.l)),'52W LOW','#7a5a12',1,1); }
   const up=all.filter(v=>v>cmp).sort((a,b)=>a-b), dn=all.filter(v=>v<cmp).sort((a,b)=>b-a); CW.near=[dn[0]!=null?dn[0]:cmp,up[0]!=null?up[0]:cmp];
 }
-document.addEventListener('click',e=>{ if(e.target.closest('#pdfOpen')){ repPrint(); return; } if(e.target.closest('#chOpen')){ cwOpen(); return; } if(e.target.closest('#cwX')){ cwClose(); return; }
+document.addEventListener('click',e=>{ if(e.target.closest('#pdfFull')){ repPrint(true); return; } if(e.target.closest('#pdfOpen')){ repPrint(false); return; } if(e.target.closest('#chOpen')){ cwOpen(); return; } if(e.target.closest('#cwX')){ cwClose(); return; }
   const t=e.target.closest('[data-ctf]'); if(t){ CW.tf=t.dataset.ctf; try{ localStorage.setItem('jc_pv_ctf',CW.tf); }catch(_){ } document.querySelectorAll('[data-ctf]').forEach(b=>b.classList.toggle('on',b===t)); cwBuild(); } });
 document.addEventListener('change',e=>{ const c=e.target.closest('[data-csh]'); if(!c) return; CW.show[c.dataset.csh]=c.checked?1:0; try{ localStorage.setItem('jc_pv_cshow',JSON.stringify(CW.show)); }catch(_){ } if(c.dataset.csh==='ha') cwData(); else cwLevels(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CW.on) cwClose(); });
