@@ -352,11 +352,16 @@ function verdict(P,cmp,MJ,x){
 }
 
 /* ---------- 🛡 Advisory: the 11-rule entry check applied to whatever stock is searched (generic, no personal trades) ---------- */
+
+/* daily price band (circuit) estimated from the largest one-day close move in the last year: 2 / 5 / 10 / 20 % */
+function priceBand(){ const B=S.bars.slice(-250); let m=0; for(let i=1;i<B.length;i++) m=Math.max(m,Math.abs(B[i].c/B[i-1].c-1)*100); return [2,5,10,20].find(b=>m<=b*1.005)||20; }
+const durTxt=n=>n+'–'+(Math.ceil(n*1.6)+1)+' sessions';
 /* swing levels for a stock whose trend is not confirmed: buy RANGE at support, buy-on-strength level, positional trigger - each with stop, exits and duration */
 function swingPlans(A,cmp,MJ,P){
-  const s=A.S, atr=s.atr||cmp*0.02, ses=d=>Math.max(2,Math.ceil(Math.pow(d/atr,2))), out=[];
+  const s=A.S, atr=s.atr||cmp*0.02, band=priceBand(), out=[];
+  const ses=(d,ent)=>Math.max(2,Math.ceil(d/ent*100/band),Math.ceil(Math.pow(d/atr,2)*1.5)); /* never faster than the daily circuit band allows */
   const tg=(ent,R)=>{ const rs=MJ.res.map(z=>z.v).filter(v=>v>ent*1.004).sort((a,b)=>a-b); const t1=rs.find(v=>v-ent>=R)||ent+1.5*R; const t2=rs.find(v=>v-ent>=2*R&&v>t1*1.003)||Math.max(ent+3*R,t1*1.02); return [t1,t2]; };
-  const mk=(o)=>{ const ent=o.hi, R=ent-o.stop, T=tg(ent,R); return Object.assign(o,{R,rp:R/ent*100,t1:T[0],t2:T[1],s1:ses(T[0]-ent),s2:ses(T[1]-ent)}); };
+  const mk=(o)=>{ const ent=o.hi, R=ent-o.stop, T=tg(ent,R); const q1=ses(T[0]-ent,ent), q2=Math.max(ses(T[1]-ent,ent),q1+1); return Object.assign(o,{R,rp:R/ent*100,t1:T[0],t2:T[1],s1:q1,s2:q2,band}); };
   if(A.E.verdict==='RIGHT'){ const p=A.now; out.push(mk({k:'now',lab:'🟢 Buy now (all rules passed)',lo:cmp,hi:cmp,stop:p.stop,why:p.why,size:'Full size, in 3 parts',inr:true})); return out; }
   const ctr=A.E.rows.some(r=>r.k==='trend'&&r.ok===false);
   const near=MJ.sup.filter(z=>z.v<=cmp*1.002&&z.v>=cmp*0.96&&z.s>=5);
@@ -372,13 +377,13 @@ function advisory(cmp,lv,op,MJ,P){
   const E=A.E, s=A.S, K=E.verdict==='RIGHT'?'OK':E.verdict==='RISKY'?'WAIT':'AVOID', pl=swingPlans(A,cmp,MJ,P); S.rep={A,pl,K};
   const stamp=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false});
   const head=K==='OK'?'✔ BUY ZONE — all entry rules passed':'⚠ TREND NOT CONFIRMED — trade only these levels';
-  const ses=n=>'≈ '+n+' session'+(n>1?'s':'');
+  const ses=durTxt;
   const sub=t=>'<br><span class="mu" style="font:600 10.5px Inter,system-ui,Segoe UI,Arial,sans-serif">'+t+'</span>';
   const rec=pl.length?`<div class="sx"><table class="x"><thead><tr><th>Setup</th><th style="text-align:right">Buy at / range</th><th style="text-align:right">Stop (closing basis)</th><th style="text-align:right">Exit T1</th><th style="text-align:right">Exit T2</th><th style="text-align:right">Duration</th><th style="text-align:right">Risk</th><th>Size</th></tr></thead><tbody>${pl.map(p=>`<tr${p.inr?' style="background:#eef8f2"':''}><td style="white-space:normal;min-width:210px;font:800 12px Inter,system-ui,Segoe UI,Arial,sans-serif">${esc(p.lab)}${p.inr?' <span class="ok">· IN RANGE NOW</span>':''}</td><td class="n"><b>${p.lo===p.hi?fx(p.hi):fx(p.lo)+' – '+fx(p.hi)}</b></td><td class="n dn"><b>${fx(p.stop)}</b>${sub(esc(p.why))}</td><td class="n up"><b>${fx(p.t1)}</b>${sub('+'+((p.t1/p.hi-1)*100).toFixed(1)+'%')}</td><td class="n up"><b>${fx(p.t2)}</b>${sub('+'+((p.t2/p.hi-1)*100).toFixed(1)+'%')}</td><td class="n">T1 ${ses(p.s1)}<br>T2 ${ses(p.s2)}</td><td class="n">${fx(p.R)} (${p.rp.toFixed(1)}%)</td><td style="white-space:normal;font:600 11.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${esc(p.size)}</td></tr>`).join('')}</tbody></table></div>`:`<div class="tip">No clean level near the price — re-check after the next close.</div>`;
   const rows=E.rows.map(r=>`<tr><td>${esc(r.name)}${r.crit?' <span class="no" title="critical rule">●</span>':''}</td><td class="c ${r.ok===true?'okc':r.ok===false?'noc':''}">${r.ok===true?'<span class="ok">✔</span>':r.ok===false?'<span class="no">✖</span>':'<span class="na">–</span>'}</td><td>${esc(r.val)}</td><td style="white-space:normal;min-width:210px;font:700 11.5px Inter,system-ui,Segoe UI,Arial,sans-serif">${r.ok===false?esc(r.need||r.fix):''}</td></tr>`).join('');
   return `<div class="adv"><div class="ah"><b class="t">🛡 ${esc(S.sym)} · recommendation</b><span class="vd2 ${K}">${esc(head)}</span><small>CMP ${fx(cmp)} · ${esc(stamp)} IST · ${E.pass}/${E.total} trend rules passed</small></div>
    <div style="padding:8px 10px">${rec}
-   <div class="tip" style="margin-top:8px;background:#f3f5f9;border-color:#dfe4ec;color:#3c4759">Support and resistance come from the major zones (Fibonacci retracement, Classic / Camarilla / CPR pivots, DMAs). Duration = rough sessions from the stock's daily range (ATR ${s.atr?fx(s.atr):'–'}), not a promise. Size = (1% of client capital) ÷ risk per share, same quantity for every client. Book ⅓ at T1, ⅓ at T2, trail the rest under the 20-DMA ${fx(s.e20)}; exit only on a <b>closing</b> basis below the stop. If stopped out, re-buy only on a close above ${fx(s.hi20)} with 1.3x volume or a retest of ${fx(s.lo20)} with momentum turning up.</div>
+   <div class="tip" style="margin-top:8px;background:#f3f5f9;border-color:#dfe4ec;color:#3c4759">Support and resistance come from the major zones (Fibonacci retracement, Classic / Camarilla / CPR pivots, DMAs). Duration = rough sessions from the stock's daily range (ATR ${s.atr?fx(s.atr):'–'}) and its ${priceBand()}% daily price band, not a promise. Size = (1% of client capital) ÷ risk per share, same quantity for every client. Book ⅓ at T1, ⅓ at T2, trail the rest under the 20-DMA ${fx(s.e20)}; exit only on a <b>closing</b> basis below the stop. If stopped out, re-buy only on a close above ${fx(s.hi20)} with 1.3x volume or a retest of ${fx(s.lo20)} with momentum turning up.</div>
    <details style="margin-top:8px"><summary style="cursor:pointer;font:800 12px Inter,system-ui,Segoe UI,Arial,sans-serif;color:var(--navy)">▸ Why — the 11 entry rules (${E.pass}/${E.total} passed)</summary><div class="sx" style="margin-top:6px"><table class="x"><thead><tr><th>Entry rule</th><th></th><th>Reading now (with price levels)</th><th>To pass — price / level needed</th></tr></thead><tbody>${rows}</tbody></table></div></details></div></div>`; }
 
 /* Fibonacci RETRACEMENT of the latest swing (last 100 sessions): the classic pause points of a bounce / pullback, used as support & resistance */
@@ -480,7 +485,7 @@ function repHTML(){ const R=S.rep; if(!R||!S.bars||!S.lvMJ) return ''; const A=R
   const now=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}), name=(S.meta&&(S.meta.longName||S.meta.shortName))||S.sym;
   const last=S.bars[S.bars.length-1], pc=S.bars.length>1?S.bars[S.bars.length-2].c:null, chg=pc?pct(cmp,pc):null;
   const head=R.K==='OK'?'BUY ZONE — all entry rules passed':'TREND NOT CONFIRMED — trade only the levels below';
-  const ses=n=>'≈ '+n+' session'+(n>1?'s':'');
+  const ses=durTxt;
   const plan=R.pl.length?`<table><tr><th>Setup</th><th class="n">Buy at / range</th><th class="n">Stop (close)</th><th class="n">Exit T1</th><th class="n">Exit T2</th><th class="n">Duration</th><th>Size</th></tr>${R.pl.map(p=>`<tr><td><b>${esc(p.lab.replace(/^[^A-Za-z]+/,''))}</b>${p.inr?' <b class="up">· in range now</b>':''}</td><td class="n"><b>${p.lo===p.hi?fx(p.hi):fx(p.lo)+' – '+fx(p.hi)}</b></td><td class="n dn">${fx(p.stop)}</td><td class="n up">${fx(p.t1)} (+${((p.t1/p.hi-1)*100).toFixed(1)}%)</td><td class="n up">${fx(p.t2)} (+${((p.t2/p.hi-1)*100).toFixed(1)}%)</td><td class="n">T1 ${ses(p.s1)} · T2 ${ses(p.s2)}</td><td>${esc(p.size)}</td></tr>`).join('')}</table>`:'<p>No clean level near the price — re-check after the next close.</p>';
   const zr=(z,t)=>`<tr><td>${t}</td><td class="n"><b>${fx(z.v)}</b></td><td class="n ${pct(z.v,cmp)>=0?'dn':'up'}">${sg(pct(z.v,cmp))}</td><td>${esc((z.labs||[]).slice(0,4).join(', '))}</td></tr>`;
   const zones=`<table><tr><th>Zone</th><th class="n">Level</th><th class="n">vs CMP</th><th>Built from</th></tr>${MJ.res.slice(0,4).reverse().map(z=>zr(z,'Resistance')).join('')}<tr style="background:#fbf5e6"><td><b>▶ CMP</b></td><td class="n"><b>${fx(cmp)}</b></td><td></td><td></td></tr>${MJ.sup.slice(0,4).map(z=>zr(z,'Support')).join('')}</table>`;
@@ -508,8 +513,8 @@ function repShort(){ const R=S.rep; if(!R||!S.bars||!S.lvMJ) return ''; const A=
   else if(p.k==='str') { call='WAIT — buy only if it closes above '+fx(p.hi)+' on strong volume'; cls='WAIT'; }
   else { call='WAIT — buy only if price comes down to '+fx(p.lo)+' – '+fx(p.hi)+(p.size.indexOf('Half')===0?' (half size, trend is down)':''); cls='WAIT'; }
   const box=(t,v,sub,col)=>`<div style="flex:1;border:1px solid #d5dae3;border-radius:8px;padding:8px 6px;text-align:center"><div style="font:800 9px Inter,Arial,sans-serif;color:#667;letter-spacing:.5px">${t}</div><div style="font:900 18px Inter,Arial,sans-serif;color:${col}">${v}</div><div style="font:600 9.5px Inter,Arial,sans-serif;color:#555">${sub}</div></div>`;
-  const ses=n=>n+' session'+(n>1?'s':'');
-  const boxes=p?`<div style="display:flex;gap:8px;margin:10px 0">${box('BUY AT',p.lo===p.hi?fx(p.hi):fx(p.lo)+' – '+fx(p.hi),p.k==='str'?'on a closing basis':'price range','#0b2447')}${box('STOP LOSS',fx(p.stop),'exit if it closes below · risk '+p.rp.toFixed(1)+'%','#b3261e')}${box('TARGET 1',fx(p.t1),'+'+((p.t1/p.hi-1)*100).toFixed(1)+'% · about '+ses(p.s1),'#146c43')}${box('TARGET 2',fx(p.t2),'+'+((p.t2/p.hi-1)*100).toFixed(1)+'% · about '+ses(p.s2),'#146c43')}</div>`:'';
+  const ses=durTxt;
+  const boxes=p?`<div style="display:flex;gap:8px;margin:10px 0">${box('BUY AT',p.lo===p.hi?fx(p.hi):fx(p.lo)+' – '+fx(p.hi),p.k==='str'?'on a closing basis':'price range','#0b2447')}${box('STOP LOSS',fx(p.stop),'exit if it closes below · risk '+p.rp.toFixed(1)+'%','#b3261e')}${box('TARGET 1',fx(p.t1),'+'+((p.t1/p.hi-1)*100).toFixed(1)+'% · '+ses(p.s1),'#146c43')}${box('TARGET 2',fx(p.t2),'+'+((p.t2/p.hi-1)*100).toFixed(1)+'% · '+ses(p.s2),'#146c43')}</div>`:'';
   const why=A.E.rows.filter(r=>r.ok===false&&r.crit).concat(A.E.rows.filter(r=>r.ok===false&&!r.crit)).slice(0,3).map(r=>`<li><b>${esc(r.name)}</b> — now ${esc(r.val)}</li>`).join('')||'<li>All entry rules are satisfied.</li>';
   const near=(arr,t)=>arr.slice(0,2).map(z=>`${t} <b>${fx(z.v)}</b> (${sg(pct(z.v,cmp))})`).join(' &nbsp;·&nbsp; ');
   return `<div class="rh"><div><b>${esc(S.sym)}</b><small>${esc(name)} · ${S.ex==='BO'?'BSE':'NSE'} · Joshi's Corner · SSJ Finance</small></div><div style="text-align:right"><b style="font-size:19px">${fx(cmp)}</b> <span class="${chg>=0?'up':'dn'}" style="font-weight:800">${chg==null?'':sg(chg)}</span><small>${esc(now)} IST · last session ${esc(fdate(last.d))}</small></div></div>
