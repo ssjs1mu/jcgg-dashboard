@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     static final String BASE = "https://" + HOST + "/jcgg-dashboard/";
     static final String[][] TABS = {
             {"📊", "Dashboard", ""}, {"📋", "Watchlist", "watchlist.html"}, {"📅", "Calls", "plan.html"},
-            {"🧮", "Pivot", "calculator.html"}, {"🌐", "Movers", "indices.html"}};
+            {"🧮", "Pivot", "calculator.html"}, {"🌐", "Movers", "indices.html"}, {"📚", "Reports", "reports.html"}};
     static final int GOLD = 0xFFE0CD96, BAR = 0xFF0B1220, MUTED = 0xFF8A97AD;
 
     WebView web, splash, tv;
