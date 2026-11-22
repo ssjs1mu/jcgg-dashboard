@@ -208,6 +208,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
   d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
 <script src="perf.js?v=3"></script>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0e1621"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="icons/icon-192.png"><link rel="stylesheet" href="mobile.css?v=7"><script src="mobile.js?v=3"></script>
+<script src="ssj-theme.js?v=1"></script>
 </head><body>
 <div class="top"><div class="bmw" id="bmW"><div class="bmz">🌡 <b>MARKET BAROMETER</b><span class="mu">loading…</span></div></div><div class="hbr"><h1>Joshi's Corner</h1><span class="mood" id="mood">🌤 reading the market mood…</span></div>
  <nav class="tnav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw on" href="watchlist.html">WATCHLIST</a><a class="sw" href="plan.html">TOMORROW'S CALLS</a><a class="sw" href="calculator.html">PIVOT CALCULATOR</a><a class="sw" href="review.html">TRADE AUDIT</a><a class="sw" href="reports.html">REPORTS</a></nav></div>
@@ -401,11 +402,16 @@ function rowHtml(w,r,i){ const k=key(w), ex=w.x==='BO'?'BSE':'NSE', del=`<button
    <td class="c">${del}</td></tr>`; }
 function paint(){ const tb=$('tb'); if(typeof critPaint==='function'&&!paint.inCrit){ paint.inCrit=1; try{ critPaint(); }catch(e){ }finally{ paint.inCrit=0; }   /* the buttons can never stop the table from drawing */ }
   if(!W.length){ tb.innerHTML='<tr><td colspan="16" class="empty">The watchlist is empty. Type a symbol above, choose the exchange and press <b>+ Add</b>.</td></tr>'; return; }
-  const first={}; [...tb.rows].forEach(tr=>{ if(tr.dataset.k) first[tr.dataset.k]=tr.getBoundingClientRect().top; });
-  const order=W.filter(w=>!CF||(R[key(w)]&&R[key(w)].H&&R[key(w)].H[CF])).map(w=>({w,r:R[key(w)]})).sort((a,b)=>((b.r&&b.r.conv!=null)?b.r.conv:-1)-((a.r&&a.r.conv!=null)?a.r.conv:-1)||(a.w.s<b.w.s?-1:1));
+  const live=mkt().open;   /* market closed: nothing is trading, so rows never glide, prices never flash and the order stays put */
+  const first={}; if(live) [...tb.rows].forEach(tr=>{ if(tr.dataset.k) first[tr.dataset.k]=tr.getBoundingClientRect().top; });
+  const byConv=(a,b)=>((b.r&&b.r.conv!=null)?b.r.conv:-1)-((a.r&&a.r.conv!=null)?a.r.conv:-1)||(a.w.s<b.w.s?-1:1);
+  let order=W.filter(w=>!CF||(R[key(w)]&&R[key(w)].H&&R[key(w)].H[CF])).map(w=>({w,r:R[key(w)]}));
+  if(live){ order.sort(byConv); paint.frz=null; }
+  else { if(!paint.frz&&W.every(w=>R[key(w)])) { paint.frz={}; W.map(w=>({w,r:R[key(w)]})).sort(byConv).forEach((o,i)=>paint.frz[key(o.w)]=i); }
+         const F=paint.frz; order.sort(F?(a,b)=>((F[key(a.w)]??1e9)-(F[key(b.w)]??1e9))||byConv(a,b):byConv); }
   tb.innerHTML=order.map((o,i)=>rowHtml(o.w,o.r,i+1)).join('');
   // flash changed prices, glide rows to their new rank
-  [...tb.rows].forEach(tr=>{ const k=tr.dataset.k, r=R[k]; if(!k) return; if(r&&r.ltp!=null&&PREV[k]!=null&&r.ltp!==PREV[k]){ const td=tr.querySelector('[data-f="ltp"]'); if(td) td.classList.add(r.ltp>PREV[k]?'fu':'fd'); } if(r&&r.ltp!=null) PREV[k]=r.ltp;
+  [...tb.rows].forEach(tr=>{ const k=tr.dataset.k, r=R[k]; if(!k) return; if(live&&r&&r.ltp!=null&&PREV[k]!=null&&r.ltp!==PREV[k]){ const td=tr.querySelector('[data-f="ltp"]'); if(td) td.classList.add(r.ltp>PREV[k]?'fu':'fd'); } if(r&&r.ltp!=null) PREV[k]=r.ltp;
     if(first[k]!=null){ const dy=first[k]-tr.getBoundingClientRect().top; if(Math.abs(dy)>2&&tr.animate) tr.animate([{transform:`translateY(${dy}px)`},{transform:'none'}],{duration:600,easing:'ease-out'}); } });
   if(typeof tileUpd==='function'){ try{ tileUpd(); }catch(e){} }
 }
@@ -414,7 +420,7 @@ function paint(){ const tb=$('tb'); if(typeof critPaint==='function'&&!paint.inC
 let busy=false, lastAt=0;
 async function refresh(only){ if(busy&&!only) return; busy=true;
   const list=only?[only]:W.slice(); let q=list.slice();
-  const worker=async()=>{ while(q.length){ const w=q.shift(); try{ await fetchOne(w); }catch(e){} const k=key(w), r=analyse(w); if(r){ const old=R[k]; if(old&&old.call&&r.call&&old.call!==r.call) CALLAT[k]={t:Date.now(),was:old.call}; R[k]=r; } paint(); } };
+  const worker=async()=>{ while(q.length){ const w=q.shift(); try{ await fetchOne(w); }catch(e){} const k=key(w), r=analyse(w); if(r){ const old=R[k]; if(mkt().open&&old&&old.call&&r.call&&old.call!==r.call) CALLAT[k]={t:Date.now(),was:old.call}; R[k]=r; } paint(); } };
   await Promise.all([worker(),worker(),worker(),worker()]);
   busy=false; if(!only){ lastAt=Date.now(); }
   status(); }
@@ -422,12 +428,14 @@ function status(){ const m=mkt(), any=Object.values(R).some(r=>r&&r.src==='LIVE'
   $('dot').className='dot'+(m.open&&any?' live':''); $('src').textContent=(any?'LIVE':snap?'SNAPSHOT':Date.now()<quotaUntil?'LIVE FEED BUSY':'—')+' · '+m.txt;
   const la=Math.max(lastAt,lastQ||0); $('upd').textContent=la?'updated '+new Date(la+19800000).toISOString().slice(11,19)+' IST'+(lastQ&&Date.now()-lastQ<30000?' · quotes every 10 s':''):''; }
 setInterval(()=>{ $('clk').textContent=ist().toISOString().slice(11,19)+' IST'; },1000);
-(function loop(){ const m=mkt(); refresh(); setTimeout(loop,m.open?30000:300000); })();
+/* market closed: prices are final - one full read for this closed period (and when the list changes), no repeated re-reads */
+let closedDone=0;
+(function loop(){ const m=mkt(); if(m.open){ closedDone=0; refresh(); } else if(!closedDone||W.some(w=>!R[key(w)])){ refresh().then(()=>{ closedDone=Date.now(); }); } setTimeout(loop,m.open?30000:300000); })();
 /* fast quotes: one call for the whole list every 10 s in market hours - price, day open/high/low and volume for the triggers */
 let qBusy=false;
 async function quick(force){ if(qBusy||!W.length||(!force&&(document.hidden||!mkt().open))||Date.now()<quotaUntil) return; qBusy=true;
   try{ const j=await getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(W.map(w=>w.s+'.'+w.x).join(',')),12000);
-    if(j&&j.ok&&j.q){ const now=Date.now(); W.forEach(w=>{ const k=key(w), q=j.q[w.s+'.'+w.x]; if(q&&q[0]>0){ const B=BARS[k]||(BARS[k]={}); B.q=q; B.qAt=now; const r=BARS[k].b5||BARS[k].dd?analyse(w):null; if(r&&!r.bad&&!r.few){ const old=R[k]; if(old&&old.call&&old.call!==r.call) CALLAT[k]={t:now,was:old.call}; R[k]=r; } } }); lastQ=now; paint(); status(); }
+    if(j&&j.ok&&j.q){ const now=Date.now(); W.forEach(w=>{ const k=key(w), q=j.q[w.s+'.'+w.x]; if(q&&q[0]>0){ const B=BARS[k]||(BARS[k]={}); B.q=q; B.qAt=now; const r=BARS[k].b5||BARS[k].dd?analyse(w):null; if(r&&!r.bad&&!r.few){ const old=R[k]; if(mkt().open&&old&&old.call&&old.call!==r.call) CALLAT[k]={t:now,was:old.call}; R[k]=r; } } }); lastQ=now; paint(); status(); }
     else if(j&&j.error&&/too many times|quota/i.test(j.error)) quotaUntil=Date.now()+30*60000; }
   catch(e){} finally{ qBusy=false; } }
 let lastQ=0; setInterval(quick,10000); setTimeout(()=>quick(true),300);   /* prices on screen within a few seconds of opening */
