@@ -3,6 +3,8 @@
    the box's first column stays pinned (mobile.css) with the table's own background colour.
    Only acts on screens up to 1024px wide and only on tables that actually overflow; re-checks when the page redraws. */
 (function () {
+  /* inside the Android app the bottom bar is the menu: mark the page so the duplicate top buttons are hidden (mobile.css) */
+  try { if (/JoshisCornerApp/.test(navigator.userAgent)) document.documentElement.classList.add('inapp'); } catch (e) { }
   var MAXW = 1024, busy = false;
   function bgOf(el) {
     for (var e = el; e && e !== document.documentElement; e = e.parentElement) {
