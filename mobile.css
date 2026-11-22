@@ -66,7 +66,9 @@ img,video,canvas,svg{max-width:100%}
 }
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 /* Android app: the bottom bar already has Dashboard, Watchlist, Calls, Pivot, Movers and Reports - hide those top buttons
-   (and the current page's own button); keep only pages the bar does not have (Trade Audit). Browsers are unchanged. */
+   (Trade Audit is not needed in the app either). Browsers are unchanged. */
 html.inapp .top a.sw, html.inapp .header-title a.tbtn{display:none!important}
-html.inapp .top a.sw[href="review.html"]:not(.on), html.inapp .header-title a.tbtn[href="review.html"]{display:inline-block!important}
 html.inapp .top .nav, html.inapp .top .tnav{margin:0!important;padding:0!important;min-height:0!important}
+/* Android app: page header band in the SSJ Finance olive, matching the app's bottom bar (logo / gold script unchanged) */
+html.inapp .top,html.inapp body>header{background:linear-gradient(180deg,#5f5b00,#3f3c00)!important;border-color:#A7A15D!important;border-radius:14px;padding:8px 12px!important}
+html.inapp body>header .subtitle{color:#EDE8C8!important}

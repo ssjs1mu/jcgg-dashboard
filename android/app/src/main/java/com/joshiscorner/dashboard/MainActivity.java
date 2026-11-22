@@ -45,7 +45,7 @@ public class MainActivity extends Activity {
     static final String[][] TABS = {
             {"📊", "Dashboard", ""}, {"📋", "Watchlist", "watchlist.html"}, {"📅", "Calls", "plan.html"},
             {"🧮", "Pivot", "calculator.html"}, {"🌐", "Movers", "indices.html"}, {"📚", "Reports", "reports.html"}};
-    static final int GOLD = 0xFFE0CD96, BAR = 0xFF0B1220, MUTED = 0xFF8A97AD;
+    static final int GOLD = 0xFFFFF1A8, BAR = 0xFF676300, MUTED = 0xFFD8D3A6;   // SSJ Finance palette (as the reports): olive bar, cream labels, light-gold active
 
     WebView web, splash, tv;
     FrameLayout tvBox;
@@ -70,13 +70,13 @@ public class MainActivity extends Activity {
 
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xFF060D22);
+        root.setBackgroundColor(0xFF5A5600);
 
         stage = new FrameLayout(this);
         root.addView(stage, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         web = new WebView(this);
-        web.setBackgroundColor(0xFF0E1621);
+        web.setBackgroundColor(0xFFF7F4E6);
         setup(web, false);
         stage.addView(web, new FrameLayout.LayoutParams(-1, -1));
 
@@ -99,7 +99,7 @@ public class MainActivity extends Activity {
 
         if (saved == null) {
             splash = new WebView(this);
-            splash.setBackgroundColor(0xFF060D22);
+            splash.setBackgroundColor(0xFF3F3C00);
             setup(splash, true);
             top.addView(splash, new FrameLayout.LayoutParams(-1, -1));
             splash.loadUrl("file:///android_asset/splash.html");
