@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Joshi's Corner - Reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f5f9;--card:#ffffff;--line:#dfe4ec;--tx:#1b2433;--mu:#677489;--navy:#12233f;--gold:#b8892b;--goldl:#f6ecd2;--up:#1f8a5b;--dn:#c0392b;--acc:#2a6f97}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:linear-gradient(180deg,#eef2f8 0,#f6f7fa 320px),var(--bg);color:var(--tx);font:13px/1.4 Inter,"Segoe UI",system-ui,Arial,sans-serif;min-height:100vh;padding:8px 12px 60px;-webkit-font-smoothing:antialiased}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;max-width:1500px;margin:0 auto 10px;padding:8px 14px;background:var(--navy);border-radius:14px;box-shadow:0 6px 18px rgba(18,35,63,.18)}
+.top h1{font:700 44px/1 "Brush Script MT","Segoe Script",cursive;color:#e0c27a;text-align:center;white-space:nowrap;text-shadow:0 2px 8px rgba(0,0,0,.35)}
+.nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.sw{display:inline-block;padding:5px 13px;border-radius:999px;background:linear-gradient(180deg,#e9cf8a,#c9a24c);color:#1a1030;font:800 12px Inter,"Segoe UI",sans-serif;text-decoration:none;letter-spacing:.03em}
+.sw.on{background:transparent;color:#e0c27a;border:1px solid #e0c27a;pointer-events:none}
+.top .nav{grid-column:1/-1;justify-content:center}.top .st{grid-column:1;grid-row:1}.top h1{grid-column:2;grid-row:1}
+.st{font:700 12px ui-monospace,Consolas,monospace;color:#b9c4d6}.st b{color:#7fd8a9}
+.wrap{max-width:1500px;margin:0 auto}
+.pick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;box-shadow:0 2px 10px rgba(18,35,63,.06)}
+.pick h2{font:800 17px Inter,system-ui,sans-serif;color:var(--navy);margin-right:6px}.pick h2 span{color:var(--gold)}
+.chip{border:1px solid #c5cedb;background:#fff;color:var(--tx);border-radius:999px;padding:6px 12px;font:800 12px Inter,system-ui,sans-serif;cursor:pointer}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#e0c27a}
+.chip i{font-style:normal;opacity:.65;font-weight:700;margin-left:4px}
+.sel{margin-left:auto;border:1px solid #c5cedb;border-radius:8px;padding:6px 8px;font:700 12px Inter,system-ui,sans-serif;background:#fff}
+h3.sec{font:900 13px Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);margin:14px 2px 8px;display:flex;align-items:center;gap:8px}
+h3.sec:after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--gold),transparent)}
+.latest{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(18,35,63,.07);display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s;text-decoration:none;color:inherit}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(18,35,63,.16)}
+.th{position:relative;aspect-ratio:1200/630;background:#e8ebf1;overflow:hidden}
+.th img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.bdg{position:absolute;left:8px;top:8px;padding:3px 9px;border-radius:999px;font:900 10.5px Inter,system-ui,sans-serif;letter-spacing:.05em;color:#fff;background:rgba(18,35,63,.85)}
+.bdg.today{background:#1f8a5b}
+.kind{position:absolute;right:8px;top:8px;padding:3px 9px;border-radius:999px;font:900 10.5px Inter,system-ui,sans-serif;background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.cb{padding:9px 12px 11px;display:flex;flex-direction:column;gap:4px;flex:1}
+.cb b{font:900 15px Inter,system-ui,sans-serif;color:var(--navy)}
+.cb .cap{color:#3d4859;font-weight:600;font-size:12.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cb .meta{color:var(--mu);font-weight:700;font-size:11.5px;margin-top:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;padding:4px 10px;border-radius:999px;font:800 11.5px Inter,system-ui,sans-serif;text-decoration:none;background:var(--goldl);color:#6b4d0e;border:1px solid #e3cf9c}
+.btn.p{background:var(--navy);color:#e0c27a;border-color:var(--navy)}
+.day{display:grid;grid-template-columns:118px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.day .dt{font:900 13px Inter,system-ui,sans-serif;color:var(--navy)}.day .dt small{display:block;font-weight:700;color:var(--mu);font-size:11.5px}
+.row{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.row .cb b{font-size:13px}.row .cb .cap{font-size:11.5px}
+.empty{padding:30px;text-align:center;color:var(--mu);font-weight:700;background:#fff;border:1px dashed var(--line);border-radius:12px}
+.note{margin-top:14px;color:var(--mu);font-size:11.5px;line-height:1.5}
+@media (max-width:700px){.top h1{font-size:34px}.day{grid-template-columns:1fr}.latest{grid-template-columns:1fr}}
+</style>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0e1621"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="icons/icon-192.png"><link rel="stylesheet" href="mobile.css?v=3"><script src="mobile.js?v=2"></script>
+</head><body>
+<div class="top"><span class="st" id="st">loading reports…</span><h1>Joshi's Corner</h1>
+ <nav class="nav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw" href="watchlist.html">WATCHLIST</a><a class="sw" href="plan.html">TOMORROW'S CALLS</a><a class="sw" href="calculator.html">PIVOT CALCULATOR</a><a class="sw" href="review.html">TRADE AUDIT</a><a class="sw on" href="reports.html">REPORTS</a></nav></div>
+<div class="wrap">
+ <div class="pick"><h2>📚 Booklet <span>Reports</span></h2><span id="chips"></span>
+  <select class="sel" id="span"><option value="14">Last 2 weeks</option><option value="31" selected>Last month</option><option value="92">Last 3 months</option><option value="9999">All</option></select></div>
+ <h3 class="sec">Latest editions</h3>
+ <div class="latest" id="latest"><div class="empty">Loading the latest booklets…</div></div>
+ <h3 class="sec">All editions</h3>
+ <div id="all"></div>
+ <div class="note">Each card opens the flip-book (English / हिन्दी / বাংলা where available); older editions without a flip-book open their first page. The list is read live from the Stock Analyst Terminal every 5 minutes, so a new booklet appears here as soon as it is published.</div>
+</div>
+<script>
+const BASE='https://ssjs1mu.github.io/jc-stock-analyst/';
+const BOOKS=[
+ {id:'morning-pulse',kind:'morning',name:'Morning Sunrise',icon:'🌅',time:'08:15'},
+ {id:'evening-breeze',kind:'evening',name:'Evening Breeze',icon:'🌇',time:'16:30'},
+ {id:'sector-digest',kind:'digest',name:'Sector Digest',icon:'🧭',time:'20:15'},
+ {id:'muhurat-special',kind:'muhurat',name:'Special Edition',icon:'🪔',time:''}];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const todayS=()=>new Date(Date.now()+19800000).toISOString().slice(0,10);
+const fmtD=(d,o)=>new Date(d+'T00:00:00Z').toLocaleDateString('en-IN',Object.assign({timeZone:'UTC'},o||{weekday:'short',day:'2-digit',month:'short',year:'numeric'}));
+const fmtT=iso=>{try{return new Date(iso).toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:true});}catch(e){return '';}};
+let RUNS=[], FILT='all';
+try{ FILT=localStorage.getItem('jc_rep_filt')||'all'; $('span').value=localStorage.getItem('jc_rep_span')||'31'; }catch(e){}
+
+async function load(){
+  const out=[];
+  await Promise.all(BOOKS.map(async b=>{
+    try{
+      const j=await fetch(BASE+'reports/'+b.id+'/index.json?t='+Date.now(),{cache:'no-store'}).then(r=>{if(!r.ok)throw r.status;return r.json();});
+      (j.runs||[]).filter(r=>r.status==='ok').forEach(r=>{
+        const f=r.files||[];
+        const page1=(f.find(x=>/_Mobile_\d{4}-\d\d-\d\d_1\.png$/.test(x.name))||f.find(x=>/\.png$/.test(x.name))||{}).path;
+        const pdf=(f.find(x=>x.type==='pdf')||{}).path;
+        out.push({b, date:r.date, at:r.generated_at, cap:r.caption||'', page1:page1?BASE+page1:'', pdf:pdf?BASE+pdf:'',
+                  book:BASE+b.kind+'/'+r.date+'/', og:BASE+b.kind+'/'+r.date+'/og.jpg'});
+      });
+    }catch(e){ console.warn(b.id,e); }
+  }));
+  // keep one run per booklet per date (the newest)
+  const seen={}; RUNS=out.sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at)).filter(r=>{const k=r.b.id+r.date; if(seen[k])return false; seen[k]=1; return true;});
+  $('st').innerHTML='<b>● live</b> '+RUNS.length+' editions · '+fmtT(new Date().toISOString());
+  render();
+}
+// thumbnail: the flip-book's cover card; editions published before flip-books existed fall back to their first page (and open it)
+window.thErr=function(img){ const a=img.closest('a'); const p=img.dataset.p; if(p&&img.src!==p){ img.src=p; if(a&&a.dataset.k==='1'){a.href=p;} const o=a&&a.querySelector('.ob'); if(o)o.textContent='Open page'; } else { img.style.display='none'; } };
+function card(r,big){
+  const today=r.date===todayS();
+  const cap=r.cap.replace(/^(Morning Pulse|Evening Breeze|Sector Digest)\s+\d{1,2}\s\w{3}:?\s*/,'');
+  return '<a class="card" href="'+esc(r.book)+'" target="_blank" rel="noopener" data-k="1">'+
+    '<div class="th"><img loading="lazy" src="'+esc(r.og)+'" data-p="'+esc(r.page1)+'" onerror="thErr(this)" alt="'+esc(r.b.name+' '+r.date)+'">'+
+    (today?'<span class="bdg today">TODAY</span>':'')+'<span class="kind">'+r.b.icon+' '+esc(r.b.name)+'</span></div>'+
+    '<div class="cb"><b>'+r.b.icon+' '+esc(r.b.name)+'</b>'+(cap?'<span class="cap">'+esc(cap)+'</span>':'')+
+    '<span class="meta">'+esc(fmtD(r.date))+(r.at?' · '+esc(fmtT(r.at)):'')+
+    (big?' <span class="btn p ob">Open booklet</span>':'')+(big&&r.pdf?' <span class="btn" onclick="event.preventDefault();event.stopPropagation();window.open(\''+esc(r.pdf)+'\',\'_blank\')">PDF</span>':'')+'</span></div></a>';
+}
+function render(){
+  const cnt={}; RUNS.forEach(r=>cnt[r.b.id]=(cnt[r.b.id]||0)+1);
+  $('chips').innerHTML=['all'].concat(BOOKS.filter(b=>cnt[b.id]).map(b=>b.id)).map(id=>{const b=BOOKS.find(x=>x.id===id);
+    return '<button class="chip'+(FILT===id?' on':'')+'" data-f="'+id+'">'+(b?b.icon+' '+b.name:'All')+'<i>'+(b?cnt[id]:RUNS.length)+'</i></button>';}).join(' ');
+  document.querySelectorAll('#chips .chip').forEach(c=>c.onclick=()=>{FILT=c.dataset.f; try{localStorage.setItem('jc_rep_filt',FILT);}catch(e){} render();});
+  const L=BOOKS.map(b=>RUNS.find(r=>r.b.id===b.id)).filter(Boolean).filter(r=>FILT==='all'||r.b.id===FILT);
+  $('latest').innerHTML=L.length?L.map(r=>card(r,true)).join(''):'<div class="empty">No booklets found yet.</div>';
+  const days=+$('span').value, cut=new Date(Date.now()+19800000-days*864e5).toISOString().slice(0,10);
+  const A=RUNS.filter(r=>(FILT==='all'||r.b.id===FILT)&&r.date>=cut);
+  const by={}; A.forEach(r=>(by[r.date]=by[r.date]||[]).push(r));
+  const order=Object.keys(by).sort().reverse();
+  $('all').innerHTML=order.length?order.map(d=>{
+    const rs=by[d].sort((a,b)=>BOOKS.indexOf(a.b)-BOOKS.indexOf(b.b));
+    return '<div class="day"><div class="dt">'+esc(fmtD(d,{day:'2-digit',month:'short',year:'numeric'}))+'<small>'+esc(fmtD(d,{weekday:'long'}))+' · '+rs.length+' booklet'+(rs.length>1?'s':'')+'</small></div><div class="row">'+rs.map(r=>card(r,false)).join('')+'</div></div>';
+  }).join(''):'<div class="empty">No editions in this period.</div>';
+}
+$('span').onchange=()=>{ try{localStorage.setItem('jc_rep_span',$('span').value);}catch(e){} render(); };
+load(); setInterval(load,300000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) load(); });
+</script>
+</body></html>
