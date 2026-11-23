@@ -16,7 +16,7 @@
 @page{size:A4;margin:0}@media print{body{background:#fff}.page{margin:0;box-shadow:none;page-break-after:always}.noprint{display:none!important}}
 .hd{background:linear-gradient(135deg,#0b0b06 0%,#1d1b08 55%,#3f3c00 100%);color:#F3E6B5;padding:9px 20px 8px;display:flex;gap:14px;align-items:center}
 .hd img{height:56px}.hd .t{flex:1}.hd h1{margin:0;font:italic 700 26px 'Playfair Display',serif;color:#E8C96A;letter-spacing:.3px}
-.hd .s{font:600 11px Inter,Arial;color:#d9cf9c;letter-spacing:.08em;text-transform:uppercase}.hd .r{text-align:right;font:700 11px Inter,Arial;color:#F3E6B5}.hd .r b{display:block;font:900 18px Inter,Arial;color:#fff;letter-spacing:.04em}
+.hd .s{font:600 11px Inter,Arial;color:#d9cf9c;letter-spacing:.08em;text-transform:uppercase}.hd .r{text-align:right;font:700 11px Inter,Arial;color:#F3E6B5}.hd .r b{display:block;font:900 18px Inter,Arial;color:#fff;letter-spacing:.04em}.hd .r b.dpa{font:800 13px Inter,Arial;color:#E8C96A;letter-spacing:.03em;margin-bottom:1px}
 .band{height:5px;background:linear-gradient(90deg,#E8C96A,#A7A15D,#13863a,#1f6fd1,#E8C96A)}
 .bd{padding:8px 20px;flex:1;overflow:hidden}
 h2{font:900 12px var(--ff);letter-spacing:.09em;text-transform:uppercase;color:var(--dk);margin:9px 0 6px;display:flex;align-items:center;gap:8px}h2:after{content:'';flex:1;height:2px;background:linear-gradient(90deg,var(--kh),transparent)}
@@ -32,7 +32,7 @@ td{padding:3px 5px;border-bottom:1px solid #EEE9D2;text-align:right}tr:nth-child
 ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoid}
 .tl{position:relative;margin:4px 0 0 6px;padding-left:16px;border-left:3px solid var(--kh)}.tl2{columns:2;column-gap:26px}.ev{position:relative;margin:0 0 3px;break-inside:avoid;line-height:1.3}.ev:before{content:'';position:absolute;left:-23px;top:3px;width:11px;height:11px;border-radius:50%;background:var(--c,#676300);border:2px solid #fff;box-shadow:0 0 0 1px var(--c,#676300)}
 .ev b{font:800 11px var(--ff);color:var(--dk)}.ev span{font-size:11.5px}
-.ft{background:#0b0b06;color:#cfc59a;font:600 9.5px var(--ff);padding:8px 22px;display:flex;justify-content:space-between;gap:10px}
+.ft{background:#0b0b06;color:#cfc59a;font:600 9.5px var(--ff);padding:8px 22px;display:flex;justify-content:space-between;align-items:center;gap:10px}.ft .pgn{flex:none;background:#E8C96A;color:#0b0b06;font:900 10.5px Inter,Arial;padding:2px 9px;border-radius:10px;white-space:nowrap}
 .note{font-size:10.5px;color:var(--mu);line-height:1.45}
 .bar{display:flex;align-items:center;gap:8px;margin:5px 0}.bar .lb{width:118px;font:800 11px var(--ff)}.bar .tr{flex:1;background:#EFEBD8;border-radius:8px;height:20px;position:relative;overflow:hidden}.bar .fl{height:100%;border-radius:8px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font:900 11.5px var(--ff);white-space:nowrap}
 /* stock view cards */
@@ -52,7 +52,7 @@ ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoi
 </style></head><body>
 <div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="history.length>1?history.back():close()" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the report…</div></div>
-<script src="pf-core.js?v=22"></script>
+<script src="pf-core.js?v=23"></script>
 <script src="client-report-i18n.js?v=1"></script>
 <script>
 'use strict';
@@ -173,8 +173,8 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
   const verdict=gp==null?'':(gain>=0?R.verdictUp(inr(gain),pc(gp),dlong(start)):R.verdictDn(inr(-gain),pc(gp),dlong(start)));
   const vsfd=ahead>=0?R.vsfdUp(inr(ahead),inr(fdV)):R.vsfdDn(inr(-ahead),inr(fdV));
   const vsN=NR?(mine>=NR.v?R.vsIdxUp(inr(NR.v),inr(mine-NR.v)):R.vsIdxDn(inr(NR.v),inr(NR.v-mine))):'';
-  const head=(pg,of)=>`<div class="hd"><img src="icons/jc-logo-3d.png" alt=""><div class="t"><h1>Your Portfolio Report</h1><div class="s">Joshi's Corner · SSJ Finance · Shares</div></div><div class="r">Client code<b>${esc(C)}</b>${(+today.slice(8,10))+' '+RL.en.months[+today.slice(5,7)-1]+' '+today.slice(0,4)}, ${stamp.slice(11,16)} IST<br>Page ${pg} of ${of}</div></div><div class="band"></div>`;
-  const foot=`<div class="ft"><span>${R.foot(esc(C),asOf)}</span><span>${R.risk}</span></div>`;
+  const head=(pg,of)=>`<div class="hd"><img src="icons/jc-logo-3d.png" alt=""><div class="t"><h1>Your Portfolio Report</h1><div class="s">Joshi's Corner · SSJ Finance · Shares</div></div><div class="r">Client code<b>${esc(C)}</b>${M.dpac?'DP a/c <b class="dpa">'+esc(M.dpac)+'</b>':''}${(+today.slice(8,10))+' '+RL.en.months[+today.slice(5,7)-1]+' '+today.slice(0,4)}, ${stamp.slice(11,16)} IST</div></div><div class="band"></div>`;
+  const foot=(pg,of)=>`<div class="ft"><span>${R.foot(esc(C),asOf)}</span><span>${R.risk}</span><b class="pgn">${pg} / ${of}</b></div>`;
   const wsub=[R.wShares+' '+inr(hv)].concat(cash>0.5?[R.wCash+' '+inr(cash)]:[],dpDep>0.5?[R.wDp+' '+inr(dpDep)]:[],divT?[R.wDiv+' '+inr(divT)]:[]).join(' + ');
   const yr=(lab,v,g,x,cls)=>`<tr><td class="l">${lab}</td><td>${inr(v)}</td><td class="${cls||''}">${inr(g)}</td><td>${x==null?'–':pc(x,1)}</td></tr>`;
 
@@ -270,7 +270,7 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
     <div class="note" style="columns:2;column-gap:20px;font-size:10px;line-height:1.38"><ul class="pts" style="margin-top:0"><li>${R.h1(useL,cash>0.5,dpDep>0.5)}</li><li>${R.h2}</li><li>${R.h3}</li><li>${R.h4}</li><li>${R.h5}</li><li>${R.h6}</li><li>${R.h7}</li></ul></div>`;
 
   const pages=[p1,...vp,p3], N=pages.length;
-  $('root').innerHTML=pages.map((b,i)=>`<div class="page">${head(i+1,N)}<div class="bd">${b}</div>${foot}</div>`).join('');
+  $('root').innerHTML=pages.map((b,i)=>`<div class="page">${head(i+1,N)}<div class="bd">${b}</div>${foot(i+1,N)}</div>`).join('');
   document.title=C+' Portfolio report '+today+(LG!=='en'?' '+LG:'');
   if(P.get('print')==='1') setTimeout(()=>window.print(),1200);
 })().catch(e=>{ $('msg').textContent='Could not build the report - '+e.message; });
