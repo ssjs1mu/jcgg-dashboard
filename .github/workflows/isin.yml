@@ -15,8 +15,8 @@ jobs:
           curl -sSfL -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124 Safari/537.36' -o /tmp/eq.csv https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36'
           curl -sSL -m 120 -A "$UA" -H 'Referer: https://www.bseindia.com/' -H 'Origin: https://www.bseindia.com' -H 'Accept: application/json' -o /tmp/bse.json 'https://api.bseindia.com/BseIndiaAPI/api/ListofScripData/w?Group=&Scripcode=&industry=&segment=Equity&status=' || true
-          echo "BSE list bytes: $(wc -c </tmp/bse.json 2>/dev/null)"; head -c 300 /tmp/bse.json || true; echo
-          for k in 0 1 2 3 4 5 6; do d=$(date -u -d "-$k day" +%Y%m%d); curl -sSfL -m 60 -A "$UA" -H 'Referer: https://www.bseindia.com/' -o /tmp/bhav.csv "https://www.bseindia.com/download/BhavCopy/Equity/BhavCopy_BSE_CM_0_0_0_${d}_F_0000.CSV" && [ $(wc -c </tmp/bhav.csv) -gt 10000 ] && { echo "BSE bhavcopy $d"; break; }; rm -f /tmp/bhav.csv; done
+          echo "BSE list bytes: $(wc -c </tmp/bse.json 2>/dev/null)"
+          for k in 0 1 2 3 4 5 6; do d=$(date -u -d "-$k day" +%Y%m%d); curl -sSfL -m 60 -A "$UA" -H 'Referer: https://www.bseindia.com/' -o /tmp/bhav.csv "https://www.bseindia.com/download/BhavCopy/Equity/BhavCopy_BSE_CM_0_0_0_${d}_F_0000.CSV" && head -1 /tmp/bhav.csv | grep -q ISIN && { echo "BSE bhavcopy $d"; head -2 /tmp/bhav.csv; break; }; rm -f /tmp/bhav.csv; done
           python3 - <<'PY'
           import csv, io, json, re
           rows = list(csv.DictReader(io.StringIO(open('/tmp/eq.csv', encoding='latin-1').read())))
