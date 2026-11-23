@@ -174,12 +174,12 @@ function csvParse(t){ const out=[]; let row=[], f='', q=false; t=t.replace(/^\uF
 async function readRows(file){ if(/\.(csv|txt)$/i.test(file.name)){ const raw=csvParse(await file.text());
     let hi=raw.findIndex(r=>r.filter(x=>String(x).trim()).length>=3&&r.some(x=>/date/i.test(x))); if(hi<0) hi=0;
     const hd=raw[hi].map(x=>String(x).trim()); return raw.slice(hi+1).filter(r=>r.some(x=>String(x).trim())).map(r=>{ const o={}; hd.forEach((h,i)=>o[h]=r[i]); return o; }); }
-  await xlsxLib(); const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true}); const ws=wb.Sheets[wb.SheetNames[0]];
+  await xlsxLib(); const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false}) /* serial day numbers - no time-zone shift */; const ws=wb.Sheets[wb.SheetNames[0]];
   const raw=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
   let hi=raw.findIndex(r=>r.filter(x=>String(x).trim()).length>=3&&r.some(x=>/date/i.test(x))); if(hi<0) hi=0;
   const hd=raw[hi].map(x=>String(x).trim()); return raw.slice(hi+1).filter(r=>r.some(x=>String(x).trim())).map(r=>{ const o={}; hd.forEach((h,i)=>o[h]=r[i]); return o; }); }
 const col=(row,re)=>{ const k=Object.keys(row).find(k=>re.test(k)); return k; };
-function pdate(v){ if(v instanceof Date) return new Date(v.getTime()-v.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+function pdate(v){ if(v instanceof Date){ const t=new Date(Math.round(v.getTime()/36e5)*36e5); /* Excel dates can come back as 23:59:xx of the previous day (or a few minutes off in IST) - snap to the hour first */ return new Date(t.getTime()-t.getTimezoneOffset()*6e4).toISOString().slice(0,10); }
   if(typeof v==='number'&&v>20000&&v<80000) return new Date(Math.round((v-25569)*864e5)).toISOString().slice(0,10);
   const s=String(v).trim(); let m;
   if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
@@ -194,6 +194,8 @@ function codeCol(r0,rows){ const k=Object.keys(r0);
   return c; }
 function askCode(file){ const c=prompt('Client code for '+file.name+' (no client-code column found):',''); if(!c||!c.trim()) throw new Error('no client code given'); if(/\s/.test(c.trim())&&/[a-z]{2,}\s+[a-z]{2,}/i.test(c)) throw new Error('enter the client code, not the name'); return c.trim().toUpperCase(); }
 async function importTrades(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
+  { const r0=rows[0], bq=col(r0,/^\s*buy\s*qty/i), ba=col(r0,/^\s*buy\s*(avg|rate|price)/i), sq=col(r0,/^\s*sell\s*qty/i), sa=col(r0,/^\s*sell\s*(avg|rate|price)/i);
+    if(bq&&ba&&sq&&sa) return importNetPos(file,rows,{bq,ba,sq,sa}); }
   const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cs=col(r0,/symbol|scrip|security|stock|instrument/i), cb=col(r0,/b\s*\/\s*s|buy.?sell|side|trans.*type|^type$/i), cq=col(r0,/qty|quantity/i), cr=col(r0,/rate|price|avg/i);
   const miss=[['Date',cd],['Symbol',cs],['Buy/Sell',cb],['Qty',cq],['Rate',cr]].filter(x=>!x[1]).map(x=>x[0]); if(miss.length) throw new Error('columns not found: '+miss.join(', '));
   const one=cc?null:askCode(file);
@@ -203,6 +205,26 @@ async function importTrades(file){ const rows=await readRows(file); if(!rows.len
   const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
   driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
   return out.length+' fills for '+cl.join(', '); }
+/* back-office / ODIN net-position export: one row per client, scrip and day with Buy Qty / Avg and Sell Qty / Avg.
+   Kept: date, client code, exchange, scrip code, symbol, series, product type, buy and sell qty / avg, VAR % and VAR amount.
+   Never read: client name (and any other personal column). */
+async function importNetPos(file,rows,K){ const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cs=col(r0,/^\s*symbol|^\s*scrip\s*(name|symbol)|^\s*security/i)||col(r0,/symbol/i),
+    cx=col(r0,/^\s*exch/i), csc=col(r0,/scrip\s*code|security\s*id|token/i), cse=col(r0,/ser|series/i), cpt=col(r0,/product/i), cvp=col(r0,/var\s*%|var\s*per|var\s*pct/i), cva=col(r0,/var\s*(amt|amount|value)/i);
+  const miss=[['Date',cd],['Symbol',cs]].filter(x=>!x[1]).map(x=>x[0]); if(miss.length) throw new Error('columns not found: '+miss.join(', '));
+  const one=cc?null:askCode(file), out=[];
+  rows.forEach(r=>{ const d=pdate(r[cd]), c=one||String(r[cc]||'').trim().toUpperCase(), sym=String(r[cs]||'').trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''); if(!d||!c||!sym) return;
+    const prod=cpt?String(r[cpt]||'').trim():'', ex=cx?String(r[cx]||'').trim().toUpperCase():'', vp=cvp?num(r[cvp]):0, va=cva?num(r[cva]):0;
+    const base={d,c,sym,ex,scode:csc?String(r[csc]||'').trim():'',ser:cse?String(r[cse]||'').trim():'',prod,varp:vp>0?vp:null,vara:va>0?va:null,src:'netpos'};
+    const b=Math.abs(num(r[K.bq])), br=num(r[K.ba]), s=Math.abs(num(r[K.sq])), sr=num(r[K.sa]);
+    if(b>0&&br>0) out.push(Object.assign({},base,{side:'B',q:b,r:br}));
+    if(s>0&&sr>0) out.push(Object.assign({},base,{side:'S',q:s,r:sr})); });
+  if(!out.length) throw new Error('no buy / sell quantities found');
+  const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
+  driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
+  const nv=out.filter(x=>x.varp).length;
+  return out.length+' fills ('+rows.length+' day rows) for '+cl.join(', ')+(nv?' · VAR % on '+nv:'')+' · client name not read'; }
+/* latest VAR % per symbol from the uploaded trade files - for margin needed on holdings and new trades */
+function varMap(){ const m={}; tb().trades.forEach(t=>{ if(!t.varp) return; const o=m[t.sym]; if(!o||t.d>=o.d) m[t.sym]={p:t.varp,d:t.d}; }); return m; }
 async function importLedger(file){
   if(/\.pdf$/i.test(file.name)){ const P=parseLedgerPdf(await pdfLines(await file.arrayBuffer()));
     addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),{[P.client]:P.entries},false);
@@ -322,7 +344,7 @@ const BE='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqS
 const q2=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
 const csvOf=(head,rows)=>head.join(',')+'\n'+rows.map(r=>r.map(q2).join(',')).join('\n');
 function dpCSV(c,D){ const m=(D.M||{})[c]||{}; return csvOf(['Client Code','DP A/c','Holding as on','Rate date','Symbol','ISIN','Security','Holding','Rate','Value','Balance type'],D.H[c].map(x=>[c,m.dpac||'',m.asOf||'',m.rateDate||'',x.sym,x.isin||'',x.sec||'',x.q,x.rate==null?'':x.rate,x.value==null?'':x.value,x.type||''])); }
-function tradeCSV(rows){ return csvOf(['Date','Client Code','Symbol','Buy/Sell','Qty','Rate'],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(x=>[x.d,x.c,x.sym,x.side==='S'?'SELL':'BUY',x.q,x.r])); }
+function tradeCSV(rows){ return csvOf(['Date','Client Code','Exchange','Scrip Code','Symbol','Series','Product Type','Buy/Sell','Qty','Rate','VAR %','VAR Amount'],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(x=>[x.d,x.c,x.ex||'',x.scode||'',x.sym,x.ser||'',x.prod||'',x.side==='S'?'SELL':'BUY',x.q,x.r,x.varp||'',x.vara||''])); }
 function ledgerCSV(c,en){ return Array.isArray(en)?csvOf(['Date','Client Code','Voucher','Particulars','Debit','Credit','Balance (Dr +)','Type'],en.map(e=>[e.d,c,e.v||'',e.n||'',e.dr||0,e.cr||0,e.bal==null?'':e.bal,e.k])):csvOf(['Client Code','Balance (Dr +)'],[[c,en]]); }
 function toast(t,bad,html){ let d=document.getElementById('pfToast'); if(!d){ d=document.createElement('div'); d.id='pfToast'; document.body.appendChild(d); }
   d.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9990;max-width:420px;padding:10px 14px;border-radius:12px;font:700 12.5px Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);'+(bad?'background:#FBE3E1;color:#8a1010;border:1px solid #E29A93':'background:#E3F1DF;color:#1C5C0D;border:1px solid #8DC487');
@@ -347,10 +369,10 @@ async function driveAll(){ const t=tb(), L=led(), D=dp(), cs=[...new Set(t.trade
   return out; }
 /* blank CSV templates - only codes and statement fields; there is deliberately no column for names, addresses, PAN or phone */
 const TPL={
-  trade:['Date,Client Code,Symbol,Buy/Sell,Qty,Rate','20/11/2026,C0001,SBIN,BUY,100,1164.95'],
+  trade:['Date,Client Code,Exchange,Scrip Code,Symbol,Series,Product Type,Buy Qty,Buy Avg,Sell Qty,Sell Avg,VAR %,VAR Amount','20/11/2026,C0001,NSE,3045,SBIN,EQ,Delivery,100,1164.95,,,14.5,16891.78'],
   ledger:['Date,Client Code,Voucher,Particulars,Debit,Credit,Balance','01/04/2026,C0001,,Opening Balance,10000.00,0.00,10000.00 Dr','02/04/2026,C0001,R/101,Receipt by NEFT,0.00,10000.00,0.00 Dr'],
   dp:['Client Code,DP A/c,Holding as on,ISIN,Symbol,Security,Holding,Rate,Value,Balance type','C0001,1203410000000000,21/11/2026,INE062A01020,SBIN,SBI - EQ,125,1164.95,145618.75,Beneficiary']};
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
-window.PF={isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
+window.PF={varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
