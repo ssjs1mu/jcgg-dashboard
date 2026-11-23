@@ -121,9 +121,11 @@ function qtyFor(c,need,en,tg,STAT,rateOf){ if(!(tg>en)||!(need>0)) return null; 
 /* ---------- ledger (client-wise, entry by entry) ----------
    entry {d, dr, cr, n(narration), k(kind)}: kind from the narration - in (funds in), out (funds out), int (interest), dp (DP / demat),
    bill (trade bills / settlement), chg (other charges), oth. Balance = sum(dr - cr): positive = Dr (client owes). */
-function kindOf(n,dr,cr){ n=String(n||'').toLowerCase();
+function kindOf(n,dr,cr,v){ n=String(n||'').toLowerCase(); v=String(v||'').toUpperCase();
+  if(/^R\//.test(v)) return cr>0?'in':'out'; if(/^P\//.test(v)) return dr>0?'out':'in';
   if(/interest|int\.?\s*(on|chg)|delay(ed)? pay|dpc\b|late pay/.test(n)) return 'int';
-  if(/\bdp\b|demat|cdsl|nsdl|depository|dp\s*chg|dp charges|amc/.test(n)) return 'dp';
+  if(/\bdp\b|demat|cdsl|nsdl|depository|dp\s*chg|dp charges|amc/.test(n)||/^G\//.test(v)) return 'dp';
+  if(/^B\//.test(v)||/\b(to|by)\s+bill\b/.test(n)) return 'bill';
   if(/bill|settle|sett\.|stl|contract|trade|purchase|sale\b|sell|buy|nse|bse|cm\b/.test(n)) return 'bill';
   if(/receipt|received|recd|neft|rtgs|imps|upi|cheque|chq|deposit|pay.?in|fund.?in|transfer in|bank/.test(n)) return cr>0?'in':(dr>0?'out':'oth');
   if(/payment|paid|pay.?out|withdraw|fund.?out|transfer out|refund/.test(n)) return dr>0?'out':'in';
@@ -201,13 +203,20 @@ async function importTrades(file){ const rows=await readRows(file); if(!rows.len
   const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
   driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
   return out.length+' fills for '+cl.join(', '); }
-async function importLedger(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
-  const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cdr=col(r0,/^dr$|debit/i), ccr=col(r0,/^cr$|credit/i), cbal=col(r0,/bal/i), cn=col(r0,/narr|particular|descr|remark|detail|voucher/i);
+async function importLedger(file){
+  if(/\.pdf$/i.test(file.name)){ const P=parseLedgerPdf(await pdfLines(await file.arrayBuffer()));
+    addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),{[P.client]:P.entries},false);
+    driveSave('ledger',file.name,[{client:P.client,csv:ledgerCSV(P.client,P.entries)}]);
+    const last=P.entries[P.entries.length-1];
+    return 'ledger of '+P.client+' · '+P.entries.length+' entries '+dmy(P.from)+' to '+dmy(P.to)+' · closing '+Math.abs(last.bal).toFixed(2)+(last.bal>0?' Dr':' Cr'); }
+
+  const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
+  const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cdr=col(r0,/^dr$|debit/i), ccr=col(r0,/^cr$|credit/i), cbal=col(r0,/bal/i), cn=col(r0,/narr|particular|descr|remark|detail/i), cvo=col(r0,/voucher|vch|vr\.?\s*no/i);
   if(!(cdr&&ccr)&&!cbal) throw new Error('need Debit + Credit columns or a Balance column');
   const one=cc?null:askCode(file), by={}, last={};
   if(cdr&&ccr){ if(!cd) throw new Error('Date column not found');
     rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(), d=pdate(r[cd]); if(!c||!d) return; const dr=Math.abs(num(r[cdr])), cr=Math.abs(num(r[ccr])), n=cn?String(r[cn]).trim():'';
-      if(!dr&&!cr) return; (by[c]=by[c]||[]).push({d,dr,cr,n,k:/opening|b\/f|brought f/i.test(n)?'oth':kindOf(n,dr,cr)}); });
+      if(!dr&&!cr) return; const vo=cvo?String(r[cvo]).trim():''; (by[c]=by[c]||[]).push({d,v:vo,dr,cr,n,k:/opening|b\/f|brought f/i.test(n)?'oth':kindOf(n,dr,cr,vo)}); });
     if(!Object.keys(by).length) throw new Error('no dated debit / credit rows');
     const cl=addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),by,false);
     driveSave('ledger',file.name,cl.map(c=>({client:c,csv:ledgerCSV(c,by[c])})));
@@ -217,26 +226,93 @@ async function importLedger(file){ const rows=await readRows(file); if(!rows.len
   driveSave('ledger',file.name,cl.map(c=>({client:c,csv:ledgerCSV(c,by[c])})));
   return 'balances for '+cl.join(', ')+' (no entries - debit ageing needs Date / Debit / Credit rows)'; }
 
+/* ---------- PDF statements (SSJ back-office format) - read in the browser, nothing but the listed fields is kept ----------
+   DP HOLDING:  kept = client code (BackOffice Code), DP account (id in [ ]), holding / rate dates, and per ISIN: ISIN, security,
+                holding, rate, value, % and balance type (Pledge / Beneficiary).  Dropped = name, address, phone, joint holders, family,
+                group, branch, scheme, client type, status, open date.
+   LEDGER:      kept = client code ([CODE]), period, and per entry: date, voucher, particulars, debit, credit, balance.
+                Dropped = name, address, compliance officer; the client's name is also removed from any narration that carries it.
+   Debit / credit of each entry comes from the change in the running balance (cross-checked with the amount on the line), so
+   column positions and wrapped narrations do not matter. The PDF itself is never stored or uploaded. */
+function pdfLib(){ return window.pdfjsLib?Promise.resolve(window.pdfjsLib):new Promise((ok,no)=>{ const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; s.onload=()=>{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; ok(window.pdfjsLib); };
+  s.onerror=()=>no(new Error('PDF reader could not load')); document.head.appendChild(s); }); }
+async function pdfLines(buf,lib){ lib=lib||await pdfLib(); const doc=await lib.getDocument({data:buf}).promise, out=[];
+  for(let p=1;p<=doc.numPages;p++){ const pg=await doc.getPage(p), tc=await pg.getTextContent(), rows=[];
+    tc.items.forEach(it=>{ const s=it.str; if(!s||!s.trim()) return; const x=it.transform[4], y=it.transform[5];
+      let r=rows.find(r=>Math.abs(r.y-y)<2.5); if(!r){ r={p,y,items:[]}; rows.push(r); } r.items.push({x,s}); });
+    rows.sort((a,b)=>b.y-a.y).forEach(r=>{ r.items.sort((a,b)=>a.x-b.x); r.text=r.items.map(i=>i.s).join(' ').replace(/\s+/g,' ').trim(); out.push(r); }); }
+  return out; }
+const ddmm=s=>{ const m=String(s).match(/(\d{2})\/(\d{2})\/(\d{4})/); return m?m[3]+'-'+m[2]+'-'+m[1]:null; };
+const n2=s=>parseFloat(String(s).replace(/,/g,''));
+function parseDPpdf(L){ const all=L.map(r=>r.text).join('\n'); const g=re=>{ const m=all.match(re); return m?m[1]:null; };
+  const client=(g(/BackOffice\s*Code\s*:\s*([A-Z0-9]+)/i)||'').toUpperCase(), dpac=g(/\[\s*((?:IN[0-9A-Z]{6}\s*)?\d{8,16})\s*\]/);
+  if(!client) throw new Error('BackOffice Code (client code) not found in this DP statement');
+  const asOf=ddmm(g(/Holding\s+as\s+on\s+(\d{2}\/\d{2}\/\d{4})/i)||''), rateDate=ddmm(g(/Based\s+On\s*\[\s*(\d{2}\/\d{2}\/\d{4})/i)||''), rows=[];
+  L.forEach(r=>{ const m=r.text.match(/^(IN[A-Z0-9]{10})\s+(.+?)\s+([\d,]+\.?\d*)\s+([\d,]+\.?\d*)\s+([\d,]+\.?\d*)\s+([\d.]+)\s+([A-Za-z ]+)$/);
+    if(m) rows.push({isin:m[1],name:m[2].trim(),q:n2(m[3]),rate:n2(m[4]),value:n2(m[5]),pct:n2(m[6]),type:m[7].trim()}); });
+  if(!rows.length) throw new Error('no ISIN rows found in this DP statement');
+  const tot=all.match(/\bTotal\s+([\d,]+\.?\d*)\s+([\d,]+\.?\d*)/);
+  if(tot){ const tq=rows.reduce((a,x)=>a+x.q,0), tv=rows.reduce((a,x)=>a+x.value,0); if(Math.abs(tq-n2(tot[1]))>0.01||Math.abs(tv-n2(tot[2]))>1) throw new Error('row totals do not match the statement total - not imported'); }
+  return {client,dpac:dpac?dpac.replace(/\s+/g,''):'',asOf,rateDate,rows}; }
+function parseLedgerPdf(L){ const all=L.map(r=>r.text).join('\n');
+  const hm=all.match(/(?:^|\n)([^\n\[]{2,80}?)\s*\[\s*([A-Z0-9]{3,15})\s*\]/), client=hm?hm[2].toUpperCase():'', who=hm?hm[1].replace(/[\[\]]/g,'').trim():'';
+  if(!client) throw new Error('client code [CODE] not found in this ledger');
+  const per=all.match(/LEDGER\s*\[\s*(\d{2}\/\d{2}\/\d{4})\s*To\s*(\d{2}\/\d{2}\/\d{4})/i);
+  const words=who.split(/\s+/).filter(w=>w.length>2);
+  const scrub=t=>{ if(who) t=t.split(who).join(' '); words.forEach(w=>{ t=t.replace(new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi'),' '); }); return t.replace(/\[\s*[A-Z0-9]{3,15}\s*\]/g,' ').replace(/\s+/g,' ').trim(); };
+  const hi=L.findIndex(r=>/^Date\b.*Particular.*Debit.*Credit.*Balance/i.test(r.text)); if(hi<0) throw new Error('ledger columns (Date / Particular / Debit / Credit / Balance) not found');
+  const body=L.slice(hi+1).filter(r=>!/^\[.*\]$/.test(r.text)&&!/^(Sub Total|Grand Total|Page \d|Printed|\.$)/i.test(r.text)&&!/LEDGER\s*\[|COMPLIANCE OFFICER|Finance & Securities/i.test(r.text));
+  const dated=[], loose=[];
+  body.forEach(r=>{ const m=r.text.match(/^(\d{2}\/\d{2}\/\d{4})\s+(?:([A-Z]{1,3}\/\d+)\s+)?(.*?)\s*((?:[\d,]+\.\d{2}\s+){0,2})([\d,]+\.\d{2})\s*(Dr|Cr)$/i);
+    if(m) dated.push({r,d:ddmm(m[1]),v:m[2]||'',t:m[3],nums:(m[4]||'').trim().split(/\s+/).filter(Boolean).map(n2),bal:n2(m[5])*(/cr/i.test(m[6])?-1:1)});
+    else loose.push(r); });
+  if(!dated.length) throw new Error('no dated ledger entries found');
+  loose.forEach(r=>{ let best=null, bd=1e9; dated.forEach(d=>{ if(d.r.p!==r.p) return; const dd=Math.abs(d.r.y-r.y); if(dd<bd){ bd=dd; best=d; } }); if(best&&bd<30) (best.extra=best.extra||[]).push(r); });
+  const out=[]; let prev=null, bad=0;
+  dated.forEach(d=>{ const ex=d.extra||[], parts=[...ex.filter(x=>x.y>d.r.y).sort((a,b)=>b.y-a.y).map(x=>x.text),d.t,...ex.filter(x=>x.y<d.r.y).sort((a,b)=>b.y-a.y).map(x=>x.text)];
+    const n=scrub(parts.filter(Boolean).join(' ')), ob=/opening balance/i.test(n);
+    let dr=0, cr=0;
+    if(ob||prev==null){ if(d.bal>0) dr=d.bal; else cr=-d.bal; }
+    else { const dl=d.bal-prev; if(dl>=0) dr=dl; else cr=-dl; const amt=d.nums.length?d.nums[0]:null; if(amt!=null&&Math.abs(amt-Math.abs(dl))>0.05) bad++; }
+    prev=d.bal;
+    out.push({d:d.d,v:d.v,n:n||d.v,dr:+dr.toFixed(2),cr:+cr.toFixed(2),bal:d.bal,k:ob?'oth':kindOf(n,dr,cr,d.v)}); });
+  if(bad) throw new Error(bad+' entr'+(bad>1?'ies do':'y does')+' not agree with the running balance - not imported');
+  const gt=all.match(/Grand\s+Total\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s+([\d,]+\.\d{2})\s*(Dr|Cr)/i);
+  if(gt){ const last=out[out.length-1].bal, g2=n2(gt[3])*(/cr/i.test(gt[4])?-1:1); if(Math.abs(last-g2)>0.05) throw new Error('closing balance does not match the Grand Total - not imported'); }
+  return {client,from:per?ddmm(per[1]):null,to:per?ddmm(per[2]):null,entries:out}; }
+
 /* ---------- DP holdings (depository statement): client code + symbol / ISIN / security name + quantity ---------- */
 let ISIN=null;
 async function isinMap(){ if(ISIN) return ISIN; try{ ISIN=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/isin.json?x='+Math.floor(Date.now()/864e5),{cache:'no-store'}).then(r=>r.json()); }catch(e){ ISIN={i:{},n:{}}; } return ISIN; }
 function dp(){ return LS.get('jc_pf_dp',null)||{files:[],H:{}}; }
 function removeDP(c){ const D=dp(); if(c==null){ LS.set('jc_pf_dp',{files:[],H:{}}); return; } delete D.H[c]; D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); LS.set('jc_pf_dp',D); }
-async function importDP(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
+async function importDP(file){
+  if(/\.pdf$/i.test(file.name)){ const P=parseDPpdf(await pdfLines(await file.arrayBuffer())), M=await isinMap(), miss=[];
+    const H=P.rows.map(x=>{ const sym=M.i[x.isin]||''; if(!sym) miss.push(x.isin+' '+x.name); return {sym:sym||x.isin,isin:x.isin,sec:x.name,q:x.q,rate:x.rate,value:x.value,type:x.type,nse:!!sym}; });
+    const D=dp(); D.H[P.client]=H; D.M=D.M||{}; D.M[P.client]={dpac:P.dpac,asOf:P.asOf,rateDate:P.rateDate};
+    D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>c!==P.client)})).filter(f=>f.clients.length).concat([{name:file.name,at:dmy(todayS())+' '+ist().toISOString().slice(11,16),clients:[P.client]}]);
+    LS.set('jc_pf_dp',D);
+    driveSave('dp',file.name,[{client:P.client,csv:dpCSV(P.client,D)}]);
+    return 'DP holdings for '+P.client+(P.dpac?' (DP a/c '+P.dpac+')':'')+' · '+H.length+' ISINs as on '+dmy(P.asOf)+(miss.length?' · not on NSE list: '+miss.length:''); }
+
+  const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
   const r0=rows[0], cc=codeCol(r0,rows), ci=col(r0,/isin/i), cs=col(r0,/^symbol$|nse\s*symbol|scrip\s*code|trading\s*symbol/i), cn=col(r0,/security|scrip|stock|company|instrument|name/i),
-    cq=col(r0,/free|total.*(qty|bal|holding)|current.*bal|qty|quantity|holding|balance/i);
+    cq=col(r0,/^(holding|qty|quantity|free|free qty|free balance|current balance|total balance|balance)$/i)||col(r0,/free|total.*(qty|bal|holding)|current.*bal|qty|quantity|^holding|balance/i),
+    cdp=col(r0,/dp\s*a\/?c|dp\s*id|bo\s*id|demat\s*a|client\s*id\s*\(dp/i), crt=col(r0,/^rate$|price|close/i), cty=col(r0,/balance\s*type|^type$|pledge/i), cas=col(r0,/holding\s*as\s*on|as\s*on/i);
   if(!cq) throw new Error('quantity column not found'); if(!ci&&!cs&&!cn) throw new Error('need a Symbol, ISIN or Security name column');
-  const M=await isinMap(), one=cc?null:askCode(file), by={}, miss=new Set();
+  const M=await isinMap(), one=cc?null:askCode(file), by={}, meta={}, miss=new Set();
   rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(); if(!c) return; const q=Math.abs(num(r[cq])); if(!(q>0)) return;
     const isin=ci?String(r[ci]).trim().toUpperCase():''; let sym=cs?String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''):'';
     if(!sym&&isin) sym=M.i[isin]||''; if(!sym&&cn){ const k=String(r[cn]).toLowerCase().replace(/\b(limited|ltd)\b/g,'').replace(/[^a-z0-9]/g,''); sym=M.n[k]||''; }
     if(!sym){ miss.add(isin||String(r[cn]||'').trim()); return; }
-    const L=by[c]=by[c]||[]; const x=L.find(y=>y.sym===sym); if(x) x.q+=q; else L.push({sym,isin,q}); });
+    if(cdp||cas){ meta[c]=meta[c]||{}; if(cdp&&String(r[cdp]).trim()) meta[c].dpac=String(r[cdp]).trim(); if(cas){ const d=pdate(r[cas]); if(d) meta[c].asOf=d; } }
+    const L=by[c]=by[c]||[]; const x=L.find(y=>y.sym===sym); if(x) x.q+=q; else L.push({sym,isin,q,rate:crt?num(r[crt])||null:null,type:cty?String(r[cty]).trim():'',nse:!!(M.i[isin]||cs),sec:cn?String(r[cn]).trim():''}); });
   if(!Object.keys(by).length) throw new Error('no holdings matched an NSE symbol'+(miss.size?' (unmatched: '+[...miss].slice(0,5).join(', ')+')':''));
-  const D=dp(), cs2=Object.keys(by); cs2.forEach(c=>D.H[c]=by[c]);
+  const D=dp(), cs2=Object.keys(by); D.M=D.M||{}; cs2.forEach(c=>{ D.H[c]=by[c]; D.M[c]=Object.assign({},D.M[c]||{},meta[c]||{}); });
   D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>!cs2.includes(c))})).filter(f=>f.clients.length).concat([{name:file.name,at:dmy(todayS())+' '+ist().toISOString().slice(11,16),clients:cs2}]);
   LS.set('jc_pf_dp',D);
-  driveSave('dp',file.name,cs2.map(c=>({client:c,csv:'Client Code,Symbol,ISIN,Qty\n'+by[c].map(x=>[c,x.sym,x.isin,x.q].join(',')).join('\n')})));
+  driveSave('dp',file.name,cs2.map(c=>({client:c,csv:dpCSV(c,D)})));
   return 'DP holdings for '+cs2.join(', ')+(miss.size?' · '+miss.size+' line(s) not matched to an NSE symbol':''); }
 
 /* ---------- Google Drive: every upload is saved client-wise through the dashboard backend (admin passcode needed) ----------
@@ -244,8 +320,9 @@ async function importDP(file){ const rows=await readRows(file); if(!rows.length)
 const BE='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
 const q2=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
 const csvOf=(head,rows)=>head.join(',')+'\n'+rows.map(r=>r.map(q2).join(',')).join('\n');
+function dpCSV(c,D){ const m=(D.M||{})[c]||{}; return csvOf(['Client Code','DP A/c','Holding as on','Rate date','Symbol','ISIN','Security','Holding','Rate','Value','Balance type'],D.H[c].map(x=>[c,m.dpac||'',m.asOf||'',m.rateDate||'',x.sym,x.isin||'',x.sec||'',x.q,x.rate==null?'':x.rate,x.value==null?'':x.value,x.type||''])); }
 function tradeCSV(rows){ return csvOf(['Date','Client Code','Symbol','Buy/Sell','Qty','Rate'],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(x=>[x.d,x.c,x.sym,x.side==='S'?'SELL':'BUY',x.q,x.r])); }
-function ledgerCSV(c,en){ return Array.isArray(en)?csvOf(['Date','Client Code','Narration','Debit','Credit','Type'],en.map(e=>[e.d,c,e.n||'',e.dr||0,e.cr||0,e.k])):csvOf(['Client Code','Balance (Dr +)'],[[c,en]]); }
+function ledgerCSV(c,en){ return Array.isArray(en)?csvOf(['Date','Client Code','Voucher','Particulars','Debit','Credit','Balance (Dr +)','Type'],en.map(e=>[e.d,c,e.v||'',e.n||'',e.dr||0,e.cr||0,e.bal==null?'':e.bal,e.k])):csvOf(['Client Code','Balance (Dr +)'],[[c,en]]); }
 function toast(t,bad,html){ let d=document.getElementById('pfToast'); if(!d){ d=document.createElement('div'); d.id='pfToast'; document.body.appendChild(d); }
   d.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9990;max-width:420px;padding:10px 14px;border-radius:12px;font:700 12.5px Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);'+(bad?'background:#FBE3E1;color:#8a1010;border:1px solid #E29A93':'background:#E3F1DF;color:#1C5C0D;border:1px solid #8DC487');
   d[html?'innerHTML':'textContent']=t; clearTimeout(d._t); d._t=setTimeout(()=>d.remove(),bad?12000:7000); }
@@ -265,7 +342,14 @@ function driveLog(type,name,files,ok,err,root){ const L=LS.get('jc_pf_drive',[])
 async function driveAll(){ const t=tb(), L=led(), D=dp(), cs=[...new Set(t.trades.map(x=>x.c))], out=[];
   if(cs.length) out.push(await driveSave('trade','trade book (all entries)',cs.map(c=>({client:c,csv:tradeCSV(t.trades.filter(x=>x.c===c))}))));
   const lc=[...new Set([...Object.keys(L.E),...Object.keys(L.bal)])]; if(lc.length) out.push(await driveSave('ledger','ledger (all entries)',lc.map(c=>({client:c,csv:ledgerCSV(c,L.E[c]||L.bal[c])}))));
-  const dc=Object.keys(D.H); if(dc.length) out.push(await driveSave('dp','DP holdings (all)',dc.map(c=>({client:c,csv:'Client Code,Symbol,ISIN,Qty\n'+D.H[c].map(x=>[c,x.sym,x.isin,x.q].join(',')).join('\n')}))));
+  const dc=Object.keys(D.H); if(dc.length) out.push(await driveSave('dp','DP holdings (all)',dc.map(c=>({client:c,csv:dpCSV(c,D)}))));
   return out; }
-window.PF={importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
+/* blank CSV templates - only codes and statement fields; there is deliberately no column for names, addresses, PAN or phone */
+const TPL={
+  trade:['Date,Client Code,Symbol,Buy/Sell,Qty,Rate','20/11/2026,C0001,SBIN,BUY,100,1164.95'],
+  ledger:['Date,Client Code,Voucher,Particulars,Debit,Credit,Balance','01/04/2026,C0001,,Opening Balance,10000.00,0.00,10000.00 Dr','02/04/2026,C0001,R/101,Receipt by NEFT,0.00,10000.00,0.00 Dr'],
+  dp:['Client Code,DP A/c,Holding as on,ISIN,Symbol,Security,Holding,Rate,Value,Balance type','C0001,1203410000000000,21/11/2026,INE062A01020,SBIN,SBI - EQ,125,1164.95,145618.75,Beneficiary']};
+function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
+window.PF={template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
 })();
