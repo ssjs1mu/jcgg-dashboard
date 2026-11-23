@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portfolio report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+<style>
+/* Client portfolio report - A4, prints to PDF. Data: this browser's Portfolio (client code only, never names). */
+:root{--ol:#676300;--dk:#3f3c00;--kh:#A7A15D;--cr:#FBF8EC;--gold:#C9A94E;--up:#13863a;--dn:#c62828;--fd:#1f6fd1;--sv:#7c8aa0;--ink:#2E2C14;--mu:#6E6A45}
+*{box-sizing:border-box}html,body{margin:0;background:#e9e6d8;font:12px/1.38 Inter,Arial,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:210mm;height:297mm;margin:10px auto;background:#fff;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15);display:flex;flex-direction:column}
+@page{size:A4;margin:0}@media print{body{background:#fff}.page{margin:0;box-shadow:none;page-break-after:always}.noprint{display:none!important}}
+.hd{background:linear-gradient(135deg,#0b0b06 0%,#1d1b08 55%,#3f3c00 100%);color:#F3E6B5;padding:9px 20px 8px;display:flex;gap:14px;align-items:center}
+.hd img{height:56px}.hd .t{flex:1}.hd h1{margin:0;font:italic 700 26px 'Playfair Display',serif;color:#E8C96A;letter-spacing:.3px}
+.hd .s{font:600 11px Inter;color:#d9cf9c;letter-spacing:.08em;text-transform:uppercase}.hd .r{text-align:right;font:700 11px Inter;color:#F3E6B5}.hd .r b{display:block;font:900 18px Inter;color:#fff;letter-spacing:.04em}
+.band{height:5px;background:linear-gradient(90deg,#E8C96A,#A7A15D,#13863a,#1f6fd1,#E8C96A)}
+.bd{padding:8px 20px;flex:1;overflow:hidden}
+h2{font:900 12px Inter;letter-spacing:.09em;text-transform:uppercase;color:var(--dk);margin:9px 0 6px;display:flex;align-items:center;gap:8px}h2:after{content:'';flex:1;height:2px;background:linear-gradient(90deg,var(--kh),transparent)}
+h2 i{font-style:normal;width:24px;height:24px;border-radius:50%;background:var(--dk);color:#E8C96A;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.kp{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.k{border-radius:11px;padding:7px 11px;color:#fff;position:relative;overflow:hidden}
+.k span{display:block;font:800 10px Inter;letter-spacing:.07em;text-transform:uppercase;opacity:.9}.k b{display:block;font:900 19px Inter;margin-top:1px}.k small{font:600 10.5px Inter;opacity:.92}
+.k1{background:linear-gradient(135deg,#5f5b00,#8f8a2a)}.k2{background:linear-gradient(135deg,#0d6b3a,#22a35a)}.k3{background:linear-gradient(135deg,#a0761a,#E8B33A)}.k4{background:linear-gradient(135deg,#1a4f9c,#2f86e8)}.k5{background:linear-gradient(135deg,#7b2d8b,#b452c9)}.k6{background:linear-gradient(135deg,#b33b1f,#ef7d3b)}.kneg{background:linear-gradient(135deg,#9b1c1c,#e04848)!important}
+.row{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}.card{border:1px solid #E7E1C3;border-radius:11px;padding:8px 11px;background:var(--cr)}
+.big{font:900 15px Inter;color:var(--dk)}.pill{display:inline-block;padding:2px 9px;border-radius:20px;font:800 11px Inter;color:#fff}.pu{background:var(--up)}.pd{background:var(--dn)}.pf{background:var(--fd)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}th{background:var(--dk);color:#F3E6B5;font:800 9.5px Inter;letter-spacing:.04em;text-transform:uppercase;padding:4px 5px;text-align:right}th.l,td.l{text-align:left}
+td{padding:3px 5px;border-bottom:1px solid #EEE9D2;text-align:right}tr:nth-child(even) td{background:#FBF9EF}.tot td{background:#EEEAD5!important;font-weight:800}
+.up{color:var(--up);font-weight:800}.dn{color:var(--dn);font-weight:800}.mu{color:var(--mu)}
+ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:3px 0}
+.tl{position:relative;margin:4px 0 0 6px;padding-left:16px;border-left:3px solid var(--kh)}.tl2{columns:2;column-gap:26px}.ev{position:relative;margin:0 0 4px;break-inside:avoid}.ev:before{content:'';position:absolute;left:-23px;top:3px;width:11px;height:11px;border-radius:50%;background:var(--c,#676300);border:2px solid #fff;box-shadow:0 0 0 1px var(--c,#676300)}
+.ev b{font:800 11px Inter;color:var(--dk)}.ev span{font-size:11.5px}
+.ft{background:#0b0b06;color:#cfc59a;font:600 9.5px Inter;padding:8px 22px;display:flex;justify-content:space-between;gap:10px}
+.note{font-size:10.5px;color:var(--mu);line-height:1.45}
+.bar{display:flex;align-items:center;gap:8px;margin:6px 0}.bar .lb{width:118px;font:800 11px Inter}.bar .tr{flex:1;background:#EFEBD8;border-radius:8px;height:22px;position:relative;overflow:hidden}.bar .fl{height:100%;border-radius:8px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font:900 11.5px Inter;white-space:nowrap}
+.noprint{position:fixed;top:10px;right:10px;z-index:9;display:flex;gap:8px}.noprint button{font:800 13px Inter;padding:9px 16px;border-radius:9px;border:0;background:#3f3c00;color:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25)}
+#msg{max-width:760px;margin:40px auto;font:600 15px Inter;color:#3f3c00;text-align:center}
+</style></head><body>
+<div class="noprint"><button onclick="window.print()">⬇ Save as PDF / Print</button><button onclick="history.length>1?history.back():close()" style="background:#8a8466">✕ Close</button></div>
+<div id="root"><div id="msg">Preparing the report…</div></div>
+<script src="pf-core.js?v=21"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), P=new URLSearchParams(location.search), C=(P.get('c')||'').toUpperCase();
+const BE='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
+const inr=(v,d=0)=>v==null||!isFinite(v)?'–':(v<0?'−':'')+'₹'+Math.abs(Number(v)).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const num=(v,d=0)=>v==null||!isFinite(v)?'–':Number(v).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pc=(v,d=2)=>v==null||!isFinite(v)?'–':(v>=0?'+':'')+v.toFixed(d)+'%';
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dmy=d=>d?d.slice(8,10)+'-'+d.slice(5,7)+'-'+d.slice(0,4):'–';
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], dlong=d=>d?(+d.slice(8,10))+' '+MON[+d.slice(5,7)-1]+' '+d.slice(0,4):'–';
+const today=PF.todayS(), days=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5);
+/* bank benchmarks - SBI card rates (general public) at the date of each deposit; editable here when rates change */
+const FD_RATES=[['2000-01-01',6.80],['2025-04-15',6.70],['2025-05-16',6.50],['2025-06-15',6.25]];   // 1-2 yr FD
+const SB_RATES=[['2000-01-01',2.70],['2025-06-15',2.50]];                                            // savings bank
+const rateOn=(T,d)=>T.filter(x=>x[0]<=d).slice(-1)[0][1];
+/* the same money in a bank: each deposit is its own deposit at the rate of its day (quarterly compounding), withdrawals come out of the oldest */
+function bank(flows,T,toD){ const tr=[], val=(t,d)=>t.p*Math.pow(1+t.r/400,4*days(t.d,d)/365);
+  flows.slice().sort((a,b)=>a.d.localeCompare(b.d)).forEach(f=>{ if(f.v<0) tr.push({d:f.d,p:-f.v,r:rateOn(T,f.d)}); else { let w=f.v; while(w>0.005&&tr.length){ const t=tr[0], v=val(t,f.d); if(v<=w){ w-=v; tr.shift(); } else { t.p=(v-w)/Math.pow(1+t.r/400,4*days(t.d,f.d)/365); w=0; } } } });
+  return tr.reduce((a,t)=>a+val(t,toD),0); }
+async function quotes(syms){ const Q={}; if(!syms.length) return Q; try{ const j=await fetch(BE+'?action=liveq&symbols='+encodeURIComponent(syms.map(s=>s+'.NS').join(','))).then(r=>r.json());
+  Object.keys(j.q||{}).forEach(k=>{ const q=j.q[k]; if(q&&q[0]>0) Q[k.replace(/\.NS$/,'')]={p:q[0],pc:q[1]}; }); }catch(e){} return Q; }
+function donut(parts){ const tot=parts.reduce((a,p)=>a+p.v,0)||1, R=58, r=36, cx=70, cy=70; let a0=-Math.PI/2, s='';
+  const col=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3','#d64545','#8a8466','#5b7cfa'];
+  parts.forEach((p,i)=>{ const a1=a0+2*Math.PI*p.v/tot, la=a1-a0>Math.PI?1:0, P=(rr,a)=>[cx+rr*Math.cos(a),cy+rr*Math.sin(a)];
+    const [x0,y0]=P(R,a0),[x1,y1]=P(R,a1),[x2,y2]=P(r,a1),[x3,y3]=P(r,a0);
+    s+=parts.length===1?`<circle cx="${cx}" cy="${cy}" r="${(R+r)/2}" fill="none" stroke="${col[i]}" stroke-width="${R-r}"/>`:`<path d="M${x0},${y0}A${R},${R} 0 ${la} 1 ${x1},${y1}L${x2},${y2}A${r},${r} 0 ${la} 0 ${x3},${y3}Z" fill="${col[i%col.length]}"/>`; p.col=col[i%col.length]; a0=a1; });
+  return `<svg viewBox="0 0 140 140" width="140" height="140">${s}<text x="70" y="66" text-anchor="middle" font-family="Inter" font-weight="900" font-size="13" fill="#3f3c00">${parts.length}</text><text x="70" y="82" text-anchor="middle" font-family="Inter" font-weight="700" font-size="9" fill="#6E6A45">holdings</text></svg>`; }
+
+(async()=>{
+  if(!C){ $('msg').textContent='Choose a client in Portfolio and tap 📄 Client report.'; return; }
+  await PF.stateSync().catch(()=>0); await Promise.all([PF.isinMap(),PF.corpActs()]);
+  const T=PF.tb().trades.filter(t=>t.c===C), L=(PF.led().E[C]||[]).slice(), D=(PF.dp().H[C]||[]), M=(PF.dp().M||{})[C]||{};
+  if(!T.length&&!L.length&&!D.length){ $('msg').textContent='No data for '+C+' in this browser.'; return; }
+  const ST=PF.stat(), rateOf=PF.rateOfFrom(PF.rates()), E=PF.fundAdj(PF.compute(PF.caAdjust(T),ST,rateOf));
+  /* holdings: the DP statement when there is one (what is really in the demat), cost from the trade book */
+  const bills={}; L.forEach(e=>{ const m=String(e.n||'').match(/\((\d\d)\/(\d\d)\/(\d\d)\)/); if(e.k==='bill'&&m){ const d='20'+m[3]+'-'+m[2]+'-'+m[1]; bills[d]=(bills[d]||0)+e.dr-e.cr; } });
+  const dayNet={}, dayGross={}, dayStat={}; E.parts.forEach(p=>{ dayNet[p.d]=(dayNet[p.d]||0)+(p.side==='S'?-p.net:p.net); dayGross[p.d]=(dayGross[p.d]||0)+(p.side==='S'?-p.v:p.v); dayStat[p.d]=(dayStat[p.d]||0)+p.stt+p.exch+p.sebi+p.stamp+(p.exch+p.sebi)*ST.gst/100; });
+  const adj={}; Object.keys(dayNet).forEach(d=>{ if(bills[d]!=null&&Math.abs(dayNet[d])>1&&Math.sign(bills[d])===Math.sign(dayNet[d])) adj[d]=bills[d]/dayNet[d]; });   /* the bill is what the client really paid */
+  E.hold.forEach(h=>{ if(adj[h.d]) h.cost*=adj[h.d]; });
+  const book={}; E.hold.forEach(h=>{ const b=book[h.sym]=book[h.sym]||{q:0,cost:0,first:h.d}; b.q+=h.q; b.cost+=h.q*h.cost; if(h.d<b.first) b.first=h.d; });
+  let H=D.length?D.map(x=>({sym:PF.dpKey(x),sec:x.sec||'',q:x.q,rate:x.rate,isin:x.isin})):Object.keys(book).map(s=>({sym:s,q:book[s].q,rate:null}));
+  const Q=await quotes(H.map(h=>h.sym).filter(s=>!/^IN[A-Z0-9]{10}$/.test(s)));
+  H=H.map(h=>{ const b=book[h.sym], avg=b&&b.q?b.cost/b.q:null, p=Q[h.sym]?Q[h.sym].p:h.rate, v=p?h.q*p:0, c=avg!=null?avg*h.q:null; return Object.assign(h,{avg,p,v,c,pl:c!=null&&p?v-c:null,since:b&&b.first}); }).filter(h=>h.q>0).sort((a,b)=>b.v-a.v);
+  /* money in / out (ledger), dividends (NSE corporate actions, held on the record date), charges */
+  const kOf=e=>/deposit.*trf|trf.*dp ledger|amount trf from dp/i.test(e.n||'')?'dpdep':e.k;
+  const fin=L.filter(e=>e.k==='in'), fout=L.filter(e=>e.k==='out');
+  const dpDep=L.filter(e=>kOf(e)==='dpdep').reduce((a,e)=>a+e.dr-e.cr,0), dpChg=L.filter(e=>e.k==='dp'&&kOf(e)!=='dpdep').reduce((a,e)=>a+e.dr-e.cr,0), intr=L.filter(e=>e.k==='int').reduce((a,e)=>a+e.dr-e.cr,0);
+  const divs=PF.caRows(T,{[C]:D},(window.CAX||null)).filter(r=>!r.up&&r.div>0);
+  const divT=divs.reduce((a,r)=>a+r.div,0);
+  let tax=0, brk=0; Object.keys(dayNet).forEach(d=>{ const st=dayStat[d]; if(bills[d]!=null&&adj[d]){ const all=bills[d]-dayGross[d]; tax+=st; brk+=Math.max(0,all-st); } else { const P=E.parts.filter(p=>p.d===d); tax+=st; brk+=P.reduce((a,p)=>a+p.brk*(1+ST.gst/100),0); } });
+  const other=PF.caRows(T,{[C]:D}).filter(r=>!r.up&&!/^(div|bonus|split)$/.test(r.a.t));
+  const led=L.length?PF.ledBal(C):null, cash=led!=null?-led:0;   /* credit balance = client's money with the broker */
+  const hv=H.reduce((a,h)=>a+h.v,0), worth=hv+cash+Math.max(0,dpDep), inF=fin.reduce((a,e)=>a+e.cr-e.dr,0), outF=fout.reduce((a,e)=>a+e.dr-e.cr,0);
+  const useL=fin.length>0;  /* without receipts in the ledger the money put in is taken from the trades */
+  const flows=useL?fin.map(e=>({d:e.d,v:-(e.cr-e.dr)})).concat(fout.map(e=>({d:e.d,v:e.dr-e.cr}))):E.parts.map(p=>({d:p.d,v:p.side==='S'?p.net:-p.net}));
+  const netIn=-flows.reduce((a,f)=>a+f.v,0), start=flows.map(f=>f.d).sort()[0]||(T[0]&&T[0].d), held=days(start,today);
+  const gain=worth+divT-netIn, gp=netIn>0?gain/netIn*100:null;
+  const xf=flows.concat(divs.map(r=>({d:r.a.ex,v:r.div})),[{d:today,v:worth}]).sort((a,b)=>a.d.localeCompare(b.d)), xr=PF.xirr(xf);
+  const fdV=bank(flows,FD_RATES,today), sbV=bank(flows,SB_RATES,today), fdG=fdV-netIn, sbG=sbV-netIn, mine=worth+divT;
+  const fdX=PF.xirr(flows.concat([{d:today,v:fdV}]).sort((a,b)=>a.d.localeCompare(b.d))), sbX=PF.xirr(flows.concat([{d:today,v:sbV}]).sort((a,b)=>a.d.localeCompare(b.d)));
+  const stamp=new Date(Date.now()+19800000).toISOString(), asOf=dlong(today)+', '+stamp.slice(11,16)+' IST';
+  const maxV=Math.max(mine,fdV,sbV,netIn)*1.08;
+  const bar=(lab,v,col,sub)=>`<div class="bar"><div class="lb">${lab}<div class="mu" style="font:600 9.5px Inter">${sub||''}</div></div><div class="tr"><div class="fl" style="width:${Math.max(18,v/maxV*100)}%;background:${col}">${inr(v)}</div></div></div>`;
+  const ahead=mine-fdV;
+  /* journey: money in / out, buys and sells (one line per day), dividends */
+  const ev=[]; flows.forEach(f=>ev.push({d:f.d,c:f.v<0?'#13863a':'#c62828',t:f.v<0?'Money added':'Money paid out',s:inr(Math.abs(f.v),2)}));
+  const byDay={}; E.parts.forEach(p=>{ const k=p.d; (byDay[k]=byDay[k]||[]).push((p.side==='S'?'Sold ':'Bought ')+num(p.q)+' '+p.sym+' @ ₹'+num(p.r,2)); });
+  Object.keys(byDay).forEach(d=>ev.push({d,c:'#1f6fd1',t:'Trade',s:byDay[d].join(' · ')}));
+  other.forEach(r=>ev.push({d:r.a.ex,c:'#b452c9',t:r.a.sub,s:r.sym+' - '+num(r.q)+' shares held'}));
+  divs.forEach(r=>ev.push({d:r.a.ex,c:'#E8B33A',t:'Dividend',s:r.sym+' '+inr(r.div,2)+' ('+num(r.q)+' sh × ₹'+r.a.amt+')'}));
+  ev.sort((a,b)=>a.d.localeCompare(b.d));
+  const evShow=ev.length>16?ev.slice(0,7).concat([{d:'',c:'#8a8466',t:'…',s:(ev.length-14)+' more events'}],ev.slice(-7)):ev;
+  const dn=donut(H.map(h=>({v:h.v||0.0001,l:h.sym})));
+  const verdict=gp==null?'':(gain>=0?`Your investment has grown by <b class="up">${inr(gain)}</b> (${pc(gp)}) since ${dlong(start)}.`:`Your investment is <b class="dn">${inr(-gain)}</b> (${pc(gp)}) below the money put in since ${dlong(start)}.`);
+  const vsfd=ahead>=0?`That is <b class="up">${inr(ahead)} more</b> than the same money would have earned in a bank fixed deposit (${inr(fdV)}).`:`That is <b class="dn">${inr(-ahead)} less</b> than a bank fixed deposit would have earned (${inr(fdV)}) - equities move with the market; the gap can close and reverse with time.`;
+  const head=(pg,of)=>`<div class="hd"><img src="icons/jc-logo-3d.png" alt=""><div class="t"><h1>Your Portfolio Report</h1><div class="s">Joshi's Corner · SSJ Finance · Shares</div></div><div class="r">Client code<b>${esc(C)}</b>${asOf}<br>Page ${pg} of ${of}</div></div><div class="band"></div>`;
+  const foot=`<div class="ft"><span>Prepared by Joshi's Corner for client ${esc(C)} · ${asOf}</span><span>Market-linked investments carry risk. Past performance is not a guarantee of future returns.</span></div>`;
+  $('root').innerHTML=`
+  <div class="page">${head(1,2)}<div class="bd">
+    <h2><i>1</i>Your money at a glance</h2>
+    <div class="kp">
+      <div class="k k1"><span>Money you put in</span><b>${inr(netIn)}</b><small>${useL?num(fin.length)+' deposit'+(fin.length>1?'s':'')+(fout.length?' − '+num(fout.length)+' payout'+(fout.length>1?'s':''):''):'net of buys and sells'}</small></div>
+      <div class="k k2 ${mine<netIn?'kneg':''}"><span>Worth today</span><b>${inr(mine)}</b><small>shares ${inr(hv)}${cash>0.5?' + cash '+inr(cash):''}${dpDep>0.5?' + DP charges deposit '+inr(dpDep):''}${divT?' + dividends '+inr(divT):''}</small></div>
+      <div class="k k3 ${gain<0?'kneg':''}"><span>Your gain</span><b>${(gain>=0?'+':'')+inr(gain)}</b><small>${pc(gp)} on money put in</small></div>
+      <div class="k k4"><span>Yearly return (XIRR)</span><b>${xr==null?'–':pc(xr,1)}</b><small>per year, counts when money came in</small></div>
+    </div>
+    <div class="kp" style="margin-top:8px">
+      <div class="k k5"><span>Invested since</span><b style="font-size:17px">${dlong(start)}</b><small>${num(held)} days · ${(held/365).toFixed(1)} years</small></div>
+      <div class="k k6"><span>Dividends received</span><b>${inr(divT)}</b><small>${divs.length} payout${divs.length===1?'':'s'} - paid to your bank</small></div>
+      <div class="k" style="background:linear-gradient(135deg,#3f3c00,#7a7530)"><span>Holdings</span><b>${H.length}</b><small>${H.map(h=>h.sym).slice(0,4).join(' · ')}</small></div>
+      <div class="k" style="background:linear-gradient(135deg,#1f6fd1,#13863a)"><span>vs bank FD</span><b>${(ahead>=0?'+':'')+inr(ahead)}</b><small>${ahead>=0?'ahead of':'behind'} a fixed deposit</small></div>
+    </div>
+    <div class="card" style="margin-top:10px"><ul class="pts"><li>${verdict}</li><li>${vsfd}</li><li>Dividends of <b>${inr(divT)}</b> were paid by the companies directly to your bank account - they are counted in your return above.</li></ul></div>
+
+    <h2><i>2</i>Your portfolio vs keeping the money in a bank</h2>
+    <div class="row"><div class="card">
+      ${bar('Your portfolio',mine,'linear-gradient(90deg,#0d6b3a,#22a35a)','shares + dividends')}
+      ${bar('Bank FD',fdV,'linear-gradient(90deg,#1a4f9c,#2f86e8)','SBI 1–2 yr FD')}
+      ${bar('Savings account',sbV,'linear-gradient(90deg,#6d7a90,#9aa7bb)','SBI savings')}
+      ${bar('Money put in',netIn,'linear-gradient(90deg,#8a8466,#b7b089)','your deposits')}
+      <div class="note" style="margin-top:6px">Same deposits and withdrawals on the same dates in each case. Bank deposits at SBI's rate on the day of each deposit (FD ${FD_RATES.map(x=>x[1]).filter((v,i,a)=>a.indexOf(v)===i).join('% / ')}%, savings ${SB_RATES.map(x=>x[1]).join('% / ')}%), interest compounded quarterly, before tax.</div>
+    </div><div class="card">
+      <div class="big" style="margin-bottom:6px">Yearly return</div>
+      <table><thead><tr><th class="l">Where</th><th>Worth today</th><th>Gain</th><th>Per year</th></tr></thead><tbody>
+        <tr><td class="l"><b>Your portfolio</b></td><td>${inr(mine)}</td><td class="${gain>=0?'up':'dn'}">${inr(gain)}</td><td class="${(xr||0)>=(fdX||0)?'up':'dn'}"><b>${xr==null?'–':pc(xr,1)}</b></td></tr>
+        <tr><td class="l">Bank FD</td><td>${inr(fdV)}</td><td>${inr(fdG)}</td><td>${fdX==null?'–':pc(fdX,1)}</td></tr>
+        <tr><td class="l">Savings account</td><td>${inr(sbV)}</td><td>${inr(sbG)}</td><td>${sbX==null?'–':pc(sbX,1)}</td></tr>
+      </tbody></table>
+      <div style="margin-top:8px"><span class="pill ${ahead>=0?'pu':'pd'}">${ahead>=0?'▲ Ahead of FD by '+inr(ahead):'▼ Behind FD by '+inr(-ahead)}</span> <span class="pill pf">${ahead>=0&&fdV>netIn?'≈ '+(((mine-netIn)/(fdV-netIn))||0).toFixed(1)+'× the FD gain':'FD gain '+inr(fdG)}</span></div>
+      <div class="note" style="margin-top:6px">FD interest is taxed every year at your slab rate. Gains on shares held over 1 year are tax-free up to ₹1.25 lakh a year (12.5% above); under 1 year 20%.</div>
+    </div></div>
+
+    <h2><i>3</i>What you hold</h2>
+    <div class="row" style="grid-template-columns:150px 1fr;align-items:center"><div style="text-align:center">${dn}</div>
+      <table><thead><tr><th class="l">Share</th><th>Qty</th><th>Avg cost</th><th>Price now</th><th>Value</th><th>Gain</th><th>%</th><th>Share of portfolio</th></tr></thead><tbody>
+      ${H.map((h,i)=>`<tr><td class="l"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3','#d64545','#8a8466','#5b7cfa'][i%10]};margin-right:5px"></span><b>${esc(h.sym)}</b><div class="mu" style="font-size:9.5px">${esc(h.sec)}${h.since?' · since '+dmy(h.since):''}</div></td><td>${num(h.q)}</td><td>${h.avg!=null?num(h.avg,2):'–'}</td><td>${h.p?num(h.p,2):'–'}</td><td><b>${inr(h.v)}</b></td><td class="${(h.pl||0)>=0?'up':'dn'}">${h.pl!=null?inr(h.pl):'–'}</td><td class="${(h.pl||0)>=0?'up':'dn'}">${h.pl!=null&&h.c?pc(h.pl/h.c*100,1):'–'}</td><td>${hv?(h.v/hv*100).toFixed(1)+'%':'–'}</td></tr>`).join('')}
+      <tr class="tot"><td class="l">Total</td><td></td><td></td><td></td><td>${inr(hv)}</td><td class="${H.reduce((a,h)=>a+(h.pl||0),0)>=0?'up':'dn'}">${inr(H.reduce((a,h)=>a+(h.pl||0),0))}</td><td></td><td>100%</td></tr></tbody></table></div>
+    ${other.filter(r=>/demerger/i.test(r.a.sub)).map(r=>`<div class="note" style="margin:4px 0;color:#7b2d8b"><b>${esc(r.sym)}</b>: demerger on ${dlong(r.a.ex)} - part of the company was split off into a new listed company, so part of the original cost and value moved there and the ${esc(r.sym)} price fell by that amount. Shares of the new company${r.q<10?' (a fraction, for '+num(r.q)+' shares held) are paid in cash to your bank':' are in your demat'}.</div>`).join('')}
+    <div class="note">Prices: NSE, ${asOf}. Quantities from your DP holding statement${M.asOf?' as on '+dlong(M.asOf):''}${M.dpac?' (DP a/c '+esc(M.dpac)+')':''}. Average cost includes brokerage and taxes.</div>
+  </div>${foot}</div>
+
+  <div class="page">${head(2,2)}<div class="bd">
+    <h2><i>4</i>Your investment journey</h2>
+    <div class="tl ${evShow.length>9?'tl2':''}" style="margin-bottom:8px">${evShow.map(e=>`<div class="ev" style="--c:${e.c}"><b>${e.d?dlong(e.d):''} · ${e.t}</b><br><span>${esc(e.s)}</span></div>`).join('')}</div>
+    <div class="row" style="grid-template-columns:1.15fr 1fr">
+      <div class="card"><div class="big">Dividends received</div>
+        ${divs.length?`<table style="margin-top:4px"><thead><tr><th class="l">Date</th><th class="l">Share</th><th>Shares</th><th>₹ / share</th><th>Amount</th></tr></thead><tbody>${divs.slice().sort((a,b)=>a.a.ex.localeCompare(b.a.ex)).map(r=>`<tr><td class="l" style="white-space:nowrap">${dmy(r.a.ex)}</td><td class="l">${esc(r.sym)}</td><td>${num(r.q)}</td><td>${num(r.a.amt,2)}</td><td class="up">${inr(r.div,2)}</td></tr>`).join('')}<tr class="tot"><td class="l" colspan="4">Total</td><td class="up">${inr(divT,2)}</td></tr></tbody></table>`:'<div class="note">No dividend yet on these holdings.</div>'}
+      </div>
+      <div class="card" style="margin-top:10px"><div class="big">Costs of investing</div>
+        <table style="margin-top:4px"><tbody>
+          <tr><td class="l">Brokerage (incl. GST)</td><td>${inr(brk,2)}</td></tr><tr><td class="l">Govt. taxes &amp; charges (STT, stamp duty, exchange, SEBI)</td><td>${inr(tax,2)}</td></tr>
+          <tr><td class="l">DP / demat charges</td><td>${inr(dpChg,2)}</td></tr>${intr?`<tr><td class="l">Interest on borrowed funds</td><td>${inr(intr,2)}</td></tr>`:''}
+          <tr class="tot"><td class="l">Total</td><td>${inr(brk+tax+dpChg+intr,2)}</td></tr></tbody></table>
+        <div class="note">Taken from your ledger bills where available. Already included in the figures on page 1.</div></div>
+    </div>
+
+    <h2><i>5</i>What this means for you</h2>
+    <div class="card"><ul class="pts">
+      <li>Since <b>${dlong(start)}</b> you have put in <b>${inr(netIn)}</b>; today it is worth <b>${inr(mine)}</b> including dividends.</li>
+      <li>Your money earned <b>${xr==null?'–':pc(xr,1)}</b> a year, against <b>${fdX==null?'–':pc(fdX,1)}</b> in a bank FD and <b>${sbX==null?'–':pc(sbX,1)}</b> in a savings account.</li>
+      <li>${ahead>=0?`Choosing shares over a fixed deposit has added <b class="up">${inr(ahead)}</b> to your wealth so far.`:`For now the portfolio is <b class="dn">${inr(-ahead)}</b> behind a fixed deposit. Share prices rise and fall; over longer periods quality companies have historically beaten bank deposits.`}</li>
+      <li>Your holdings are in ${H.length} compan${H.length===1?'y':'ies'}${H[0]?' - the largest is '+esc(H[0].sym)+' at '+(hv?(H[0].v/hv*100).toFixed(0):'0')+'% of the portfolio':''}. Spreading across more sectors lowers the risk of any one company.</li>
+      ${dpDep>0.5?`<li>${inr(dpDep)} is kept in your DP account to pay future demat charges - it is still your money and is counted in "worth today".</li>`:''}
+    </ul></div>
+    <h2><i>6</i>How the numbers are worked out</h2>
+    <div class="note"><ul class="pts">
+      <li><b>Money put in</b> = receipts in your ledger minus payouts to you${useL?'':' (from the trades: purchases minus sales)'}. <b>Worth today</b> = shares at today's NSE price${cash>0.5?' + credit balance with the broker':''}${dpDep>0.5?' + DP deposit':''} + dividends received.</li>
+      <li><b>Yearly return (XIRR)</b> treats each deposit, payout and dividend on its own date - the fair way to compare with a bank deposit.</li>
+      <li><b>Bank comparison</b>: each deposit placed on the same day in an SBI fixed deposit / savings account at SBI's card rate for that day (FD 1–2 yr: 6.80% to 14 Apr 2025, 6.70% from 15 Apr, 6.50% from 16 May, 6.25% from 15 Jun 2025; savings 2.70% then 2.50%), interest compounded quarterly, before tax; payouts taken from the oldest deposit.</li>
+      <li>Dividends: NSE corporate-action records; counted when you held the shares on the record date.</li>
+      <li>This report uses only your client code - no personal details. It is for information and is not an offer or advice to buy or sell any security.</li>
+    </ul></div>
+  </div>${foot}</div>`;
+  document.title=C+' Portfolio report '+today;
+  if(P.get('print')==='1') setTimeout(()=>window.print(),900);
+})().catch(e=>{ $('msg').textContent='Could not build the report - '+e.message; });
+</script></body></html>
