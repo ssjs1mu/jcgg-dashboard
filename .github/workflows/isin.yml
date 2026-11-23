@@ -1,0 +1,34 @@
+name: ISIN list (DP holdings matching)
+# NSE's free equity list -> data/isin.json (ISIN -> symbol, company name -> symbol) so DP holding statements that list ISIN / security
+# name match the trade book. Weekly; run by hand after new listings.
+on:
+  schedule: [{ cron: '17 1 * * 1' }]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  isin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          curl -sSfL -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124 Safari/537.36' -o /tmp/eq.csv https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv
+          python3 - <<'PY'
+          import csv, io, json, re
+          rows = list(csv.DictReader(io.StringIO(open('/tmp/eq.csv', encoding='latin-1').read())))
+          i, n = {}, {}
+          for r in rows:
+              r = {k.strip(): (v or '').strip() for k, v in r.items()}
+              s, isin, nm = r.get('SYMBOL'), r.get(' ISIN NUMBER') or r.get('ISIN NUMBER'), r.get('NAME OF COMPANY', '')
+              if not s or not isin: continue
+              i[isin] = s
+              k = re.sub(r'[^a-z0-9]', '', re.sub(r'\b(limited|ltd)\b', '', nm.lower()))
+              if k: n[k] = s
+          assert len(i) > 1000, len(i)
+          json.dump({'note': 'NSE EQUITY_L.csv - ISIN and company name to NSE symbol', 'i': i, 'n': n}, open('data/isin.json', 'w'), separators=(',', ':'))
+          print(len(i), 'ISINs')
+          PY
+      - run: |
+          git config user.name 'github-actions[bot]'; git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/isin.json; git diff --cached --quiet && exit 0
+          git commit -qm "data: ISIN list $(date -u +%F)"; git push -q

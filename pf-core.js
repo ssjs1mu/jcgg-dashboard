@@ -198,7 +198,9 @@ async function importTrades(file){ const rows=await readRows(file); if(!rows.len
   const out=[]; rows.forEach(r=>{ const d=pdate(r[cd]), q=Math.abs(num(r[cq])), rt=num(r[cr]), side=/^s/i.test(String(r[cb]).trim())?'S':/^b/i.test(String(r[cb]).trim())?'B':null, c=one||String(r[cc]).trim().toUpperCase();
     if(d&&q>0&&rt>0&&side&&c) out.push({d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}); });
   if(!out.length) throw new Error('no valid fills (check dates, quantities, rates and Buy/Sell)');
-  const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out); return out.length+' fills for '+cl.join(', '); }
+  const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
+  driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
+  return out.length+' fills for '+cl.join(', '); }
 async function importLedger(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
   const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cdr=col(r0,/^dr$|debit/i), ccr=col(r0,/^cr$|credit/i), cbal=col(r0,/bal/i), cn=col(r0,/narr|particular|descr|remark|detail|voucher/i);
   if(!(cdr&&ccr)&&!cbal) throw new Error('need Debit + Credit columns or a Balance column');
@@ -207,9 +209,63 @@ async function importLedger(file){ const rows=await readRows(file); if(!rows.len
     rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(), d=pdate(r[cd]); if(!c||!d) return; const dr=Math.abs(num(r[cdr])), cr=Math.abs(num(r[ccr])), n=cn?String(r[cn]).trim():'';
       if(!dr&&!cr) return; (by[c]=by[c]||[]).push({d,dr,cr,n,k:/opening|b\/f|brought f/i.test(n)?'oth':kindOf(n,dr,cr)}); });
     if(!Object.keys(by).length) throw new Error('no dated debit / credit rows');
-    const cl=addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),by,false); return 'ledger entries for '+cl.join(', '); }
+    const cl=addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),by,false);
+    driveSave('ledger',file.name,cl.map(c=>({client:c,csv:ledgerCSV(c,by[c])})));
+    return 'ledger entries for '+cl.join(', '); }
   rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(); if(!c) return; const d=cd?pdate(r[cd])||'':''; const s2=String(r[cbal]); let v=num(s2); if(/cr/i.test(s2)) v=-Math.abs(v); else if(/dr/i.test(s2)) v=Math.abs(v); if(!last[c]||d>=last[c]){ last[c]=d; by[c]=v; } });
-  const cl=addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),by,true); return 'balances for '+cl.join(', ')+' (no entries - debit ageing needs Date / Debit / Credit rows)'; }
+  const cl=addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),by,true);
+  driveSave('ledger',file.name,cl.map(c=>({client:c,csv:ledgerCSV(c,by[c])})));
+  return 'balances for '+cl.join(', ')+' (no entries - debit ageing needs Date / Debit / Credit rows)'; }
 
-window.PF={importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
+/* ---------- DP holdings (depository statement): client code + symbol / ISIN / security name + quantity ---------- */
+let ISIN=null;
+async function isinMap(){ if(ISIN) return ISIN; try{ ISIN=await fetch('data/isin.json?x='+Math.floor(Date.now()/864e5),{cache:'no-store'}).then(r=>r.json()); }catch(e){ ISIN={i:{},n:{}}; } return ISIN; }
+function dp(){ return LS.get('jc_pf_dp',null)||{files:[],H:{}}; }
+function removeDP(c){ const D=dp(); if(c==null){ LS.set('jc_pf_dp',{files:[],H:{}}); return; } delete D.H[c]; D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); LS.set('jc_pf_dp',D); }
+async function importDP(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
+  const r0=rows[0], cc=codeCol(r0,rows), ci=col(r0,/isin/i), cs=col(r0,/^symbol$|nse\s*symbol|scrip\s*code|trading\s*symbol/i), cn=col(r0,/security|scrip|stock|company|instrument|name/i),
+    cq=col(r0,/free|total.*(qty|bal|holding)|current.*bal|qty|quantity|holding|balance/i);
+  if(!cq) throw new Error('quantity column not found'); if(!ci&&!cs&&!cn) throw new Error('need a Symbol, ISIN or Security name column');
+  const M=await isinMap(), one=cc?null:askCode(file), by={}, miss=new Set();
+  rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(); if(!c) return; const q=Math.abs(num(r[cq])); if(!(q>0)) return;
+    const isin=ci?String(r[ci]).trim().toUpperCase():''; let sym=cs?String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''):'';
+    if(!sym&&isin) sym=M.i[isin]||''; if(!sym&&cn){ const k=String(r[cn]).toLowerCase().replace(/\b(limited|ltd)\b/g,'').replace(/[^a-z0-9]/g,''); sym=M.n[k]||''; }
+    if(!sym){ miss.add(isin||String(r[cn]||'').trim()); return; }
+    const L=by[c]=by[c]||[]; const x=L.find(y=>y.sym===sym); if(x) x.q+=q; else L.push({sym,isin,q}); });
+  if(!Object.keys(by).length) throw new Error('no holdings matched an NSE symbol'+(miss.size?' (unmatched: '+[...miss].slice(0,5).join(', ')+')':''));
+  const D=dp(), cs2=Object.keys(by); cs2.forEach(c=>D.H[c]=by[c]);
+  D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>!cs2.includes(c))})).filter(f=>f.clients.length).concat([{name:file.name,at:dmy(todayS())+' '+ist().toISOString().slice(11,16),clients:cs2}]);
+  LS.set('jc_pf_dp',D);
+  driveSave('dp',file.name,cs2.map(c=>({client:c,csv:'Client Code,Symbol,ISIN,Qty\n'+by[c].map(x=>[c,x.sym,x.isin,x.q].join(',')).join('\n')})));
+  return 'DP holdings for '+cs2.join(', ')+(miss.size?' · '+miss.size+' line(s) not matched to an NSE symbol':''); }
+
+/* ---------- Google Drive: every upload is saved client-wise through the dashboard backend (admin passcode needed) ----------
+   Drive: Joshi's Corner - Client Uploads / Trade files | Ledger | DP holdings / <client code> / <code> <type> <date time> (<file>).csv */
+const BE='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
+const q2=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+const csvOf=(head,rows)=>head.join(',')+'\n'+rows.map(r=>r.map(q2).join(',')).join('\n');
+function tradeCSV(rows){ return csvOf(['Date','Client Code','Symbol','Buy/Sell','Qty','Rate'],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(x=>[x.d,x.c,x.sym,x.side==='S'?'SELL':'BUY',x.q,x.r])); }
+function ledgerCSV(c,en){ return Array.isArray(en)?csvOf(['Date','Client Code','Narration','Debit','Credit','Type'],en.map(e=>[e.d,c,e.n||'',e.dr||0,e.cr||0,e.k])):csvOf(['Client Code','Balance (Dr +)'],[[c,en]]); }
+function toast(t,bad,html){ let d=document.getElementById('pfToast'); if(!d){ d=document.createElement('div'); d.id='pfToast'; document.body.appendChild(d); }
+  d.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9990;max-width:420px;padding:10px 14px;border-radius:12px;font:700 12.5px Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);'+(bad?'background:#FBE3E1;color:#8a1010;border:1px solid #E29A93':'background:#E3F1DF;color:#1C5C0D;border:1px solid #8DC487');
+  d[html?'innerHTML':'textContent']=t; clearTimeout(d._t); d._t=setTimeout(()=>d.remove(),bad?12000:7000); }
+const akey=()=>{ try{ return localStorage.getItem('jc_admin_key')||''; }catch(e){ return ''; } };
+async function driveSave(type,name,files,again){ if(!files.length) return null;
+  let k=akey(); if(!k){ k=prompt('Admin passcode (the one that locks the client watchlists) - needed once on this device to save uploads to Google Drive:','')||''; if(!k){ driveLog(type,name,files,false,'no passcode - not saved to Drive'); toast('Not saved to Drive - no passcode. Use ☁ Save all to Drive later.',true); return null; } try{ localStorage.setItem('jc_admin_key',k); }catch(e){} }
+  try{ const r=await fetch(BE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'pf_save',key:k,type,name,files})});
+    const j=JSON.parse(await r.text()); if(j.error) throw new Error(j.error);
+    driveLog(type,name,files,true,'',j.root);
+    toast('☁ Saved to Drive · '+esc2(j.type)+' · '+j.saved.map(x=>'<a href="'+x.folder+'" target="_blank" rel="noopener">'+esc2(x.client)+'</a>').join(', '),false,true); return j; }
+  catch(e){ const m=String(e.message||e);
+    if(/bad passcode/.test(m)&&!again){ try{ localStorage.removeItem('jc_admin_key'); }catch(x){} return driveSave(type,name,files,true); }
+    driveLog(type,name,files,false,m); toast('Not saved to Drive - '+m+'. Use ☁ Save all to Drive to retry.',true); return null; } }
+const esc2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function driveLog(type,name,files,ok,err,root){ const L=LS.get('jc_pf_drive',[]); L.unshift({t:Date.now(),type,name,clients:files.map(f=>f.client),ok,err:err||'',root:root||''}); LS.set('jc_pf_drive',L.slice(0,60)); }
+/* push everything held in this browser (uploads + entered trades) to Drive, client-wise */
+async function driveAll(){ const t=tb(), L=led(), D=dp(), cs=[...new Set(t.trades.map(x=>x.c))], out=[];
+  if(cs.length) out.push(await driveSave('trade','trade book (all entries)',cs.map(c=>({client:c,csv:tradeCSV(t.trades.filter(x=>x.c===c))}))));
+  const lc=[...new Set([...Object.keys(L.E),...Object.keys(L.bal)])]; if(lc.length) out.push(await driveSave('ledger','ledger (all entries)',lc.map(c=>({client:c,csv:ledgerCSV(c,L.E[c]||L.bal[c])}))));
+  const dc=Object.keys(D.H); if(dc.length) out.push(await driveSave('dp','DP holdings (all)',dc.map(c=>({client:c,csv:'Client Code,Symbol,ISIN,Qty\n'+D.H[c].map(x=>[c,x.sym,x.isin,x.q].join(',')).join('\n')}))));
+  return out; }
+window.PF={importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
 })();

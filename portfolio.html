@@ -58,6 +58,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
   <select id="mf"><option value="all">All holdings</option><option value="T">Trading</option><option value="I">Investment</option><option value="U">Not marked</option><option value="trig">With alerts</option></select></span>
   <button class="btn" id="upT" title="Trade book: CSV or Excel with Date, Client, Symbol, Buy/Sell, Qty, Rate">⬆ Trade book</button>
   <button class="btn" id="upL" title="Ledger: CSV or Excel with Date, Client, Debit, Credit (and/or Balance)">⬆ Ledger</button>
+  <button class="btn" id="upD" title="DP holdings statement: CSV or Excel with client code, symbol / ISIN / security name, quantity">⬆ DP holdings</button><input type="file" id="fD" accept=".csv,.xlsx,.xls" hidden>
   <button class="btn" id="upM" title="See and remove uploaded trade books and ledgers, client-wise">🗂 Uploads</button>
   <button class="btn" id="rf">↻ Prices</button>
   <input type="file" id="fT" accept=".csv,.xlsx,.xls" hidden><input type="file" id="fL" accept=".csv,.xlsx,.xls" hidden>
@@ -69,7 +70,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, charges &amp; interest (per client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploaded trade books and ledgers stay in this browser only - nothing is sent anywhere or saved online. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=4"></script>
+<script src="pf-core.js?v=5"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -108,7 +109,7 @@ function compute(){ const E=PF.compute(TR,STAT,rateOf); E.lr=PF.recovery(E); ret
 function ledgerBal(c){ return PF.ledBal(c); }
 
 /* ---------- prices ---------- */
-async function prices(force){ const syms=[...new Set(TR.map(t=>t.sym))]; if(!syms.length) return;
+async function prices(force){ const D=PF.dp(), syms=[...new Set([...TR.map(t=>t.sym),...Object.values(D.H).flat().map(x=>x.sym)])]; if(!syms.length) return;
   try{ const c=new AbortController(); setTimeout(()=>c.abort(),15000);
     const j=await fetch(BACKEND+'?action=liveq&symbols='+encodeURIComponent(syms.map(s=>s+'.NS').join(',')),{signal:c.signal}).then(r=>r.json());
     if(j&&j.q){ Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]>0) Q[k.replace(/\.NS$/,'')]={p:q[0],pc:q[1],t:q[7]}; }); Qat=Date.now(); calcRSI(); }
@@ -175,7 +176,7 @@ function render(){
     K('P&amp;L after holding cost',`<span class="${cls(S.after)}">${sgn(S.after,0)}</span>`,S.inv?pc((S.unr-S.hcOpen)/(S.inv+S.hcOpen)*100)+' on open holdings incl. interest':'')+
     K('Charges paid',fx(S.chg,0),'brokerage + taxes + DP')+
     K('Loss to recover',`<span class="${S.bal>0?'dn':''}">${fx(S.bal?-S.bal:0,0)}</span>`,'booked losses '+fx(S.lossB,0)+' · recovered '+fx(S.recd,0));
-  let h=liqHtml(E,clients)+acctHtml(E,clients,inC);
+  let h=liqHtml(E,clients)+acctHtml(E,clients,inC)+dpHtml(E,clients);
   if(CL==='ALL'){ const cs=[...new Set(TR.map(t=>t.c))].sort();
     h+=`<h3 class="sec">Clients <small>click a client to open</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th>Portfolio size</th><th>Invested</th><th>Ledger</th><th>Net balance</th><th>Unrealised</th><th>%</th><th>Booked</th><th>Total P&amp;L</th><th>%</th><th>Holding cost</th><th>After cost</th></tr></thead><tbody>`+
       cs.map(c=>{ const s=sum(c); return `<tr data-c="${esc(c)}" style="cursor:pointer"><td class="l"><b>${esc(c)}</b></td><td>${fx(s.val,0)}</td><td>${fx(s.inv,0)}</td><td>${drcr(s.led)}</td><td class="${cls(s.net)}">${sgn(s.net,0)}</td><td class="${cls(s.unr)}">${sgn(s.unr,0)}</td><td class="${cls(s.pct)}">${pc(s.pct)}</td><td class="${cls(s.rel+s.ipl)}">${sgn(s.rel+s.ipl,0)}</td><td class="${cls(s.tot)}">${sgn(s.tot,0)}</td><td class="${cls(s.totPct)}">${pc(s.totPct)}</td><td class="dn">${fx(-s.hc,0)}</td><td class="${cls(s.after)}">${sgn(s.after,0)}</td></tr>`; }).join('')+
@@ -236,6 +237,17 @@ function liqHtml(E,clients){ const out=[];
       `<tr class="tot"><td class="l" colspan="5">Raised ${o.L.short>0?'- short by '+fx(o.L.short,0):''}</td><td>${fx(o.L.got,0)}</td><td colspan="2"></td></tr></tbody></table></div>`):'';
     return `<div style="background:#fff;border:2px solid ${o.lvl>1?'#E29A93':'#E7CF8A'};border-radius:12px;margin-bottom:8px">${head}${unp}${sug}</div>`; }).join(''); }
 
+/* ---------- DP holdings vs trade book ---------- */
+function dpHtml(E,clients){ const D=PF.dp(); if(!Object.keys(D.H).length) return '';
+  const rows=[]; clients.filter(c=>(CL==='ALL'||c===CL)).forEach(c=>{ const dh=D.H[c]; if(!dh) return; const bk={};
+    E.hold.filter(h=>h.c===c).forEach(h=>bk[h.sym]=(bk[h.sym]||0)+h.q);
+    [...new Set([...dh.map(x=>x.sym),...Object.keys(bk)])].filter(sy=>!SYF||sy.includes(SYF.toUpperCase())).sort().forEach(sy=>{ const d=(dh.find(x=>x.sym===sy)||{}).q||0, b=bk[sy]||0, q=Q[sy];
+      rows.push({c,sy,d,b,diff:d-b,p:q?q.p:null}); }); });
+  if(!rows.length) return '';
+  const tv=rows.reduce((a,r)=>a+(r.p?r.d*r.p:0),0), bad=rows.filter(r=>Math.abs(r.diff)>0.0001).length;
+  return `<h3 class="sec">DP holdings vs trade book <small>${bad?'<b class="dn">'+bad+' mismatch'+(bad>1?'es':'')+'</b> · ':'all quantities match · '}DP value ${fx(tv,0)} at market</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client code</th><th class="l">Script</th><th>DP qty</th><th>Trade book qty</th><th>Difference</th><th>CMP</th><th>DP value</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr${Math.abs(r.diff)>0.0001?' class="hot"':''}><td class="l"><b>${esc(r.c)}</b></td><td class="l"><b>${esc(r.sy)}</b>${!r.b&&r.d?'<span class="chip ls">not in trade book</span>':''}${r.b&&!r.d?'<span class="chip bk">not in DP</span>':''}</td><td>${fx(r.d,0)}</td><td>${fx(r.b,0)}</td><td class="${r.diff?(r.diff>0?'up':'dn'):'mu'}">${r.diff?sgn(r.diff,0):'✓'}</td><td>${r.p?fx(r.p):'–'}</td><td>${r.p?fx(r.d*r.p,0):'–'}</td></tr>`).join('')+'</tbody></table></div>'; }
+
 /* ---------- client account: funds in / out, interest, DP, charges, investment return ---------- */
 function acct(c,E){ const L=PF.led(), en=L.E[c]||null, f=x=>x.c===c;
   const val=E.hold.filter(f).reduce((a,x)=>a+(Q[x.sym]?x.q*Q[x.sym].p:x.q*x.cost),0);
@@ -263,8 +275,13 @@ function uploadsPanel(){ const T=PF.tb(), L=PF.led(), tc={}; T.trades.forEach(x=
    <div><b>Trade books</b> ${Object.keys(tc).length?`<button class="btn" data-rt="*">Remove all</button>`:''}<table class="x" style="width:auto;margin-top:4px"><thead><tr><th class="l">Client code</th><th>Fills</th><th></th></tr></thead><tbody>${Object.keys(tc).sort().map(c=>`<tr><td class="l"><b>${esc(c)}</b></td><td>${tc[c]}</td><td><button class="btn" data-rt="${esc(c)}">✕ Remove</button></td></tr>`).join('')||'<tr><td class="l mu" colspan="3">None uploaded</td></tr>'}</tbody></table>
     <div class="note">${T.trades.length?'':'No trades yet - upload a trade book or use ＋ Add trade.'}</div></div>
    <div><b>Ledgers</b> ${lc.length?`<button class="btn" data-rl="*">Remove all</button>`:''}<table class="x" style="width:auto;margin-top:4px"><thead><tr><th class="l">Client code</th><th>Entries</th><th></th></tr></thead><tbody>${lc.map(c=>`<tr><td class="l"><b>${esc(c)}</b></td><td>${L.E[c]?L.E[c].length:'balance only'}</td><td><button class="btn" data-rl="${esc(c)}">✕ Remove</button></td></tr>`).join('')||'<tr><td class="l mu" colspan="3">None uploaded</td></tr>'}</tbody></table></div></div>
+   <div><b>DP holdings</b> ${Object.keys(PF.dp().H).length?`<button class="btn" data-rd="*">Remove all</button>`:''}<table class="x" style="width:auto;margin-top:4px"><thead><tr><th class="l">Client code</th><th>Scripts</th><th></th></tr></thead><tbody>${Object.keys(PF.dp().H).sort().map(c=>`<tr><td class="l"><b>${esc(c)}</b></td><td>${PF.dp().H[c].length}</td><td><button class="btn" data-rd="${esc(c)}">✕ Remove</button></td></tr>`).join('')||'<tr><td class="l mu" colspan="3">None uploaded</td></tr>'}</tbody></table></div>
+   <div style="min-width:280px"><b>Google Drive</b> <button class="btn p" id="drAll">☁ Save all to Drive</button>${(()=>{ const D=LS.get('jc_pf_drive',[]), root=(D.find(x=>x.root)||{}).root; return (root?` <a class="btn" href="${esc(root)}" target="_blank" rel="noopener">Open Drive folder ▸</a>`:'')+'<table class="x" style="width:auto;margin-top:4px"><thead><tr><th class="l">When</th><th class="l">Type</th><th class="l">Clients</th><th class="l">Status</th></tr></thead><tbody>'+(D.slice(0,12).map(x=>`<tr><td class="l">${new Date(x.t+19800000).toISOString().slice(5,16).replace('T',' ')}</td><td class="l">${esc({trade:'Trade file',ledger:'Ledger',dp:'DP holdings'}[x.type]||x.type)}</td><td class="l">${esc(x.clients.join(', '))}</td><td class="l ${x.ok?'up':'dn'}">${x.ok?'saved':'not saved - '+esc(x.err)}</td></tr>`).join('')||'<tr><td class="l mu" colspan="4">Nothing saved yet</td></tr>')+'</tbody></table>'; })()}
+    <div class="note">Drive: Joshi's Corner - Client Uploads / Trade files · Ledger · DP holdings / &lt;client code&gt; - one CSV per client per upload, codes only. Needs the admin passcode once on this device.</div></div></div>
    <div class="note">Upload one file per client or one file with many clients: each upload replaces the trades / ledger of the client codes in it. Only client codes are kept - name columns are ignored. A file without a client column asks for the client code.</div>`;
   $('upIn').querySelectorAll('[data-rt]').forEach(b=>b.onclick=async()=>{ const c=b.dataset.rt; if(c==='*'){ if(!confirm('Remove all uploaded trade books?')) return; PF.removeTrades(null); } else PF.removeTrades(c); await loadTrades(); render(); uploadsPanel(); });
+  $('upIn').querySelectorAll('[data-rd]').forEach(b=>b.onclick=()=>{ const c=b.dataset.rd; if(c==='*'){ if(!confirm('Remove all DP holdings?')) return; PF.removeDP(null); } else PF.removeDP(c); render(); uploadsPanel(); });
+  $('drAll').onclick=async()=>{ $('drAll').disabled=true; $('drAll').textContent='Saving…'; await PF.driveAll(); uploadsPanel(); };
   $('upIn').querySelectorAll('[data-rl]').forEach(b=>b.onclick=()=>{ const c=b.dataset.rl; if(c==='*'){ if(!confirm('Remove all uploaded ledgers?')) return; PF.removeLedger(null); } else PF.removeLedger(c); render(); uploadsPanel(); }); }
 
 /* ---------- rates panel ---------- */
@@ -281,6 +298,8 @@ function ratesPanel(clients){ if($('rates').open&&$('ratesIn').dataset.n==client
 
 /* ---------- uploads: readers live in pf-core.js (shared with Trade Audit) ---------- */
 const upTrades=f=>PF.importTrades(f), upLedger=f=>PF.importLedger(f);
+$('upD').onclick=()=>$('fD').click();
+$('fD').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await PF.importDP(f); render(); prices(); uploadsPanel(); alertBox('DP holdings read: '+n+'.'); }catch(x){ alertBox('DP holdings not read - '+x.message,true); } e.target.value=''; };
 $('upT').onclick=()=>$('fT').click(); $('upL').onclick=()=>$('fL').click();
 $('fT').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await upTrades(f); await loadTrades(); render(); prices(); history(); uploadsPanel(); alertBox('Trade book read: '+n+'.'); }catch(x){ alertBox('Trade book not read - '+x.message,true); } e.target.value=''; };
 $('fL').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await upLedger(f); render(); uploadsPanel(); alertBox('Ledger read: '+n+'.'); }catch(x){ alertBox('Ledger not read - '+x.message,true); } e.target.value=''; };
