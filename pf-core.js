@@ -219,7 +219,7 @@ async function importLedger(file){ const rows=await readRows(file); if(!rows.len
 
 /* ---------- DP holdings (depository statement): client code + symbol / ISIN / security name + quantity ---------- */
 let ISIN=null;
-async function isinMap(){ if(ISIN) return ISIN; try{ ISIN=await fetch('data/isin.json?x='+Math.floor(Date.now()/864e5),{cache:'no-store'}).then(r=>r.json()); }catch(e){ ISIN={i:{},n:{}}; } return ISIN; }
+async function isinMap(){ if(ISIN) return ISIN; try{ ISIN=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/isin.json?x='+Math.floor(Date.now()/864e5),{cache:'no-store'}).then(r=>r.json()); }catch(e){ ISIN={i:{},n:{}}; } return ISIN; }
 function dp(){ return LS.get('jc_pf_dp',null)||{files:[],H:{}}; }
 function removeDP(c){ const D=dp(); if(c==null){ LS.set('jc_pf_dp',{files:[],H:{}}); return; } delete D.H[c]; D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); LS.set('jc_pf_dp',D); }
 async function importDP(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
