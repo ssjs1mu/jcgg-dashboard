@@ -14,6 +14,8 @@ jobs:
       - run: |
           curl -sSfL -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124 Safari/537.36' -o /tmp/eq.csv https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36'
+          curl -sSL -m 60 -A "$UA" -o /tmp/symchg.csv https://nsearchives.nseindia.com/content/equities/symbolchange.csv || true
+          echo "NSE symbol changes: $(wc -l </tmp/symchg.csv 2>/dev/null) lines"; head -3 /tmp/symchg.csv || true
           curl -sSL -m 120 -A "$UA" -H 'Referer: https://www.bseindia.com/' -H 'Origin: https://www.bseindia.com' -H 'Accept: application/json' -o /tmp/bse.json 'https://api.bseindia.com/BseIndiaAPI/api/ListofScripData/w?Group=&Scripcode=&industry=&segment=Equity&status=' || true
           echo "BSE list bytes: $(wc -c </tmp/bse.json 2>/dev/null)"
           for k in 0 1 2 3 4 5 6; do d=$(date -u -d "-$k day" +%Y%m%d); curl -sSfL -m 60 -A "$UA" -H 'Referer: https://www.bseindia.com/' -o /tmp/bhav.csv "https://www.bseindia.com/download/BhavCopy/Equity/BhavCopy_BSE_CM_0_0_0_${d}_F_0000.CSV" && head -1 /tmp/bhav.csv | grep -q ISIN && { echo "BSE bhavcopy $d"; head -2 /tmp/bhav.csv; break; }; rm -f /tmp/bhav.csv; done
@@ -51,10 +53,18 @@ jobs:
                   b[3] = c; b[2] = 'A' if b[2] != 'D' else b[2]; bs[isin] = b
               print('BSE with bhavcopy', len(bs))
           except Exception as e: print('BSE bhavcopy not read:', e)
+          # NSE symbol changes (old -> new), so trades booked under an old name meet the holding under the new one
+          chg = {}
+          try:
+              for r in csv.reader(open('/tmp/symchg.csv', encoding='latin-1')):
+                  if len(r) >= 3 and r[1].strip() and r[2].strip() and r[1].strip().upper() != 'SM_KEY_SYMBOL':
+                      chg[r[1].strip().upper()] = r[2].strip().upper()
+              print('NSE symbol changes', len(chg))
+          except Exception as e: print('symbol changes not read:', e)
           if len(bs) < 1000:   # keep last week's BSE list when BSE could not be reached
               try: bs = json.load(open('data/isin.json')).get('b', {}) or bs; print('kept previous BSE list', len(bs))
               except Exception: pass
-          json.dump({'note': 'i: ISIN -> NSE symbol (NSE EQUITY_L) · n: company name -> NSE symbol · b: ISIN -> [BSE code, BSE ticker, A/S/D status, last BSE close]', 'i': i, 'n': n, 'b': bs}, open('data/isin.json', 'w'), separators=(',', ':'))
+          json.dump({'note': 'i: ISIN -> NSE symbol (NSE EQUITY_L) · n: company name -> NSE symbol · b: ISIN -> [BSE code, BSE ticker, A/S/D status, last BSE close] · chg: old NSE symbol -> new', 'i': i, 'n': n, 'b': bs, 'chg': chg}, open('data/isin.json', 'w'), separators=(',', ':'))
           print(len(i), 'NSE ISINs ·', len(bs), 'BSE ISINs')
           PY
       - run: |
