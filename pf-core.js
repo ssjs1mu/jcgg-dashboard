@@ -284,17 +284,17 @@ function parseLedgerPdf(L){ const all=L.map(r=>r.text).join('\n');
 
 /* ---------- DP holdings (depository statement): client code + symbol / ISIN / security name + quantity ---------- */
 let ISIN=null;
-async function isinMap(){ if(ISIN) return ISIN; try{ ISIN=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/isin.json?x='+Math.floor(Date.now()/864e5),{cache:'no-store'}).then(r=>r.json()); }catch(e){ ISIN={i:{},n:{}}; } return ISIN; }
+async function isinMap(){ if(ISIN) return ISIN; try{ ISIN=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/isin.json?x='+Math.floor(Date.now()/864e5),{cache:'no-store'}).then(r=>r.json()); }catch(e){ ISIN={i:{},n:{},b:{}}; } ISIN.b=ISIN.b||{}; return ISIN; }
 function dp(){ return LS.get('jc_pf_dp',null)||{files:[],H:{}}; }
 function removeDP(c){ const D=dp(); if(c==null){ LS.set('jc_pf_dp',{files:[],H:{}}); return; } delete D.H[c]; D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); LS.set('jc_pf_dp',D); }
 async function importDP(file){
   if(/\.pdf$/i.test(file.name)){ const P=parseDPpdf(await pdfLines(await file.arrayBuffer())), M=await isinMap(), miss=[];
-    const H=P.rows.map(x=>{ const sym=M.i[x.isin]||''; if(!sym) miss.push(x.isin+' '+x.name); return {sym:sym||x.isin,isin:x.isin,sec:x.name,q:x.q,rate:x.rate,value:x.value,type:x.type,nse:!!sym}; });
+    const H=P.rows.map(x=>{ const sym=M.i[x.isin]||'', bb=(M.b||{})[x.isin]; if(!sym) miss.push(x.isin+' '+x.name+(bb?' (BSE '+bb[1]+')':' (not on BSE)')); return {sym:sym||(bb&&bb[1])||x.isin,bse:bb?bb[0]:'',isin:x.isin,sec:x.name,q:x.q,rate:x.rate,value:x.value,type:x.type,nse:!!sym}; });
     const D=dp(); D.H[P.client]=H; D.M=D.M||{}; D.M[P.client]={dpac:P.dpac,asOf:P.asOf,rateDate:P.rateDate};
     D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>c!==P.client)})).filter(f=>f.clients.length).concat([{name:file.name,at:dmy(todayS())+' '+ist().toISOString().slice(11,16),clients:[P.client]}]);
     LS.set('jc_pf_dp',D);
     driveSave('dp',file.name,[{client:P.client,csv:dpCSV(P.client,D)}]);
-    return 'DP holdings for '+P.client+(P.dpac?' (DP a/c '+P.dpac+')':'')+' · '+H.length+' ISINs as on '+dmy(P.asOf)+(miss.length?' · not on NSE list: '+miss.length:''); }
+    return 'DP holdings for '+P.client+(P.dpac?' (DP a/c '+P.dpac+')':'')+' · '+H.length+' ISINs as on '+dmy(P.asOf)+(miss.length?' · not on NSE: '+miss.length+' ('+miss.join(', ')+')':''); }
 
   const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
   const r0=rows[0], cc=codeCol(r0,rows), ci=col(r0,/isin/i), cs=col(r0,/^symbol$|nse\s*symbol|scrip\s*code|trading\s*symbol/i), cn=col(r0,/security|scrip|stock|company|instrument|name/i),
@@ -305,15 +305,16 @@ async function importDP(file){
   rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(); if(!c) return; const q=Math.abs(num(r[cq])); if(!(q>0)) return;
     const isin=ci?String(r[ci]).trim().toUpperCase():''; let sym=cs?String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''):'';
     if(!sym&&isin) sym=M.i[isin]||''; if(!sym&&cn){ const k=String(r[cn]).toLowerCase().replace(/\b(limited|ltd)\b/g,'').replace(/[^a-z0-9]/g,''); sym=M.n[k]||''; }
-    if(!sym){ miss.add(isin||String(r[cn]||'').trim()); return; }
+    const bb=isin?(M.b||{})[isin]:null; if(!sym&&bb) sym=bb[1]; if(!sym&&isin) sym=isin; /* BSE ticker when not on NSE; ISIN when on neither (kept, shown as suspended) */
+    if(!sym){ miss.add(String(r[cn]||'').trim()); return; } if(!M.i[isin]&&isin&&!cs) miss.add(isin+(bb?' (BSE '+bb[1]+')':' (not on NSE / BSE)'));
     if(cdp||cas){ meta[c]=meta[c]||{}; if(cdp&&String(r[cdp]).trim()) meta[c].dpac=String(r[cdp]).trim(); if(cas){ const d=pdate(r[cas]); if(d) meta[c].asOf=d; } }
-    const L=by[c]=by[c]||[]; const x=L.find(y=>y.sym===sym); if(x) x.q+=q; else L.push({sym,isin,q,rate:crt?num(r[crt])||null:null,type:cty?String(r[cty]).trim():'',nse:!!(M.i[isin]||cs),sec:cn?String(r[cn]).trim():''}); });
-  if(!Object.keys(by).length) throw new Error('no holdings matched an NSE symbol'+(miss.size?' (unmatched: '+[...miss].slice(0,5).join(', ')+')':''));
+    const L=by[c]=by[c]||[]; const x=L.find(y=>y.sym===sym); if(x) x.q+=q; else L.push({sym,isin,bse:bb?bb[0]:'',q,rate:crt?num(r[crt])||null:null,type:cty?String(r[cty]).trim():'',nse:!!(M.i[isin]||(cs&&String(r[cs]).trim())),sec:cn?String(r[cn]).trim():''}); });
+  if(!Object.keys(by).length) throw new Error('no holdings read'+(miss.size?' (unmatched: '+[...miss].slice(0,5).join(', ')+')':''));
   const D=dp(), cs2=Object.keys(by); D.M=D.M||{}; cs2.forEach(c=>{ D.H[c]=by[c]; D.M[c]=Object.assign({},D.M[c]||{},meta[c]||{}); });
   D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>!cs2.includes(c))})).filter(f=>f.clients.length).concat([{name:file.name,at:dmy(todayS())+' '+ist().toISOString().slice(11,16),clients:cs2}]);
   LS.set('jc_pf_dp',D);
   driveSave('dp',file.name,cs2.map(c=>({client:c,csv:dpCSV(c,D)})));
-  return 'DP holdings for '+cs2.join(', ')+(miss.size?' · '+miss.size+' line(s) not matched to an NSE symbol':''); }
+  return 'DP holdings for '+cs2.join(', ')+(miss.size?' · not on NSE: '+[...miss].join(', '):''); }
 
 /* ---------- Google Drive: every upload is saved client-wise through the dashboard backend (admin passcode needed) ----------
    Drive: Joshi's Corner - Client Uploads / Trade files | Ledger | DP holdings / <client code> / <code> <type> <date time> (<file>).csv */
@@ -351,5 +352,5 @@ const TPL={
   dp:['Client Code,DP A/c,Holding as on,ISIN,Symbol,Security,Holding,Rate,Value,Balance type','C0001,1203410000000000,21/11/2026,INE062A01020,SBIN,SBI - EQ,125,1164.95,145618.75,Beneficiary']};
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
-window.PF={template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
+window.PF={isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
 })();

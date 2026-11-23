@@ -3,7 +3,7 @@
 <title>Joshi's Corner - Portfolio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F7F4E6;--card:#fff;--line:#E2DDBF;--tx:#2E2C14;--mu:#6E6A45;--ol:#676300;--kh:#A7A15D;--up:#1C820D;--dn:#D00000;--dr:#1f5fa8;--cr:#D00000}
+:root{--bg:#F7F4E6;--card:#fff;--line:#E2DDBF;--tx:#2E2C14;--mu:#6E6A45;--ol:#676300;--kh:#A7A15D;--up:#1C820D;--dn:#D00000;--dr:#D00000;--cr:#1f5fa8}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font:13px/1.4 Inter,"Segoe UI",system-ui,Arial,sans-serif;padding:8px 12px 60px;-webkit-font-smoothing:antialiased}
 .top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;max-width:1500px;margin:0 auto 10px;padding:8px 14px;background:linear-gradient(180deg,#5f5b00,#3f3c00);border-radius:14px;box-shadow:0 6px 18px rgba(63,60,0,.25)}
@@ -34,6 +34,7 @@ table.x tr.tot td{background:#F1EDD9!important;font-weight:900;border-top:2px so
 .up{color:var(--up)}.dn{color:var(--dn)}.mu{color:var(--mu)}.dr{color:var(--dr);font-weight:800}.cr{color:var(--cr);font-weight:800}
 .tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 10px;border-bottom:2px solid #A7A15D;padding-bottom:6px}.tabs button{font:800 13px Inter,sans-serif;padding:7px 14px;border:1px solid #A7A15D;border-radius:8px 8px 0 0;background:#FBF8EC;color:#3f3c00;cursor:pointer}.tabs button.on{background:#3f3c00;color:#fff;border-color:#3f3c00}.tabs span{display:inline-flex;gap:6px;align-items:center;margin-left:8px;flex-wrap:wrap}.tabs select,.tabs input{font:600 12px Inter,sans-serif;padding:4px 6px;border:1px solid #c9c39a;border-radius:6px}
 tr.clk{cursor:pointer}tr.clk:hover td{background:#F5F1DD}.lk{display:inline-block;padding:0 6px;border-radius:6px;font:800 10px Inter,sans-serif;background:#EEEAD5;color:#3f3c00}.lk.in{background:#E3F1DF;color:#1C5C0D}.lk.out{background:#FBE3E1;color:#8a1010}.lk.int{background:#FFE9CC;color:#8a4a00}.lk.dp{background:#E1ECFB;color:#123f8a}
+.ex{display:inline-block;margin-right:3px;padding:0 5px;border-radius:5px;font:800 10px Inter,sans-serif}.ex.n{background:#E3F1DF;color:#1C5C0D}.ex.b{background:#E1ECFB;color:#123f8a}.ex.s{background:#FBE3E1;color:#8a1010}tr.susp td{color:#8a8466;background:#F6F3E6}tr.sub td{background:#EEEAD5;font:800 11px Inter,sans-serif;color:#8a1010;text-transform:uppercase;letter-spacing:.04em}
 .tag{display:inline-block;padding:0 6px;border-radius:6px;font:800 10px Inter,sans-serif}.tag.d{background:#EEEAD5;color:#3f3c00}.tag.i{background:#E3F1DF;color:#1C820D}
 .warn{background:#FFF4D6;border:1px solid #E7CF8A;color:#6b4d0e;border-radius:10px;padding:7px 11px;font-weight:700;margin-bottom:8px}
 details.pan{background:#fff;border:1px solid var(--line);border-radius:10px;margin-top:10px}details.pan summary{cursor:pointer;padding:8px 12px;font:800 12.5px Inter,sans-serif;color:var(--ol)}
@@ -76,7 +77,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, charges &amp; interest (per client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=7"></script>
+<script src="pf-core.js?v=8"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -105,6 +106,7 @@ const rateOf=c=>Object.assign({},RATES._def,RATES[c]||{});
 /* ---------- data ---------- */
 let SYF=(new URLSearchParams(location.search).get('sym'))||LS.get('jc_pf_sym',''), MF=LS.get('jc_pf_mf','all'), MARK=LS.get('jc_pf_mark',{}), HIST={}, RSI={};
 let TAB=LS.get('jc_pf_tab','pf'), DV=LS.get('jc_pf_dv','client');
+let ISM={i:{},n:{},b:{}}, QB={};
 let TR=null, TRsrc='', Q={}, Qat=0, CL=LS.get('jc_pf_client','ALL');
 const hasLed=()=>{ const L=PF.led(); return Object.keys(L.E).length+Object.keys(L.bal).length>0; };
 async function loadTrades(){ const r=await PF.loadTrades(); TR=r.trades; TRsrc=esc(r.src); }
@@ -116,10 +118,12 @@ function compute(){ const E=PF.compute(TR,STAT,rateOf); E.lr=PF.recovery(E); ret
 function ledgerBal(c){ return PF.ledBal(c); }
 
 /* ---------- prices ---------- */
-async function prices(force){ const D=PF.dp(), syms=[...new Set([...TR.map(t=>t.sym),...Object.values(D.H).flat().filter(x=>x.nse!==false).map(x=>x.sym)])]; if(!syms.length) return;
-  try{ const c=new AbortController(); setTimeout(()=>c.abort(),15000);
-    const j=await fetch(BACKEND+'?action=liveq&symbols='+encodeURIComponent(syms.map(s=>s+'.NS').join(',')),{signal:c.signal}).then(r=>r.json());
-    if(j&&j.q){ Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]>0) Q[k.replace(/\.NS$/,'')]={p:q[0],pc:q[1],t:q[7]}; }); Qat=Date.now(); calcRSI(); }
+async function prices(force){ const D=PF.dp(), dx=Object.values(D.H).flat().map(xinfo);
+  const ns=[...new Set([...TR.map(t=>t.sym),...dx.filter(i=>i.nse).map(i=>i.nse)])].map(s=>s+'.NS'), bs=[...new Set(dx.filter(i=>i.bt).map(i=>i.bt))].map(s=>s+'.BO'), all=[...ns,...bs]; if(!all.length) return;
+  try{ for(let k=0;k<all.length;k+=40){ const c=new AbortController(); setTimeout(()=>c.abort(),15000);
+      const j=await fetch(BACKEND+'?action=liveq&symbols='+encodeURIComponent(all.slice(k,k+40).join(',')),{signal:c.signal}).then(r=>r.json());
+      if(j&&j.q) Object.keys(j.q).forEach(s=>{ const q=j.q[s]; if(!(q&&q[0]>0)) return; const o={p:q[0],pc:q[1],t:q[7]}; if(/\.BO$/.test(s)) QB[s.slice(0,-3)]=o; else Q[s.replace(/\.NS$/,'')]=o; }); }
+    Qat=Date.now(); calcRSI();
   }catch(e){ console.warn('prices',e); }
   render(); }
 /* daily closes for RSI-14 (Wilder); during the session the live price stands in for today's close */
@@ -250,44 +254,44 @@ function liqHtml(E,clients){ const out=[];
     return `<div style="background:#fff;border:2px solid ${o.lvl>1?'#E29A93':'#E7CF8A'};border-radius:12px;margin-bottom:8px">${head}${unp}${sug}</div>`; }).join(''); }
 
 /* ---------- DP holdings vs trade book ---------- */
-function dpHtml(E,clients){ const D=PF.dp(); if(!Object.keys(D.H).length) return '';
-  const rows=[]; clients.filter(c=>(CL==='ALL'||c===CL)).forEach(c=>{ const dh=D.H[c]; if(!dh) return; const bk={}, m=(D.M||{})[c]||{};
-    E.hold.filter(h=>h.c===c).forEach(h=>bk[h.sym]=(bk[h.sym]||0)+h.q);
-    [...new Set([...dh.map(x=>x.sym),...Object.keys(bk)])].filter(sy=>!SYF||sy.includes(SYF.toUpperCase())).sort().forEach(sy=>{ const x=dh.find(y=>y.sym===sy)||{}, d=x.q||0, b=bk[sy]||0, q=Q[sy];
-      rows.push({c,m,sy,x,d,b,diff:d-b,p:q?q.p:(x.rate||null),live:!!q}); }); });
-  if(!rows.length) return '';
-  const tv=rows.reduce((a,r)=>a+(r.p?r.d*r.p:0),0), pl=rows.filter(r=>/pledge/i.test(r.x.type||'')).reduce((a,r)=>a+(r.p?r.d*r.p:0),0), bad=rows.filter(r=>Math.abs(r.diff)>0.0001).length;
-  return `<h3 class="sec">DP holdings vs trade book <small>${bad?'<b class="dn">'+bad+' mismatch'+(bad>1?'es':'')+'</b> · ':'all quantities match · '}DP value ${fx(tv,0)}${pl?' · pledged '+fx(pl,0):''}</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client code</th><th class="l">DP a/c</th><th class="l">As on</th><th class="l">Script</th><th class="l">ISIN</th><th class="l">Balance type</th><th>DP qty</th><th>Trade book qty</th><th>Difference</th><th>Price</th><th>DP value</th></tr></thead><tbody>`+
-    rows.map(r=>`<tr${Math.abs(r.diff)>0.0001?' class="hot"':''}><td class="l"><b>${esc(r.c)}</b></td><td class="l">${esc(r.m.dpac||'–')}</td><td class="l">${r.m.asOf?dmy(r.m.asOf):'–'}</td><td class="l"><b>${esc(r.sy)}</b>${r.x.nse===false?'<span class="chip ls">not on NSE</span>':''}${!r.b&&r.d?'<span class="chip ls">not in trade book</span>':''}${r.b&&!r.d?'<span class="chip bk">not in DP</span>':''}</td><td class="l mu">${esc(r.x.isin||'')}</td><td class="l">${r.x.type?(/pledge/i.test(r.x.type)?'<span class="chip pf">'+esc(r.x.type)+'</span>':esc(r.x.type)):'–'}</td><td>${fx(r.d,0)}</td><td>${fx(r.b,0)}</td><td class="${r.diff?(r.diff>0?'up':'dn'):'mu'}">${r.diff?sgn(r.diff,0):'✓'}</td><td>${r.p?fx(r.p)+(r.live?'':' <span class="mu">stmt</span>'):'–'}</td><td>${r.p?fx(r.d*r.p,0):'–'}</td></tr>`).join('')+'</tbody></table></div>'; }
 
 /* ---------- tabs: Portfolio · DP holdings · Ledger ---------- */
 function tabBar(){ document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===TAB));
   $('mf').style.display=TAB==='pf'?'':'none'; $('dvW').style.display=TAB==='dp'?'':'none'; $('lfW').style.display=TAB==='led'?'':'none';
   $('sy').style.display=TAB==='led'?'none':''; $('sy').placeholder=TAB==='dp'?'🔍 Stock':'🔍 Script'; }
 const K2=(lab,val,sub)=>`<div class="k"><span>${lab}</span><b>${val}</b>${sub?'<small>'+sub+'</small>':''}</div>`;
+/* DP holding -> exchange info: NSE symbol, BSE code / ticker, live NSE & BSE prices; neither listed nor priced = suspended (no price) */
+function xinfo(x){ const nse=(ISM.i||{})[x.isin]||(x.nse!==false&&!/^IN[E0-9]/.test(x.sym)?x.sym:null), b=(ISM.b||{})[x.isin]||null;
+  const qn=nse&&Q[nse], qb=b&&QB[b[1]], p=qn?qn.p:qb?qb.p:null;
+  return {nse,bc:b?b[0]:'',bt:b?b[1]:'',bst:b?b[2]:'',sym:nse||(b&&b[1])||x.sym,qn,qb,p,src:qn?'NSE':qb?'BSE':'',susp:!p&&!(nse&&!Qat)&&!(b&&!Qat)}; }
 function dpRows(E,clients){ const D=PF.dp(), rows=[];
   clients.filter(c=>CL==='ALL'||c===CL).forEach(c=>{ const dh=D.H[c]; if(!dh) return; const bk={}, m=(D.M||{})[c]||{};
     E.hold.filter(h=>h.c===c).forEach(h=>bk[h.sym]=(bk[h.sym]||0)+h.q);
-    [...new Set([...dh.map(x=>x.sym),...Object.keys(bk)])].filter(sy=>!SYF||sy.toUpperCase().includes(SYF.toUpperCase())).forEach(sy=>{ const x=dh.find(y=>y.sym===sy)||{}, d=x.q||0, b=bk[sy]||0, q=Q[sy], p=q?q.p:(x.rate||null);
-      rows.push({c,m,sy,x,d,b,diff:d-b,p,live:!!q,v:p?d*p:0,pl:/pledge/i.test(x.type||'')}); }); });
+    const xs=dh.map(x=>({x,i:xinfo(x)}));
+    [...new Set([...xs.map(o=>o.i.sym),...Object.keys(bk)])].filter(sy=>!SYF||sy.toUpperCase().includes(SYF.toUpperCase())).forEach(sy=>{ const o=xs.find(y=>y.i.sym===sy)||{x:{},i:{sym:sy,qn:Q[sy],p:Q[sy]?Q[sy].p:null,src:Q[sy]?'NSE':'',nse:sy}}, x=o.x, i=o.i, d=x.q||0, b=bk[sy]||0;
+      rows.push({c,m,sy,x,i,d,b,diff:d-b,p:i.p,v:i.p?d*i.p:0,susp:!!(d&&i.susp),pl:/pledge/i.test(x.type||'')}); }); });
   return rows; }
+const nmOf=(sy,x)=>/^IN[A-Z0-9]{10}$/.test(sy)&&x&&x.sec?esc(x.sec):esc(sy);
+const exTag=i=>(i.nse?'<span class="ex n">NSE</span>':'')+(i.bt?'<span class="ex b">BSE '+esc(i.bc)+'</span>':'')+(!i.nse&&!i.bt?'<span class="ex s">not listed</span>':'');
+const lp=q=>q?`${fx(q.p)} <small class="${cls(q.pc?q.p-q.pc:0)}">${q.pc?pc((q.p/q.pc-1)*100):''}</small>`:'–';
 function dpTab(E,clients){ const D=PF.dp();
   if(!Object.keys(D.H).length){ $('kpis').innerHTML=''; return '<div class="warn">No DP holdings yet - tap ⬆ DP holdings and choose the DP HOLDING statement (PDF) or the DP holdings template (CSV / Excel).</div>'; }
-  const R=dpRows(E,clients), tv=R.reduce((a,r)=>a+r.v,0), pv=R.filter(r=>r.pl).reduce((a,r)=>a+r.v,0), bad=R.filter(r=>Math.abs(r.diff)>0.0001).length, cs=[...new Set(R.filter(r=>r.d).map(r=>r.c))], ss=[...new Set(R.filter(r=>r.d).map(r=>r.sy))];
-  const asOf=[...new Set(cs.map(c=>((D.M||{})[c]||{}).asOf).filter(Boolean))].sort();
-  $('kpis').innerHTML=K2('Clients',cs.length,CL==='ALL'?'with DP holdings':esc(CL))+K2('Stocks',ss.length,SYF?'matching '+esc(SYF):'in DP')+K2('DP value',fx(tv,0),'live price, else statement rate')+K2('Pledged',fx(pv,0),tv?pc(pv/tv*100).replace('+','')+' of DP value':'')+K2('Free (beneficiary)',fx(tv-pv,0),'')+K2('Mismatch vs trade book',`<span class="${bad?'dn':'up'}">${bad||'none'}</span>`,'rows where DP qty ≠ trade book qty')+K2('Holding as on',asOf.length?asOf.map(dmy).join(', '):'–','statement date');
+  const R=dpRows(E,clients), tv=R.reduce((a,r)=>a+r.v,0), pv=R.filter(r=>r.pl).reduce((a,r)=>a+r.v,0), bad=R.filter(r=>Math.abs(r.diff)>0.0001&&!r.susp).length, cs=[...new Set(R.filter(r=>r.d).map(r=>r.c))], ss=[...new Set(R.filter(r=>r.d).map(r=>r.sy))], SU=R.filter(r=>r.susp);
+  const sv=R.reduce((a,r)=>a+(r.d*(r.x.rate||0)),0), asOf=[...new Set(cs.map(c=>((D.M||{})[c]||{}).asOf).filter(Boolean))].sort();
+  $('kpis').innerHTML=K2('Clients',cs.length,CL==='ALL'?'with DP holdings':esc(CL))+K2('Stocks',ss.length,SYF?'matching '+esc(SYF):'in DP')+K2('DP value (live)',fx(tv,0),Qat?'NSE price, BSE where not on NSE':'prices loading…')+K2('Statement value',fx(sv,0),'BSE close on the statement · change '+sgn(tv-sv,0))+K2('Pledged',fx(pv,0),tv?pc(pv/tv*100).replace('+','')+' of DP value':'')+K2('Free (beneficiary)',fx(tv-pv,0),'')+K2('Suspended / no price',`<span class="${SU.length?'dn':''}">${SU.length?[...new Set(SU.map(r=>r.sy))].length:'none'}</span>`,'no NSE or BSE price · not valued')+K2('Mismatch vs trade book',`<span class="${bad?'dn':'up'}">${bad||'none'}</span>`,'DP qty ≠ trade book qty')+K2('Holding as on',asOf.length?asOf.map(dmy).join(', '):'–','statement date');
   if(!R.length) return '<div class="warn">No DP holdings match this client / stock.</div>';
-  const chipsOf=r=>(r.x.nse===false?'<span class="chip ls">not on NSE</span>':'')+(!r.b&&r.d?'<span class="chip ls">not in trade book</span>':'')+(r.b&&!r.d?'<span class="chip bk">not in DP</span>':'');
+  const chipsOf=r=>(r.susp?'<span class="chip ls">Suspended · no price</span>':'')+(!r.b&&r.d?'<span class="chip bk">not in trade book</span>':'')+(r.b&&!r.d?'<span class="chip bk">not in DP</span>':'');
   const ty=r=>r.x.type?(r.pl?'<span class="chip pf">'+esc(r.x.type)+'</span>':esc(r.x.type)):'–';
-  if(DV==='stock'){ const G={}; R.forEach(r=>{ const g=G[r.sy]=G[r.sy]||{sy:r.sy,isin:r.x.isin||'',nse:r.x.nse,cs:[],d:0,pq:0,b:0,v:0,p:r.p,live:r.live}; if(r.d) g.cs.push(r.c); g.d+=r.d; g.pq+=r.pl?r.d:0; g.b+=r.b; g.v+=r.v; if(!g.isin&&r.x.isin) g.isin=r.x.isin; });
-    const L=Object.values(G).sort((a,b)=>b.v-a.v);
-    return `<h3 class="sec">DP holdings - stock-wise <small>${L.length} stocks · tap a stock for its client-wise holdings</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Stock</th><th class="l">ISIN</th><th class="l">Client codes</th><th>Clients</th><th>DP qty</th><th>Pledged qty</th><th>Free qty</th><th>Trade book qty</th><th>Difference</th><th>Price</th><th>DP value</th><th>% of DP value</th></tr></thead><tbody>`+
-      L.map(g=>{ const df=g.d-g.b; return `<tr class="clk${Math.abs(df)>0.0001?' hot':''}" data-stk="${esc(g.sy)}"><td class="l"><b>${esc(g.sy)}</b>${g.nse===false?'<span class="chip ls">not on NSE</span>':''}</td><td class="l mu">${esc(g.isin)}</td><td class="l">${esc(g.cs.join(', '))}</td><td>${g.cs.length}</td><td>${fx(g.d,0)}</td><td>${g.pq?fx(g.pq,0):'–'}</td><td>${fx(g.d-g.pq,0)}</td><td>${fx(g.b,0)}</td><td class="${df?(df>0?'up':'dn'):'mu'}">${df?sgn(df,0):'✓'}</td><td>${g.p?fx(g.p)+(g.live?'':' <span class="mu">stmt</span>'):'–'}</td><td>${fx(g.v,0)}</td><td>${tv?pc(g.v/tv*100).replace('+',''):'–'}</td></tr>`; }).join('')+
-      `<tr class="tot"><td class="l" colspan="4">Total</td><td>${fx(L.reduce((a,g)=>a+g.d,0),0)}</td><td>${fx(L.reduce((a,g)=>a+g.pq,0),0)}</td><td>${fx(L.reduce((a,g)=>a+g.d-g.pq,0),0)}</td><td>${fx(L.reduce((a,g)=>a+g.b,0),0)}</td><td></td><td></td><td>${fx(tv,0)}</td><td>100%</td></tr></tbody></table></div>`; }
-  R.sort((a,b)=>a.c.localeCompare(b.c)||b.v-a.v);
-  return `<h3 class="sec">DP holdings - client-wise <small>${R.length} rows · DP qty vs trade book qty</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client code</th><th class="l">DP a/c</th><th class="l">As on</th><th class="l">Stock</th><th class="l">ISIN</th><th class="l">Balance type</th><th>DP qty</th><th>Trade book qty</th><th>Difference</th><th>Price</th><th>DP value</th></tr></thead><tbody>`+
-    R.map(r=>`<tr${Math.abs(r.diff)>0.0001?' class="hot"':''}><td class="l"><b>${esc(r.c)}</b></td><td class="l">${esc(r.m.dpac||'–')}</td><td class="l">${r.m.asOf?dmy(r.m.asOf):'–'}</td><td class="l"><b>${esc(r.sy)}</b>${chipsOf(r)}</td><td class="l mu">${esc(r.x.isin||'')}</td><td class="l">${ty(r)}</td><td>${fx(r.d,0)}</td><td>${fx(r.b,0)}</td><td class="${r.diff?(r.diff>0?'up':'dn'):'mu'}">${r.diff?sgn(r.diff,0):'✓'}</td><td>${r.p?fx(r.p)+(r.live?'':' <span class="mu">stmt</span>'):'–'}</td><td>${r.p?fx(r.v,0):'–'}</td></tr>`).join('')+
-    `<tr class="tot"><td class="l" colspan="6">Total</td><td>${fx(R.reduce((a,r)=>a+r.d,0),0)}</td><td>${fx(R.reduce((a,r)=>a+r.b,0),0)}</td><td></td><td></td><td>${fx(tv,0)}</td></tr></tbody></table></div>`; }
+  const used=r=>r.p?`<b>${fx(r.p)}</b> <span class="mu">${r.i.src}</span>`:'<span class="dn">no price</span>';
+  if(DV==='stock'){ const G={}; R.forEach(r=>{ const g=G[r.sy]=G[r.sy]||{sy:r.sy,x:r.x,i:r.i,isin:r.x.isin||'',cs:[],d:0,pq:0,b:0,v:0,p:r.p,susp:false,rate:r.x.rate}; if(r.d) g.cs.push(r.c); g.d+=r.d; g.pq+=r.pl?r.d:0; g.b+=r.b; g.v+=r.v; g.susp=g.susp||r.susp; if(!g.isin&&r.x.isin){ g.isin=r.x.isin; g.i=r.i; g.rate=r.x.rate; } });
+    const L=Object.values(G).sort((a,b)=>(a.susp-b.susp)||b.v-a.v);
+    return `<h3 class="sec">DP holdings - stock-wise <small>${L.length} stocks · live NSE and BSE prices · suspended stocks (no NSE / BSE price) at the bottom · tap a stock for its client-wise holdings</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Stock</th><th class="l">Exchange</th><th class="l">ISIN</th><th class="l">Client codes</th><th>DP qty</th><th>Pledged</th><th>Free</th><th>Trade book</th><th>Diff.</th><th>NSE live</th><th>BSE live</th><th>Stmt rate (BSE close)</th><th>Price used</th><th>DP value</th><th>% of value</th></tr></thead><tbody>`+
+      L.map((g,k)=>{ const df=g.d-g.b; return `${g.susp&&(k===0||!L[k-1].susp)?'<tr class="sub"><td class="l" colspan="15">Suspended stocks - no NSE or BSE price, not valued</td></tr>':''}<tr class="clk${g.susp?' susp':Math.abs(df)>0.0001?' hot':''}" data-stk="${esc(g.sy)}"><td class="l"><b>${nmOf(g.sy,g.x)}</b>${g.susp?'<span class="chip ls">Suspended · no price</span>':''}</td><td class="l">${exTag(g.i)}</td><td class="l mu">${esc(g.isin)}</td><td class="l">${esc(g.cs.join(', '))}</td><td>${fx(g.d,0)}</td><td>${g.pq?fx(g.pq,0):'–'}</td><td>${fx(g.d-g.pq,0)}</td><td>${fx(g.b,0)}</td><td class="${df?(df>0?'up':'dn'):'mu'}">${df?sgn(df,0):'✓'}</td><td>${lp(g.i.qn)}</td><td>${lp(g.i.qb)}</td><td class="mu">${g.rate?fx(g.rate):'–'}</td><td>${g.p?`<b>${fx(g.p)}</b> <span class="mu">${g.i.src}</span>`:'<span class="dn">no price</span>'}</td><td>${g.p?fx(g.v,0):'–'}</td><td>${tv&&g.p?pc(g.v/tv*100).replace('+',''):'–'}</td></tr>`; }).join('')+
+      `<tr class="tot"><td class="l" colspan="4">Total</td><td>${fx(L.reduce((a,g)=>a+g.d,0),0)}</td><td>${fx(L.reduce((a,g)=>a+g.pq,0),0)}</td><td>${fx(L.reduce((a,g)=>a+g.d-g.pq,0),0)}</td><td>${fx(L.reduce((a,g)=>a+g.b,0),0)}</td><td colspan="5"></td><td>${fx(tv,0)}</td><td>100%</td></tr></tbody></table></div>`; }
+  R.sort((a,b)=>(a.susp-b.susp)||a.c.localeCompare(b.c)||b.v-a.v);
+  return `<h3 class="sec">DP holdings - client-wise <small>${R.length} rows · live NSE and BSE prices · suspended stocks (no NSE / BSE price) at the bottom</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client code</th><th class="l">DP a/c</th><th class="l">As on</th><th class="l">Stock</th><th class="l">Exchange</th><th class="l">ISIN</th><th class="l">Balance type</th><th>DP qty</th><th>Trade book</th><th>Diff.</th><th>NSE live</th><th>BSE live</th><th>Stmt rate (BSE close)</th><th>Price used</th><th>DP value</th></tr></thead><tbody>`+
+    R.map((r,k)=>`${r.susp&&(k===0||!R[k-1].susp)?'<tr class="sub"><td class="l" colspan="15">Suspended stocks - no NSE or BSE price, not valued</td></tr>':''}<tr class="${r.susp?'susp':Math.abs(r.diff)>0.0001?'hot':''}"><td class="l"><b>${esc(r.c)}</b></td><td class="l">${esc(r.m.dpac||'–')}</td><td class="l">${r.m.asOf?dmy(r.m.asOf):'–'}</td><td class="l"><b>${nmOf(r.sy,r.x)}</b>${chipsOf(r)}</td><td class="l">${r.x.isin?exTag(r.i):''}</td><td class="l mu">${esc(r.x.isin||'')}</td><td class="l">${ty(r)}</td><td>${fx(r.d,0)}</td><td>${fx(r.b,0)}</td><td class="${r.diff?(r.diff>0?'up':'dn'):'mu'}">${r.diff?sgn(r.diff,0):'✓'}</td><td>${lp(r.i.qn)}</td><td>${lp(r.i.qb)}</td><td class="mu">${r.x.rate?fx(r.x.rate):'–'}</td><td>${used(r)}</td><td>${r.p?fx(r.v,0):'–'}</td></tr>`).join('')+
+    `<tr class="tot"><td class="l" colspan="7">Total</td><td>${fx(R.reduce((a,r)=>a+r.d,0),0)}</td><td>${fx(R.reduce((a,r)=>a+r.b,0),0)}</td><td colspan="5"></td><td>${fx(tv,0)}</td></tr></tbody></table></div>`; }
 const KN={in:'Funds in',out:'Funds out',int:'Interest',dp:'DP / demat',bill:'Trade bill',chg:'Charges',oth:'Other'};
 function ledTab(clients){ const L=PF.led(), cs=Object.keys(L.E).filter(c=>CL==='ALL'||c===CL).sort();
   if(!Object.keys(L.E).length){ $('kpis').innerHTML=''; return '<div class="warn">No ledger yet - tap ⬆ Ledger and choose the LEDGER statement (PDF) or the ledger template (CSV / Excel).</div>'; }
@@ -295,21 +299,21 @@ function ledTab(clients){ const L=PF.led(), cs=Object.keys(L.E).filter(c=>CL==='
   const all=[]; cs.forEach(c=>{ let run=0; L.E[c].forEach(e=>{ run+=e.dr-e.cr; all.push(Object.assign({c,run},e)); }); });
   const sel=all.filter(e=>(LK==='all'||e.k===LK)&&(!F||e.d>=F)&&(!T||e.d<=T)&&(!Sq||(e.n||'').toLowerCase().includes(Sq)||(e.v||'').toLowerCase().includes(Sq)));
   const sm=k=>sel.filter(e=>e.k===k).reduce((a,e)=>a+e.dr+e.cr,0), dr=sel.reduce((a,e)=>a+e.dr,0), cr=sel.reduce((a,e)=>a+e.cr,0), clo=cs.reduce((a,c)=>a+(PF.ledBal(c)||0),0);
-  $('kpis').innerHTML=K2('Clients',cs.length,CL==='ALL'?'with a ledger':esc(CL))+K2('Entries',sel.length,LK==='all'?'all types':KN[LK])+K2('Debit',fx(dr,0),'shown entries')+K2('Credit',fx(cr,0),'shown entries')+K2('Closing balance',drcr(clo),'ledger, all entries')+K2('Funds in',fx(sm('in'),0),'receipts')+K2('Funds out',fx(sm('out'),0),'payments')+K2('Interest',`<span class="dn">${fx(sm('int'),0)}</span>`,'charged in ledger')+K2('DP / demat',fx(sm('dp'),0),'charged in ledger');
+  $('kpis').innerHTML=K2('Clients',cs.length,CL==='ALL'?'with a ledger':esc(CL))+K2('Entries',sel.length,LK==='all'?'all types':KN[LK])+K2('Debit',`<span class="dr">${fx(dr,0)}</span>`,'shown entries')+K2('Credit',`<span class="cr">${fx(cr,0)}</span>`,'shown entries')+K2('Closing balance',drcr(clo),'ledger, all entries')+K2('Funds in',fx(sm('in'),0),'receipts')+K2('Funds out',fx(sm('out'),0),'payments')+K2('Interest',`<span class="dn">${fx(sm('int'),0)}</span>`,'charged in ledger')+K2('DP / demat',fx(sm('dp'),0),'charged in ledger');
   let h='';
   if(CL==='ALL'&&cs.length>1){ h+=`<h3 class="sec">Ledger - client-wise summary <small>tap a client for its ledger</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client code</th><th class="l">Period</th><th>Entries</th><th>Debit</th><th>Credit</th><th>Funds in</th><th>Funds out</th><th>Interest</th><th>DP</th><th>Closing</th></tr></thead><tbody>`+
-    cs.map(c=>{ const en=L.E[c], s=k=>en.filter(e=>e.k===k).reduce((a,e)=>a+e.dr+e.cr,0); return `<tr class="clk" data-c="${esc(c)}"><td class="l"><b>${esc(c)}</b></td><td class="l">${dmy(en[0].d)} – ${dmy(en[en.length-1].d)}</td><td>${en.length}</td><td>${fx(en.reduce((a,e)=>a+e.dr,0),0)}</td><td>${fx(en.reduce((a,e)=>a+e.cr,0),0)}</td><td>${fx(s('in'),0)}</td><td>${fx(s('out'),0)}</td><td class="dn">${fx(s('int'),0)}</td><td>${fx(s('dp'),0)}</td><td>${drcr(PF.ledBal(c))}</td></tr>`; }).join('')+'</tbody></table></div>'; }
+    cs.map(c=>{ const en=L.E[c], s=k=>en.filter(e=>e.k===k).reduce((a,e)=>a+e.dr+e.cr,0); return `<tr class="clk" data-c="${esc(c)}"><td class="l"><b>${esc(c)}</b></td><td class="l">${dmy(en[0].d)} – ${dmy(en[en.length-1].d)}</td><td>${en.length}</td><td class="dr">${fx(en.reduce((a,e)=>a+e.dr,0),0)}</td><td class="cr">${fx(en.reduce((a,e)=>a+e.cr,0),0)}</td><td>${fx(s('in'),0)}</td><td>${fx(s('out'),0)}</td><td class="dn">${fx(s('int'),0)}</td><td>${fx(s('dp'),0)}</td><td>${drcr(PF.ledBal(c))}</td></tr>`; }).join('')+'</tbody></table></div>'; }
   const one=CL!=='ALL'||cs.length===1;
   h+=`<h3 class="sec">Ledger entries <small>${sel.length} of ${all.length} · balance is the running ledger balance</small></h3><div class="sx"><table class="x"><thead><tr>${one?'':'<th class="l">Client code</th>'}<th class="l">Date</th><th class="l">Voucher</th><th class="l">Particulars</th><th class="l">Type</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead><tbody>`+
-    (sel.map(e=>`<tr>${one?'':'<td class="l"><b>'+esc(e.c)+'</b></td>'}<td class="l">${dmy(e.d)}</td><td class="l mu">${esc(e.v||'')}</td><td class="l">${esc(e.n||'')}</td><td class="l"><span class="lk ${e.k}">${KN[e.k]||e.k}</span></td><td>${e.dr?fx(e.dr):''}</td><td>${e.cr?fx(e.cr):''}</td><td>${drcr(e.run)}</td></tr>`).join('')||`<tr><td class="l mu" colspan="8">No entries match.</td></tr>`)+
-    `<tr class="tot"><td class="l" colspan="${one?4:5}">Total (shown)</td><td>${fx(dr)}</td><td>${fx(cr)}</td><td></td></tr></tbody></table></div>`;
+    (sel.map(e=>`<tr>${one?'':'<td class="l"><b>'+esc(e.c)+'</b></td>'}<td class="l">${dmy(e.d)}</td><td class="l mu">${esc(e.v||'')}</td><td class="l">${esc(e.n||'')}</td><td class="l"><span class="lk ${e.k}">${KN[e.k]||e.k}</span></td><td class="dr">${e.dr?fx(e.dr):''}</td><td class="cr">${e.cr?fx(e.cr):''}</td><td>${drcr(e.run)}</td></tr>`).join('')||`<tr><td class="l mu" colspan="8">No entries match.</td></tr>`)+
+    `<tr class="tot"><td class="l" colspan="${one?4:5}">Total (shown)</td><td class="dr">${fx(dr)}</td><td class="cr">${fx(cr)}</td><td></td></tr></tbody></table></div>`;
   return h; }
 function dpNote(E,clients){ if(!Object.keys(PF.dp().H).length) return ''; const R=dpRows(E,clients), bad=R.filter(r=>Math.abs(r.diff)>0.0001).length;
   return `<div class="note" style="margin:6px 0 10px">🏦 DP holdings: ${[...new Set(R.filter(r=>r.d).map(r=>r.c))].length} client(s), value ${fx(R.reduce((a,r)=>a+r.v,0),0)}${bad?' · <b class="dn">'+bad+' mismatch'+(bad>1?'es':'')+' with the trade book</b>':' · all match the trade book'} - <a href="#" id="goDP">open the DP holdings tab ▸</a></div>`; }
 /* ---------- client account: funds in / out, interest, DP, charges, investment return ---------- */
 function acct(c,E){ const L=PF.led(), en=L.E[c]||null, f=x=>x.c===c, dh=PF.dp().H[c];
   /* holdings value: the DP statement when there is one (what is really in the demat), else the trade book */
-  const val=dh?dh.reduce((a,x)=>a+x.q*(Q[x.sym]?Q[x.sym].p:(x.rate||0)),0):E.hold.filter(f).reduce((a,x)=>a+(Q[x.sym]?x.q*Q[x.sym].p:x.q*x.cost),0);
+  const val=dh?dh.reduce((a,x)=>a+x.q*(xinfo(x).p||0),0):E.hold.filter(f).reduce((a,x)=>a+(Q[x.sym]?x.q*Q[x.sym].p:x.q*x.cost),0);
   const pp=E.parts.filter(f), brk=pp.reduce((a,x)=>a+x.brk,0), stat=pp.reduce((a,x)=>a+x.stt+x.exch+x.sebi+x.stamp+x.gst,0), dpT=pp.reduce((a,x)=>a+x.dp,0), hcO=E.hold.filter(f).reduce((a,x)=>a+x.hc,0);
   const rel=E.real.filter(f).reduce((a,x)=>a+x.pl,0)+E.intra.filter(f).reduce((a,x)=>a+x.pl,0), unr=E.hold.filter(f).reduce((a,x)=>a+(Q[x.sym]?x.q*Q[x.sym].p:x.q*x.cost)-x.q*x.cost,0);
   const o={c,val,vsrc:dh?'DP':'book',brk,stat,dpT,hcO,rel,unr,has:!!en,bal:PF.ledBal(c)};
@@ -374,7 +378,7 @@ $('dv').onchange=()=>{ DV=$('dv').value; LS.set('jc_pf_dv',DV); render(); };
 $('sy').oninput=()=>{ SYF=$('sy').value.trim(); LS.set('jc_pf_sym',SYF); render(); };
 $('mf').onchange=()=>{ MF=$('mf').value; LS.set('jc_pf_mf',MF); render(); };
 
-(async()=>{ try{ await loadTrades(); render(); await prices(); history(); }catch(e){ $('body').innerHTML='<div class="warn">Could not load trades: '+esc(e.message)+'</div>'; } })();
+(async()=>{ try{ ISM=await PF.isinMap().catch(()=>ISM); await loadTrades(); render(); await prices(); history(); }catch(e){ $('body').innerHTML='<div class="warn">Could not load trades: '+esc(e.message)+'</div>'; } })();
 setInterval(()=>{ if(mktOpen()&&!document.hidden) prices(); },30000);
 </script>
 </body></html>
