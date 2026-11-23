@@ -89,18 +89,18 @@ function compute(TR,STAT,rateOf){
     p.chg=p.brk+p.stt+p.exch+p.sebi+p.stamp+p.dp+p.gst;
     p.net=buy?v+p.chg:v-p.chg; p.nr=p.net/p.q; });
   /* delivery: FIFO lots per client + symbol, realised P&L and holding cost (interest from T+1) */
-  const lots={}, real=[], warn=[], today=todayS(), IR=STAT.int/100;
+  const lots={}, real=[], warn=[], short=[], today=todayS(), IR=STAT.int/100;
   parts.filter(p=>p.type==='D').forEach(p=>{ const k=p.c+'|'+p.sym; const L=lots[k]=lots[k]||[];
     if(p.side!=='S'){ L.push({c:p.c,sym:p.sym,d:p.d,q:p.q,cost:p.nr}); return; }
     let q=p.q; while(q>0&&L.length){ const l=L[0], m=Math.min(q,l.q), dd=Math.max(0,days(addD(l.d,1),p.d)), cst=m*l.cost;
       real.push({c:p.c,sym:p.sym,bd:l.d,sd:p.d,q:m,buy:l.cost,sell:p.nr,pl:m*(p.nr-l.cost),cost:cst,days:dd,hc:0});   // interest only while open
       l.q-=m; q-=m; if(l.q<=1e-9) L.shift(); }
-    if(q>0) warn.push(p.c+' sold '+q+' '+p.sym+' on '+dmy(p.d)+' without a holding in this trade book'); });
+    if(q>0){ warn.push(p.c+' sold '+q+' '+p.sym+' on '+dmy(p.d)+' without a holding in this trade book'); short.push({c:p.c,sym:p.sym,d:p.d,q,r:p.r,adj:p.adj||1}); } });
   const hold=[]; Object.values(lots).forEach(L=>L.forEach(l=>{ if(l.q>1e-9){ const dd=Math.max(0,days(addD(l.d,1),today)); hold.push(Object.assign({},l,{days:dd,hc:l.q*l.cost*IR*dd/365})); } }));
   /* intraday P&L per client + symbol + day */
   const intra={}; parts.filter(p=>p.type==='I').forEach(p=>{ const k=p.c+'|'+p.sym+'|'+p.d; const x=intra[k]=intra[k]||{c:p.c,sym:p.sym,d:p.d,q:0,b:0,s:0,chg:0};
     if(p.side==='S'){ x.s+=p.net; x.q+=p.q; } else x.b+=p.net; x.chg+=p.chg; });
-  return {parts,hold,real,intra:Object.values(intra).map(x=>Object.assign(x,{pl:x.s-x.b})),warn};
+  return {parts,hold,real,intra:Object.values(intra).map(x=>Object.assign(x,{pl:x.s-x.b})),warn,short};
 }
 /* Loss recovery per client + script, in date order of booking (delivery lots after holding interest, and intraday):
    a loss adds to the balance to recover; a profit booked AFTER a loss first recovers that balance (only the excess is profit);
@@ -378,7 +378,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-23f';
+const BUILD='2026-11-23g';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -442,13 +442,39 @@ function ledgerRecon(c,trades,ST){ ST=ST||stat(); const L=(led().E||{})[c]; cons
   const days=Object.values(g).filter(x=>bills[x.d]!=null).map(x=>Object.assign(x,{bill:bills[x.d],brk:(bills[x.d]-x.net-x.stat)/gst}));
   let bd=med(days.filter(x=>!x.tI&&x.tD>0).map(x=>x.brk/x.tD*100)); bd=bd==null?null:Math.round(bd*100)/100;
   let bi=med(days.filter(x=>x.tI>0).map(x=>(x.brk-(bd||0)/100*x.tD)/x.tI*100)); bi=bi==null?null:Math.round(Math.max(0,bi)*1000)/1000;
+  const T0=T.map(t=>t.d).sort()[0], T1=T.map(t=>t.d).sort().slice(-1)[0];
   const rows=[...new Set([...Object.keys(g),...Object.keys(bills)])].sort().map(d=>{ const x=g[d]||{d,net:0,stat:0,tD:0,tI:0,n:0}, b=bills[d];
+    if(!x.n&&(d<T0||d>T1)) return {d,bill:b,net:0,stat:0,brk:0,exp:0,diff:b,n:0,ok:null,out:true,why:'outside the trade files ('+dmy(T0)+' to '+dmy(T1)+')'};
     const exp=x.net+x.stat+((bd||0)*x.tD+(bi||0)*x.tI)/100*gst, diff=b==null?null:b-exp, tol=Math.max(3,0.0006*(x.tD+x.tI));
     return {d,bill:b==null?null:b,net:x.net,stat:x.stat,brk:((bd||0)*x.tD+(bi||0)*x.tI)/100*gst,exp,diff,n:x.n,ok:b!=null&&x.n>0&&Math.abs(diff)<=tol,why:b==null?'trades but no bill in the ledger':!x.n?'bill but no trades in the trade book':Math.abs(diff)<=tol?'':'amount differs'}; });
-  return {c,bd,bi,rows,nDel:days.filter(x=>!x.tI).length,nInt:days.filter(x=>x.tI).length,bad:rows.filter(r=>!r.ok).length}; }
+  const IN=rows.filter(r=>!r.out); return {c,bd,bi,rows:IN,outRows:rows.filter(r=>r.out),T0,T1,nDel:days.filter(x=>!x.tI).length,nInt:days.filter(x=>x.tI).length,bad:IN.filter(r=>!r.ok).length}; }
 function brkFromLedgers(trades){ const cs=Object.keys(led().E||{}), M=LS.get('jc_pf_brkled',{})||{}; let ch=false;
   cs.forEach(c=>{ const r=ledgerRecon(c,trades); if(!r||r.bd==null) return; const o={bd:r.bd,bi:r.bi!=null?r.bi:(M[c]||{}).bi,nDel:r.nDel,nInt:r.nInt}; if(JSON.stringify(M[c])!==JSON.stringify(o)){ M[c]=o; ch=true; } });
   if(ch) LS.set('jc_pf_brkled',M); return M; }
+/* ---------- tally: what keeps the trade book from matching the DP ----------
+   gaps = delivery sells with no earlier buy (FIFO), per client + script, in today's share count (after bonus / split),
+   with every ledger bill that is not explained by the trade book (days with no trades, or a bill bigger than that day's trades)
+   offered as a candidate buy, its rate worked out from the bill (rate = amount / qty / (1 + brokerage + taxes)) and checked
+   against that day's NSE low-high. A candidate is only a suggestion - the user confirms it from the contract note. */
+const HISTC={};
+async function histRange(sym){ if(HISTC[sym]) return HISTC[sym]; const u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym+'.NS')+'?period1=1577836800&period2='+Math.floor(Date.now()/1000)+'&interval=1d';
+  try{ const j=await fetch(BE+'?action=fetch&url='+encodeURIComponent(u)).then(r=>r.json()), x=j.chart.result[0], q=x.indicators.quote[0], m={};
+    (x.timestamp||[]).forEach((t,i)=>{ if(q.low[i]!=null) m[new Date((t+19800)*1000).toISOString().slice(0,10)]={l:q.low[i],h:q.high[i],c:q.close[i]}; }); return HISTC[sym]=m; }catch(e){ return HISTC[sym]={}; } }
+function tally(trades,dpH,ST,rateOf){ ST=ST||stat(); const A=(CA&&CA.a)||[], E=compute(caAdjust(trades),ST,rateOf||(()=>({bd:0,bi:0,dp:0}))), g={};
+  E.short.forEach(s=>{ const k=s.c+'|'+s.sym, x=g[k]=g[k]||{c:s.c,sym:s.sym,q:0,first:s.d,rate:s.r,sells:[]}; x.q+=s.q; x.sells.push(s); if(s.d<x.first){ x.first=s.d; x.rate=s.r; } });
+  const gaps=Object.values(g).map(x=>{ x.q=Math.round(x.q*1e4)/1e4; x.acts=A.filter(a=>a.s===x.sym&&(a.t==='bonus'||a.t==='split')&&a.ex<=x.first); return x; });
+  /* book vs DP */
+  const book={}; E.hold.forEach(h=>{ const k=h.c+'|'+h.sym; book[k]=(book[k]||0)+h.q; });
+  const dp={}, info={}; Object.keys(dpH||{}).forEach(c=>(dpH[c]||[]).forEach(x=>{ const k=c+'|'+x.sym; dp[k]=(dp[k]||0)+x.q; info[k]=x; }));
+  const cs=new Set([...Object.keys(dpH||{})]); const rows=[...new Set([...Object.keys(book).filter(k=>cs.has(k.split('|')[0])),...Object.keys(dp)])].sort().map(k=>{ const [c,sym]=k.split('|'); return {c,sym,book:Math.round((book[k]||0)*1e4)/1e4,dp:dp[k]||0,x:info[k]||{}}; });
+  return {gaps,rows,E}; }
+/* candidate buys for a gap from the client's unexplained ledger bills (needs histRange(sym) loaded) */
+function gapHints(gap,rc,rate,ST){ ST=ST||stat(); if(!rc) return []; const H=HISTC[gap.sym]||{}, gst=ST.gst/100;
+  const K=1+(rate.bd||0)/100*(1+gst)+ST.sttD/100+ST.stampD/100+ST.exch/100*(1+gst)+ST.sebi/100*(1+gst);
+  const cands=rc.rows.concat(rc.outRows||[]).filter(r=>r.d<gap.first&&r.bill!=null&&(r.out||!r.ok)).map(r=>({d:r.d,amt:r.out?r.bill:r.diff,out:!!r.out})).filter(r=>r.amt>0);
+  return cands.map(r=>{ const f=(CA&&CA.a||[]).filter(a=>a.s===gap.sym&&(a.t==='bonus'||a.t==='split')&&a.ex>r.d&&a.ex<=gap.first).reduce((m,a)=>m*caFactor(a),1), q0=gap.q/f, est=r.amt/K/q0, p=H[r.d];
+      return Object.assign(r,{q0,est,fit:p?(est>=p.l*0.997&&est<=p.h*1.003):null,lo:p&&p.l,hi:p&&p.h}); })
+    .filter(r=>r.fit).sort((a,b)=>b.d.localeCompare(a.d)); }
 let LOADING=false, LOADED=null;
 /* 'rm|type|client' = when this device removed that client's data: Drive files older than that are not loaded back */
 function syncMark(type,cs,t){ const S=LS.get('jc_pf_sync',{}); cs.forEach(c=>S['rm|'+type+'|'+c]=t||Date.now()); LS.set('jc_pf_sync',S); }
@@ -485,5 +511,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();

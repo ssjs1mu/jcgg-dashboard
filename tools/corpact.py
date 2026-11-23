@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """NSE corporate actions (equities) -> data/corpact.json for the Portfolio page.
-Ex-dates from 1 April of the previous financial year to 90 days ahead, fetched month by month from NSE's own API.
+Ex-dates from 1 April four financial years back to 90 days ahead, fetched month by month from NSE's own API.
 Each action: s symbol, ex / rec dates (YYYY-MM-DD), sub (NSE text), t type, and the numbers the page needs:
   div  -> amt  rupees per share (all dividends in the text added: final + special ...)
   bonus-> r [a, b]  a new shares for every b held
@@ -58,7 +58,7 @@ def d2(x):
     return None
 
 def main():
-    today = dt.date.today(); fy = dt.date((today.year if today.month >= 4 else today.year - 1) - 1, 4, 1)   # previous FY too: last year's trade files
+    today = dt.date.today(); fy = dt.date((today.year if today.month >= 4 else today.year - 1) - 4, 4, 1)   # 4 earlier FYs too: old trade files / ledgers (bonus, split, dividends)
     end = today + dt.timedelta(days=90); op = opener(); rows = []; a = fy
     while a <= end:
         b = min(dt.date(a.year + (a.month == 12), a.month % 12 + 1, 1) - dt.timedelta(days=1), end)
