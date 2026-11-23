@@ -63,7 +63,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
   <button class="btn" id="upL" title="LEDGER statement (PDF from the back office) or CSV / Excel template - only client code and entries are read">⬆ Ledger</button>
   <button class="btn" id="upD" title="DP HOLDING statement (PDF from the back office) or CSV / Excel template - only client code, DP a/c and holdings are read">⬆ DP holdings</button><input type="file" id="fD" accept=".pdf,.csv,.xlsx,.xls" hidden>
   <button class="btn" id="upM" title="See and remove uploaded trade books and ledgers, client-wise">🗂 Uploads</button>
-  <button class="btn p" id="crep" title="Colourful PDF report for the selected client: investment, return since start, dividends, costs and comparison with bank FD / savings">📄 Client report</button>
+  <select id="crlang" class="btn" title="Client report language" style="padding:6px 8px"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><button class="btn p" id="crep" title="Colourful PDF report for the selected client: investment, return since start, dividends, costs, view and 1-2 yr outlook on each stock, comparison with Nifty 50, Sensex, bank FD and savings">📄 Client report</button>
   <button class="btn" id="rf">↻ Prices</button>
   <button class="btn" id="dchip" title="Google Drive sync - tap to load the newest uploads from every device">☁ Drive…</button>
   <input type="file" id="fT" accept=".csv,.xlsx,.xls" hidden><input type="file" id="fL" accept=".pdf,.csv,.xlsx,.xls" hidden>
@@ -80,7 +80,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, charges &amp; interest (per client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=21"></script>
+<script src="pf-core.js?v=22"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -445,7 +445,8 @@ $('fL').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f)
 function alertBox(t,bad){ const d=document.createElement('div'); d.className='warn'; d.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:999;'+(bad?'background:#FBE3E1;border-color:#E29A93;color:#8a1010':'background:#E3F1DF;border-color:#8DC487;color:#1C5C0D'); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
 $('cl').onchange=()=>{ CL=$('cl').value; LS.set('jc_pf_client',CL); render(); };
 $('rf').onclick=()=>prices(true);
-$('crep').onclick=()=>{ if(CL==='ALL'){ alertBox('Choose a client first (Client dropdown), then tap 📄 Client report.',true); return; } window.open('client-report.html?c='+encodeURIComponent(CL)+'&print=1','_blank'); };
+$('crep').onclick=()=>{ if(CL==='ALL'){ alertBox('Choose a client first (Client dropdown), then tap 📄 Client report.',true); return; } const lg=$('crlang').value; try{ localStorage.setItem('jc_rep_lang',lg); }catch(e){} window.open('client-report.html?c='+encodeURIComponent(CL)+'&lang='+lg+'&print=1','_blank'); };
+try{ const lg=localStorage.getItem('jc_rep_lang'); if(lg) $('crlang').value=lg; }catch(e){}
 function dchip(){ const d=PF.LS.get('jc_pf_dstat',null), b=$('dchip'), hk=!!localStorage.getItem('jc_admin_key'); if(!b) return;
   const tm=x=>x?new Date(+x+19800000).toISOString().slice(11,16):''; let t, c='';
   if(!hk){ t='☁ Drive: set passcode'; c='#8a4a00'; }
