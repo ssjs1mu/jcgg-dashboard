@@ -1,0 +1,19 @@
+name: Corporate actions (NSE dividends, bonus, splits)
+# NSE corporate actions for equities -> data/corpact.json, read by the Portfolio page (client-wise dividend / bonus / split).
+# Daily after the close and before the open; run by hand any time.
+on:
+  schedule: [{ cron: '41 13 * * 1-5' }, { cron: '11 1 * * 1-5' }]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: corpact, cancel-in-progress: false }
+jobs:
+  corpact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/corpact.py
+      - run: |
+          git config user.name 'github-actions[bot]'; git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/corpact.json; git diff --cached --quiet && exit 0
+          git commit -qm "data: corporate actions $(date -u +%F)"; git pull -q --rebase; git push -q
