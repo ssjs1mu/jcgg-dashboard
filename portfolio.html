@@ -66,7 +66,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, charges &amp; interest (per client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploaded trade books and ledgers stay in this browser only - nothing is sent anywhere or saved online. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=1"></script>
+<script src="pf-core.js?v=2"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -98,7 +98,7 @@ let TR=null, TRsrc='', LED=LS.get('jc_pf_ledger',null), Q={}, Qat=0, CL=LS.get('
 async function loadTrades(){ const r=await PF.loadTrades(); TR=r.trades; TRsrc=esc(r.src); }
 
 /* ---------- engine (shared: pf-core.js) ---------- */
-function compute(){ return PF.compute(TR,STAT,rateOf); }
+function compute(){ const E=PF.compute(TR,STAT,rateOf); E.lr=PF.recovery(E); return E; }
 
 /* ---------- ledger file: balance per client (positive = Dr, client owes) ---------- */
 function ledgerBal(c){ if(!LED||!LED.bal) return null; const b=LED.bal[c]; return b==null?null:b; }
@@ -150,8 +150,9 @@ function render(){
     if(LED&&LED.bal&&!SYF){ if(c==='ALL'){ const cs=[...new Set(TR.map(t=>t.c))]; const v=cs.map(ledgerBal).filter(v=>v!=null); if(v.length){ led=v.reduce((a,b)=>a+b,0); ledSrc='ledger file ('+v.length+' of '+cs.length+' clients)'; } }
       else { led=ledgerBal(c); if(led!=null) ledSrc='ledger file'; } }
     if(led==null){ led=bought-sold; ledSrc=SYF?'this script only (from trades)':'from trades only (no ledger file for this client)'; }
+    const lrs=Object.values(E.lr).filter(x=>(c==='ALL'||x.c===c)&&symOK(x.sym)), bal=lrs.reduce((a,x)=>a+x.bal,0), lossB=lrs.reduce((a,x)=>a+x.loss,0), recd=lrs.reduce((a,x)=>a+x.rec,0);
     const tot=unr+rel+ipl;
-    return {inv,val,priced,unr,rel,ipl,hc,hcOpen,tot,net:val-led,led,ledSrc,bought,chg,pct:inv?unr/inv*100:null,totPct:bought?tot/bought*100:null,after:tot-hc}; };
+    return {bal,lossB,recd,inv,val,priced,unr,rel,ipl,hc,hcOpen,tot,net:val-led,led,ledSrc,bought,chg,pct:inv?unr/inv*100:null,totPct:bought?tot/bought*100:null,after:tot-hc}; };
   const S=sum(CL);
   const w=[]; if(!(RATES._def.bd||RATES._def.bi)&&!Object.keys(RATES).some(k=>k!=='_def'&&(RATES[k].bd||RATES[k].bi))) w.push('Brokerage is not set yet - open ⚙ Brokerage, charges & interest below and enter the delivery / intraday rates (default and per client). Taxes and exchange charges are already included.');
   E.warn.filter(x=>CL==='ALL'||x.startsWith(CL+' ')).forEach(x=>w.push(esc(x)));
@@ -168,7 +169,8 @@ function render(){
     K('Total P&amp;L',`<span class="${cls(S.tot)}">${sgn(S.tot,0)}</span>`,pc(S.totPct)+' of amount bought')+
     K('Holding cost @'+STAT.int+'%',`<span class="dn">${fx(-S.hc,0)}</span>`,'interest from T+1')+
     K('P&amp;L after holding cost',`<span class="${cls(S.after)}">${sgn(S.after,0)}</span>`,S.inv?pc((S.unr-S.hcOpen)/(S.inv+S.hcOpen)*100)+' on open holdings incl. interest':'')+
-    K('Charges paid',fx(S.chg,0),'brokerage + taxes + DP');
+    K('Charges paid',fx(S.chg,0),'brokerage + taxes + DP')+
+    K('Loss to recover',`<span class="${S.bal>0?'dn':''}">${fx(S.bal?-S.bal:0,0)}</span>`,'booked losses '+fx(S.lossB,0)+' · recovered '+fx(S.recd,0));
   let h='';
   if(CL==='ALL'){ const cs=[...new Set(TR.map(t=>t.c))].sort();
     h+=`<h3 class="sec">Clients <small>click a client to open</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th>Portfolio size</th><th>Invested</th><th>Ledger</th><th>Net balance</th><th>Unrealised</th><th>%</th><th>Booked</th><th>Total P&amp;L</th><th>%</th><th>Holding cost</th><th>After cost</th></tr></thead><tbody>`+
@@ -178,16 +180,21 @@ function render(){
   const hg={}; H.forEach(x=>{ const k=x.c+'|'+x.sym; const g=hg[k]=hg[k]||{c:x.c,sym:x.sym,q:0,cost:0,hc:0,first:x.d,days:0}; g.q+=x.q; g.cost+=x.q*x.cost; g.hc+=x.hc; if(x.d<g.first) g.first=x.d; g.days=Math.max(g.days,x.days); });
   const HG=Object.values(hg).sort((a,b)=>a.c.localeCompare(b.c)||a.sym.localeCompare(b.sym));
   const rows=HG.map(g=>{ const q=Q[g.sym], val=q?g.q*q.p:null, pl=val!=null?val-g.cost:null, dp=q&&q.pc?(q.p/q.pc-1)*100:null, plp=pl!=null?pl/g.cost*100:null,
-      mk=MARK[g.sym]||'', al=alerts(g.sym,plp,mk), aft=pl!=null?pl-g.hc:null, cih=g.cost+g.hc;
-      return {g,q,val,pl,dp,plp,mk,al,aft,aftp:aft!=null?aft/cih*100:null,cih,blink:Math.max(0,...al.map(x=>x.b))}; })
+      mk=MARK[g.sym]||'', lr=E.lr[g.c+'|'+g.sym], bal=lr?lr.bal:0, al=alerts(g.sym,plp,mk), aft=pl!=null?pl-g.hc:null, cih=g.cost+g.hc, arv=aft!=null?aft-bal:null;
+      if(bal>0) al.unshift({c:'pf',b:0,t:'♻ recover '+fx(bal,0)});
+      return {g,q,val,pl,dp,plp,mk,al,aft,aftp:aft!=null?aft/cih*100:null,cih,bal,arv,rp:(cih+bal)/g.q,blink:Math.max(0,...al.map(x=>x.b))}; })
     .filter(r=>MF==='all'||(MF==='U'?!r.mk:MF==='trig'?r.al.some(x=>x.c!=='ls'):r.mk===MF));
   const rank=r=>r.mk==='T'&&r.plp>0?0:r.blink?1:2;
   rows.sort((a,b)=>rank(a)-rank(b)||(rank(a)===0?b.plp-a.plp:rank(a)===1?b.blink-a.blink:0)||a.g.c.localeCompare(b.g.c)||a.g.sym.localeCompare(b.g.sym));
-  h+=`<h3 class="sec">Holdings <small>Trading positions in profit on top for booking · alerts beside the symbol · live P&amp;L on net buy and on cost incl. holding interest</small></h3><div class="sx"><table class="x"><thead><tr>${CL==='ALL'?'<th class="l">Client</th>':''}<th class="l">Symbol &amp; alerts</th><th class="l">Mark</th><th>RSI 14</th><th>Qty</th><th>Net buy</th><th>CMP</th><th>Day %</th><th>Value</th><th>P&amp;L on net buy</th><th>%</th><th>Days (T+1)</th><th>Holding cost</th><th>Cost incl. holding</th><th>P&amp;L after holding</th><th>%</th></tr></thead><tbody>`+
+  h+=`<h3 class="sec">Holdings <small>Trading positions in profit on top for booking · alerts beside the symbol · live P&amp;L on net buy and on cost incl. holding interest</small></h3><div class="sx"><table class="x"><thead><tr>${CL==='ALL'?'<th class="l">Client</th>':''}<th class="l">Symbol &amp; alerts</th><th class="l">Mark</th><th>RSI 14</th><th>Qty</th><th>Net buy</th><th>CMP</th><th>Day %</th><th>Value</th><th>P&amp;L on net buy</th><th>%</th><th>Days (T+1)</th><th>Holding cost</th><th>Cost incl. holding</th><th>P&amp;L after holding</th><th>%</th><th>Balance loss</th><th>Recovery price</th><th>After loss recovery</th></tr></thead><tbody>`+
     (rows.length?rows.map(r=>{ const g=r.g, rs=RSI[g.sym];
-      return `<tr class="${r.blink?'hot':''}">${CL==='ALL'?'<td class="l">'+esc(g.c)+'</td>':''}<td class="l"><b>${esc(g.sym)}</b>${chips(r.al)}</td><td class="l"><select class="mk ${r.mk}" data-s="${esc(g.sym)}"><option value=""${!r.mk?' selected':''}>–</option><option value="T"${r.mk==='T'?' selected':''}>Trading</option><option value="I"${r.mk==='I'?' selected':''}>Investment</option></select></td><td class="${rs==null?'mu':rs>=70?'dn':rs<=30?'up':''}">${rs==null?'–':rs.toFixed(1)}</td><td>${fx(g.q,0)}</td><td>${fx(g.cost/g.q)}</td><td>${r.q?fx(r.q.p):'–'}</td><td class="${cls(r.dp)}">${pc(r.dp)}</td><td>${r.val!=null?fx(r.val,0):'–'}</td><td class="${cls(r.pl)}">${sgn(r.pl,0)}</td><td class="${cls(r.pl)}">${pc(r.plp)}</td><td>${g.days}</td><td class="dn">${fx(-g.hc,0)}</td><td>${fx(r.cih/g.q)}</td><td class="${cls(r.aft)}">${r.aft!=null?sgn(r.aft,0):'–'}</td><td class="${cls(r.aft)}">${pc(r.aftp)}</td></tr>`; }).join(''):`<tr><td class="l mu" colspan="16">No holdings match.</td></tr>`)+`</tbody></table></div>`;
+      return `<tr class="${r.blink?'hot':''}">${CL==='ALL'?'<td class="l">'+esc(g.c)+'</td>':''}<td class="l"><b>${esc(g.sym)}</b>${chips(r.al)}</td><td class="l"><select class="mk ${r.mk}" data-s="${esc(g.sym)}"><option value=""${!r.mk?' selected':''}>–</option><option value="T"${r.mk==='T'?' selected':''}>Trading</option><option value="I"${r.mk==='I'?' selected':''}>Investment</option></select></td><td class="${rs==null?'mu':rs>=70?'dn':rs<=30?'up':''}">${rs==null?'–':rs.toFixed(1)}</td><td>${fx(g.q,0)}</td><td>${fx(g.cost/g.q)}</td><td>${r.q?fx(r.q.p):'–'}</td><td class="${cls(r.dp)}">${pc(r.dp)}</td><td>${r.val!=null?fx(r.val,0):'–'}</td><td class="${cls(r.pl)}">${sgn(r.pl,0)}</td><td class="${cls(r.pl)}">${pc(r.plp)}</td><td>${g.days}</td><td class="dn">${fx(-g.hc,0)}</td><td>${fx(r.cih/g.q)}</td><td class="${cls(r.aft)}">${r.aft!=null?sgn(r.aft,0):'–'}</td><td class="${cls(r.aft)}">${pc(r.aftp)}</td><td class="${r.bal?'dn':'mu'}">${r.bal?fx(-r.bal,0):'–'}</td><td>${r.bal?'<b>'+fx(r.rp)+'</b>':'–'}</td><td class="${cls(r.arv)}">${r.bal&&r.arv!=null?sgn(r.arv,0):'–'}</td></tr>`; }).join(''):`<tr><td class="l mu" colspan="19">No holdings match.</td></tr>`)+`</tbody></table></div>`;
   if(RL.length) h+=`<h3 class="sec">Booked delivery trades <small>FIFO · holding cost to the sale date</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th class="l">Symbol</th><th>Bought</th><th>Sold</th><th>Qty</th><th>Net buy</th><th>Net sell</th><th>P&amp;L</th><th>%</th><th>Days</th><th>Holding cost</th><th>After cost</th></tr></thead><tbody>`+
     RL.map(x=>`<tr><td class="l">${esc(x.c)}</td><td class="l"><b>${esc(x.sym)}</b></td><td>${dmy(x.bd)}</td><td>${dmy(x.sd)}</td><td>${fx(x.q,0)}</td><td>${fx(x.buy)}</td><td>${fx(x.sell)}</td><td class="${cls(x.pl)}">${sgn(x.pl,0)}</td><td class="${cls(x.pl)}">${pc(x.pl/x.cost*100)}</td><td>${x.days}</td><td class="dn">${fx(-x.hc,0)}</td><td class="${cls(x.pl-x.hc)}">${sgn(x.pl-x.hc,0)}</td></tr>`).join('')+`</tbody></table></div>`;
+  const LRs=Object.values(E.lr).filter(x=>inC(x)&&x.loss>0).sort((a,b)=>b.bal-a.bal||a.c.localeCompare(b.c));
+  if(LRs.length) h+=`<h3 class="sec">Loss recovery <small>profit booked after a loss recovers it first · profit before the first loss does not count · balance loss is added to the holding cost (recovery price)</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th class="l">Script</th><th>First loss</th><th>Loss booked</th><th>Recovered</th><th>Balance to recover</th><th>Profit before loss</th><th>Profit after recovery</th><th>Holding now</th><th>Recovery price</th><th>CMP</th><th>Move needed</th></tr></thead><tbody>`+
+    LRs.map(x=>{ const g=hg[x.c+'|'+x.sym], q=Q[x.sym], rp=g?(g.cost+g.hc+x.bal)/g.q:null, mv=rp&&q?(rp/q.p-1)*100:null;
+      return `<tr><td class="l"><b>${esc(x.c)}</b></td><td class="l"><b>${esc(x.sym)}</b>${x.bal>0&&!g?'<span class="chip en">no holding · waits for a BUY call</span>':''}${x.bal<=0?'<span class="chip en">recovered</span>':''}</td><td>${dmy(x.first)}</td><td class="dn">${fx(-x.loss,0)}</td><td class="up">${fx(x.rec,0)}</td><td class="${x.bal>0?'dn':''}"><b>${fx(x.bal?-x.bal:0,0)}</b></td><td class="mu">${sgn(x.before,0)}</td><td class="${cls(x.after)}">${sgn(x.after,0)}</td><td>${g?fx(g.q,0):'–'}</td><td>${rp?fx(rp):'–'}</td><td>${q?fx(q.p):'–'}</td><td class="${mv==null?'mu':mv>0?'dn':'up'}">${mv==null?'–':mv>0?pc(mv):'reached'}</td></tr>`; }).join('')+`</tbody></table></div>`;
   h+=`<h3 class="sec">Intraday <small>same client, symbol and day - offsetting quantity</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Date</th><th class="l">Client</th><th class="l">Symbol</th><th>Qty</th><th>Net buy</th><th>Net sell</th><th>Charges</th><th>P&amp;L</th></tr></thead><tbody>`+
     (IN.length?IN.sort((a,b)=>b.d.localeCompare(a.d)).map(x=>`<tr><td class="l">${dmy(x.d)}</td><td class="l">${esc(x.c)}</td><td class="l"><b>${esc(x.sym)}</b></td><td>${fx(x.q,0)}</td><td>${fx(x.b)}</td><td>${fx(x.s)}</td><td>${fx(x.chg)}</td><td class="${cls(x.pl)}">${sgn(x.pl)}</td></tr>`).join(''):`<tr><td class="l mu" colspan="8">No intraday trades in this trade book.</td></tr>`)+`</tbody></table></div>`;
   const tt={v:0,brk:0,stt:0,exch:0,sebi:0,stamp:0,dp:0,gst:0,chg:0}; P.forEach(p=>Object.keys(tt).forEach(k=>tt[k]+=p[k]));

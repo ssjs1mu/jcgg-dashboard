@@ -51,5 +51,26 @@ function compute(TR,STAT,rateOf){
     if(p.side==='S'){ x.s+=p.net; x.q+=p.q; } else x.b+=p.net; x.chg+=p.chg; });
   return {parts,hold,real,intra:Object.values(intra).map(x=>Object.assign(x,{pl:x.s-x.b})),warn};
 }
-window.PF={ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,marks:()=>LS.get('jc_pf_mark',{})};
+/* Loss recovery per client + script, in date order of booking (delivery lots after holding interest, and intraday):
+   a loss adds to the balance to recover; a profit booked AFTER a loss first recovers that balance (only the excess is profit);
+   a profit booked before any loss is ordinary profit and does not offset a later loss. */
+function recovery(E){ const ev={};
+  E.real.forEach(x=>{ (ev[x.c+'|'+x.sym]=ev[x.c+'|'+x.sym]||[]).push({d:x.sd,pl:x.pl-x.hc,k:'Delivery'}); });
+  E.intra.forEach(x=>{ (ev[x.c+'|'+x.sym]=ev[x.c+'|'+x.sym]||[]).push({d:x.d,pl:x.pl,k:'Intraday'}); });
+  const out={};
+  Object.keys(ev).forEach(k=>{ const [c,sym]=k.split('|'), L=ev[k].sort((a,b)=>a.d.localeCompare(b.d)); let bal=0, loss=0, rec=0, before=0, after=0, last=null, first=null;
+    L.forEach(e=>{ if(e.pl<0){ bal+=-e.pl; loss+=-e.pl; last=e.d; if(!first) first=e.d; }
+      else if(bal>0){ const r=Math.min(e.pl,bal); bal-=r; rec+=r; after+=e.pl-r; }
+      else if(!first) before+=e.pl; else after+=e.pl; });
+    out[k]={c,sym,loss,rec,bal,before,after,first,last,events:L}; });
+  return out; }
+/* net P&L of a delivery round trip for one client (buy and sell on different days), all charges included */
+function roundTrip(c,buy,sell,q,STAT,rateOf){ const R=rateOf(c), vb=buy*q, vs=sell*q;
+  const side=(v,isBuy)=>{ const brk=v*R.bd/100, stt=v*STAT.sttD/100, ex=v*STAT.exch/100, se=v*STAT.sebi/100, st=isBuy?v*STAT.stampD/100:0, dp=isBuy?0:(+R.dp||0);
+    return brk+stt+ex+se+st+dp+(brk+ex+se+dp)*STAT.gst/100; };
+  return (vs-side(vs,false))-(vb+side(vb,true)); }
+/* quantity that recovers 'need' rupees between entry and target (fast track = in one move) */
+function qtyFor(c,need,en,tg,STAT,rateOf){ if(!(tg>en)||!(need>0)) return null; let q=Math.max(1,Math.ceil(need/(tg-en)));
+  for(let i=0;i<60&&roundTrip(c,en,tg,q,STAT,rateOf)<need;i++) q=Math.ceil(q*1.02)+1; return roundTrip(c,en,tg,q,STAT,rateOf)>=need?q:null; }
+window.PF={ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
 })();
