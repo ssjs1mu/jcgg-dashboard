@@ -208,7 +208,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
   d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
 <script src="perf.js?v=3"></script>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0e1621"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="icons/icon-192.png"><link rel="stylesheet" href="mobile.css?v=7"><script src="mobile.js?v=3"></script>
-<script src="ssj-theme.js?v=1"></script>
+<script src="ssj-theme.js?v=2"></script>
 </head><body>
 <div class="top"><div class="bmw" id="bmW"><div class="bmz">🌡 <b>MARKET BAROMETER</b><span class="mu">loading…</span></div></div><div class="hbr"><h1>Joshi's Corner</h1><span class="mood" id="mood">🌤 reading the market mood…</span></div>
  <nav class="tnav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw on" href="watchlist.html">WATCHLIST</a><a class="sw" href="plan.html">TOMORROW'S CALLS</a><a class="sw" href="calculator.html">PIVOT CALCULATOR</a><a class="sw" href="review.html">TRADE AUDIT</a><a class="sw" href="portfolio.html">PORTFOLIO</a><a class="sw" href="reports.html">REPORTS</a></nav></div>
@@ -1195,6 +1195,103 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   document.addEventListener('click',e=>{ if(!popped()||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey) return; const a=e.target.closest&&e.target.closest('a[href]'); if(!a||(a.target&&a.target!=='_self')) return;
     const u=new URL(a.href,location.href); if(!isApp(u)||isHome(u)||(u.hash&&u.pathname===location.pathname)) return; e.preventDefault(); open(u.href); },true);
   window.addEventListener('beforeunload',e=>{ if(popped()){ e.preventDefault(); e.returnValue=''; } });
+})();
+</script>
+<script src="pf-core.js?v=1"></script>
+<script>
+/* ===== Profit-booking pop-up: client holdings (Portfolio page data, same browser) checked against the Watchlist parameters =====
+   Holding in profit after holding interest AND
+     Trading / not marked: daily RSI-14 >= 70, or Watchlist call on the chosen timeframe = SELL, or timeframe RSI >= 80
+     Investment: daily RSI-14 >= 80
+   Pops up during market hours only (live prices), once a day per script and level; snooze 30 min; shows every client's holding with cost. */
+(function(){
+  if(!window.PF) return;
+  const PBH={}, PBD={}, PBQ={};             // holdings by symbol, daily closes, live quotes
+  let PBL=[], pbBusy=false, pbTr=null;
+  const pfx=(v,d=2)=>v==null||!isFinite(v)?'–':v.toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const psg=(v,d=0)=>v==null||!isFinite(v)?'–':(v>=0?'+':'')+pfx(v,d);
+  const ppc=v=>v==null||!isFinite(v)?'–':(v>=0?'+':'')+v.toFixed(2)+'%';
+  const pcl=v=>v==null||!isFinite(v)||!v?'':v>0?'pbu':'pbd';
+  function rsi14(c){ if(c.length<16) return null; let g=0,l=0; for(let i=1;i<=14;i++){ const d=c[i]-c[i-1]; g+=Math.max(d,0); l+=Math.max(-d,0); } g/=14; l/=14;
+    for(let i=15;i<c.length;i++){ const d=c[i]-c[i-1]; g=(g*13+Math.max(d,0))/14; l=(l*13+Math.max(-d,0))/14; } return l?100-100/(1+g/l):100; }
+  async function holdings(){ const T=pbTr||(pbTr=await PF.loadTrades()); const E=PF.compute(T.trades,PF.stat(),PF.rateOfFrom(PF.rates()));
+    Object.keys(PBH).forEach(k=>delete PBH[k]);
+    E.hold.forEach(h=>{ const g=PBH[h.sym]=PBH[h.sym]||{}; const c=g[h.c]=g[h.c]||{c:h.c,q:0,cost:0,hc:0,days:0,first:h.d};
+      c.q+=h.q; c.cost+=h.q*h.cost; c.hc+=h.hc; c.days=Math.max(c.days,h.days); if(h.d<c.first) c.first=h.d; }); }
+  async function daily(s){ if(s in PBD) return; PBD[s]=null;
+    try{ const u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(s+'.NS')+'?range=6mo&interval=1d&includePrePost=false';
+      const j=await getJ(BACKEND+'?action=fetch&url='+encodeURIComponent(u),20000), x=j&&j.chart&&j.chart.result&&j.chart.result[0]; if(!x) return;
+      const q=x.indicators.quote[0], B=[]; (x.timestamp||[]).forEach((t,i)=>{ if(q.close[i]!=null) B.push({d:new Date((t+19800)*1000).toISOString().slice(0,10),c:q.close[i]}); }); PBD[s]=B; }catch(e){} }
+  function dRSI(s){ const B=PBD[s]; if(!B||!B.length) return null; const c=B.map(b=>b.c), q=PBQ[s], t=PF.todayS();
+    if(q&&q.p>0){ if(B[B.length-1].d===t) c[c.length-1]=q.p; else if(mkt().open) c.push(q.p); } return rsi14(c); }
+  function wl(s){ const w=(W||[]).find(x=>x.s===s&&x.x!=='BO'), r=w&&R[key(w)]; return r||null; }
+  function evaluate(){ const MK=PF.marks(), out=[];
+    Object.keys(PBH).forEach(s=>{ const q=PBQ[s]; if(!q) return; const cs=Object.values(PBH[s]);
+      const qty=cs.reduce((a,c)=>a+c.q,0), cost=cs.reduce((a,c)=>a+c.cost,0), hc=cs.reduce((a,c)=>a+c.hc,0), val=qty*q.p, after=val-cost-hc;
+      if(!(after>0)) return;
+      const mk=MK[s]||'', r=dRSI(s), w=wl(s), why=[]; let lvl=0;
+      if(mk==='I'){ if(r!=null&&r>=80){ why.push('Daily RSI-14 '+r.toFixed(0)+' (≥ 80)'); lvl=2; } }
+      else {
+        if(r!=null&&r>=70){ why.push('Daily RSI-14 '+r.toFixed(0)+(r>=80?' (≥ 80)':' (≥ 70)')); lvl=Math.max(lvl,r>=80?2:1); }
+        if(w&&w.call==='SELL'){ why.push('Watchlist '+(TF==='D'?'daily':TF+'-min')+' call SELL · conviction '+w.conv); lvl=Math.max(lvl,1); }
+        if(w&&w.rsi!=null&&w.rsi>=80){ why.push((TF==='D'?'Daily':TF+'-min')+' RSI '+w.rsi.toFixed(0)+' (≥ 80)'); lvl=Math.max(lvl,1); }
+        if(why.length>1) lvl=2;
+      }
+      if(lvl) out.push({s,mk,lvl,why,q,cs,qty,cost,hc,val,after,pl:val-cost,rsi:r});
+    });
+    out.sort((a,b)=>b.lvl-a.lvl||b.after/(b.cost+b.hc)-a.after/(a.cost+a.hc)); PBL=out; pill(); return out; }
+  function seen(){ const S=PF.LS.get('jc_pb_seen',{}); return S.d===PF.todayS()?S:{d:PF.todayS(),x:{}}; }
+  function pill(){ let p=document.getElementById('pbPill'); if(!PBL.length){ if(p) p.remove(); return; }
+    if(!p){ p=document.createElement('button'); p.id='pbPill'; p.onclick=()=>show(PBL,true); document.body.appendChild(p); }
+    p.className=PBL.some(x=>x.lvl>1)?'pbf':''; p.textContent='📤 '+PBL.length+' to book profit'+(mkt().open?'':' (last close)'); }
+  function show(list,manual){ if(!list.length) return; let m=document.getElementById('pbM'); if(m) m.remove();
+    m=document.createElement('div'); m.id='pbM';
+    const sec=x=>{ const rows=x.cs.sort((a,b)=>a.c.localeCompare(b.c)).map(c=>{ const v=c.q*x.q.p, pl=v-c.cost, af=pl-c.hc;
+        return `<tr><td class="l"><b>${esc(c.c)}</b></td><td>${pfx(c.q,0)}</td><td>${pfx(c.cost/c.q)}</td><td>${pfx((c.cost+c.hc)/c.q)}</td><td><b>${pfx(x.q.p)}</b></td><td class="${pcl(pl)}">${psg(pl)}</td><td class="${pcl(pl)}">${ppc(pl/c.cost*100)}</td><td class="${pcl(af)}">${psg(af)}</td><td class="${pcl(af)}">${ppc(af/(c.cost+c.hc)*100)}</td><td>${c.days}</td></tr>`; }).join('');
+      return `<div class="pbs"><div class="pbh"><b>${esc(x.s)}</b> <span class="pbt ${x.lvl>1?'pbf':''}">${x.lvl>1?'BOOK NOW':'BOOK / TRAIL'}</span> <span class="pbm">${x.mk==='T'?'Trading':x.mk==='I'?'Investment':'not marked'}</span><span class="pbw">${x.why.map(esc).join(' · ')}</span></div>
+        <table class="pbx"><thead><tr><th class="l">Client</th><th>Qty</th><th>Net buy</th><th>Cost incl. holding</th><th>CMP</th><th>P&amp;L on net buy</th><th>%</th><th>P&amp;L after holding</th><th>%</th><th>Days</th></tr></thead><tbody>${rows}
+        <tr class="pbtot"><td class="l">All clients</td><td>${pfx(x.qty,0)}</td><td>${pfx(x.cost/x.qty)}</td><td>${pfx((x.cost+x.hc)/x.qty)}</td><td>${pfx(x.q.p)}</td><td class="${pcl(x.pl)}">${psg(x.pl)}</td><td class="${pcl(x.pl)}">${ppc(x.pl/x.cost*100)}</td><td class="${pcl(x.after)}">${psg(x.after)}</td><td class="${pcl(x.after)}">${ppc(x.after/(x.cost+x.hc)*100)}</td><td></td></tr></tbody></table>
+        <div class="pbb"><a class="pbk" href="portfolio.html?sym=${encodeURIComponent(x.s)}">Open in Portfolio ▸</a></div></div>`; };
+    m.innerHTML=`<div class="pbc"><div class="pbtop"><b>📤 Profit booking - ${list.length} holding${list.length>1?'s':''} meet${list.length>1?'':'s'} the criteria</b><span class="pbtm">${mkt().open?'live':'last close'} · ${new Date(Date.now()+19800000).toISOString().slice(11,16)} IST</span><button class="pbz" id="pbClose">✕</button></div>
+      <div class="pbbody">${list.map(sec).join('')}</div>
+      <div class="pbfoot">Criteria: in profit after holding interest, and - Trading / not marked: daily RSI-14 ≥ 70, ${TF==='D'?'daily':TF+'-min'} call SELL or ${TF==='D'?'daily':TF+'-min'} RSI ≥ 80 · Investment: daily RSI-14 ≥ 80. Costs from the Portfolio page (net buy incl. brokerage and charges; holding interest ${PF.stat().int}% from T+1).
+      <span style="float:right"><button class="pbz2" id="pbSnz">Snooze 30 min</button> <button class="pbz2" id="pbDone">Done for today</button></span></div></div>`;
+    document.body.appendChild(m);
+    const close=()=>m.remove();
+    m.onclick=e=>{ if(e.target===m) close(); }; document.getElementById('pbClose').onclick=close;
+    document.getElementById('pbSnz').onclick=()=>{ const S=seen(); list.forEach(x=>S.x[x.s]={l:x.lvl,until:Date.now()+30*60000}); PF.LS.set('jc_pb_seen',S); close(); };
+    document.getElementById('pbDone').onclick=()=>{ const S=seen(); list.forEach(x=>S.x[x.s]={l:9,until:0}); PF.LS.set('jc_pb_seen',S); close(); };
+    if(!manual){ const S=seen(); list.forEach(x=>{ if(!S.x[x.s]||S.x[x.s].l<x.lvl) S.x[x.s]={l:x.lvl,until:0}; }); PF.LS.set('jc_pb_seen',S); } }
+  async function check(){ if(pbBusy) return; pbBusy=true;
+    try{ await holdings(); const syms=Object.keys(PBH); if(!syms.length){ PBL=[]; pill(); return; }
+      try{ const j=await getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(syms.map(s=>s+'.NS').join(',')),15000);
+        if(j&&j.q) Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]>0) PBQ[k.replace(/\.NS$/,'')]={p:q[0],pc:q[1]}; }); }catch(e){}
+      for(const s of syms) await daily(s);
+      const L=evaluate();
+      if(mkt().open&&!document.hidden){ const S=seen(), now=Date.now();
+        const fresh=L.filter(x=>{ const z=S.x[x.s]; return !z||(z.l<x.lvl)||(z.until&&z.until<now&&z.l<9); });
+        if(fresh.length) show(L,false); }
+    }finally{ pbBusy=false; } }
+  const st=document.createElement('style'); st.textContent=`
+#pbPill{position:fixed;left:14px;bottom:70px;z-index:9000;border:1px solid #E29A93;background:#FBE3E1;color:#B00000;font:900 12.5px Inter,sans-serif;padding:8px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer}
+#pbPill.pbf{animation:pbb .7s ease-in-out infinite}@keyframes pbb{50%{opacity:.35}}
+#pbM{position:fixed;inset:0;z-index:9500;background:rgba(40,38,10,.55);display:flex;align-items:flex-start;justify-content:center;padding:4vh 10px;overflow:auto}
+#pbM .pbc{background:#F7F4E6;border-radius:16px;max-width:1100px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;font:600 12.5px Inter,sans-serif;color:#2E2C14}
+#pbM .pbtop{display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(180deg,#5f5b00,#3f3c00);color:#F3EFD6;font-size:15px}
+#pbM .pbtm{margin-left:auto;font:700 11.5px ui-monospace,Consolas,monospace;color:#EDE8C8}#pbM .pbz{background:none;border:0;color:#F3EFD6;font-size:18px;cursor:pointer}
+#pbM .pbbody{padding:8px 12px;max-height:70vh;overflow:auto}#pbM .pbs{background:#fff;border:1px solid #E2DDBF;border-radius:12px;padding:8px 10px;margin:8px 0;overflow-x:auto}
+#pbM .pbh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}#pbM .pbh>b{font:900 17px Inter,sans-serif;color:#3f3c00}
+#pbM .pbt{background:#FFF1C9;color:#7A5A00;border:1px solid #E7CF8A;border-radius:999px;padding:1px 9px;font:900 11px Inter,sans-serif}#pbM .pbt.pbf{background:#FBE3E1;color:#B00000;border-color:#E29A93;animation:pbb .7s ease-in-out infinite}
+#pbM .pbm{background:#EEEAD5;border-radius:6px;padding:1px 7px;font:800 10.5px Inter,sans-serif}#pbM .pbw{color:#6E6A45;font-weight:700}
+#pbM table.pbx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}#pbM .pbx th{background:#676300;color:#fff;font:800 10.5px Inter,sans-serif;text-transform:uppercase;padding:5px 7px;text-align:right}
+#pbM .pbx td{padding:4px 7px;border-bottom:1px solid #EFEBD6;text-align:right;white-space:nowrap}#pbM .pbx .l{text-align:left}#pbM .pbtot td{background:#F1EDD9;font-weight:900}
+#pbM .pbu{color:#1C820D}#pbM .pbd{color:#D00000}#pbM .pbb{text-align:right;margin-top:5px}#pbM .pbk{font:800 12px Inter,sans-serif;color:#676300;text-decoration:none}
+#pbM .pbfoot{padding:9px 14px;border-top:1px solid #E2DDBF;color:#6E6A45;font-size:11.5px;line-height:1.5}#pbM .pbz2{border:1px solid #CFC9A3;background:#fff;border-radius:8px;padding:5px 10px;font:800 12px Inter,sans-serif;cursor:pointer;color:#3f3c00}
+@media (prefers-reduced-motion:reduce){#pbPill.pbf,#pbM .pbt.pbf{animation:none}}`; document.head.appendChild(st);
+  window.pbCheck=check; window.pbDebug={PBH,PBD,PBQ,evaluate,show};
+  setTimeout(check,6000);
+  setInterval(()=>{ if(mkt().open&&!document.hidden) check(); },30000);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) check(); });
 })();
 </script>
 <script src="signals.js?v=5"></script>
