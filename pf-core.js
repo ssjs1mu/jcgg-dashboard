@@ -376,11 +376,14 @@ function parsePartyLedger(L){ const all=L.map(r=>r.text).join('\n');
 function parseTradePdf(L,ISM){ const all=L.map(r=>r.text).join('\n'), out=[];
   if(/Sauda\s+Summary/i.test(all)){ const pm=all.match(/Parties\s*:?\s*:\s*([A-Z0-9]+)\s+To\s+([A-Z0-9]+)/i); if(!pm) throw new Error('client code (Parties) not found in this trade report');
     if(pm[1].toUpperCase()!==pm[2].toUpperCase()) throw new Error('this report covers several clients ('+pm[1]+' to '+pm[2]+') - export one client per file');
-    const c=pm[1].toUpperCase(); let pend=[];
+    const c=pm[1].toUpperCase(), bse=/-\s*BSE\s*CM|BSECM/i.test(all), rev={}; let pend=[];   /* BSE version: Code = BSE scrip code, Series = BSE */
+    Object.entries((ISM&&ISM.b)||{}).forEach(([isin,b])=>{ if(b&&b[0]) rev[String(b[0])]=isin; });
     L.forEach(r=>{ const t=r.text, sd=t.match(/^SUB-TOTAL\s+FOR\s+DATE\s+(.+?\d{4})/i);
       if(sd){ const d=mdy(sd[1]); pend.forEach(p=>{ if(d) out.push(Object.assign(p,{d})); }); pend=[]; return; }
-      const m=t.match(/^([A-Z0-9&\-]+)\s+([A-Z][A-Z0-9])\s+(.+?)((?:\s+-?[\d.]+){11})$/); if(!m||/^BROKERAGE$/i.test(m[1])) return;
-      const v=m[4].trim().split(/\s+/).map(Number), base={c,sym:m[1].toUpperCase(),ex:'NSE',ser:m[2],src:'sauda'};
+      const m=t.match(/^([A-Z0-9&\-]+)\s+([A-Z][A-Z0-9]{1,3})\s+(.+?)((?:\s+-?[\d.]+){11})$/); if(!m||/^(BROKERAGE|BRKSCR)$/i.test(m[1])||/^BROKERAGE$/i.test(m[3].trim())) return;
+      let sym=m[1].toUpperCase(), sc='';
+      if(/^\d{5,6}$/.test(sym)){ sc=sym; const isin=rev[sc]; sym=(isin&&ISM.i[isin])||(isin&&(ISM.b[isin]||[])[1])||m[3].trim().toUpperCase().replace(/\b(LTD|LIMITED)\b\.?/g,'').replace(/[^A-Z0-9&]/g,''); }
+      const v=m[4].trim().split(/\s+/).map(Number), base={c,sym,ex:bse?'BSE':'NSE',ser:bse?'':m[2],src:'sauda'}; if(sc) base.scode=sc;
       if(v[0]>0&&v[1]>0) pend.push(Object.assign({},base,{side:'B',q:v[0],r:v[1]})); if(v[3]>0&&v[4]>0) pend.push(Object.assign({},base,{side:'S',q:v[3],r:v[4]})); });
     if(!out.length) throw new Error('no buy / sell rows found in this Sauda summary'); return out; }
   if(/Settlementwise\s+Summary/i.test(all)){ const hd=L.find(r=>/End Date.*Stlmnt.*Bqty.*Sqty/i.test(r.text)); if(!hd) throw new Error('columns End Date / Stlmnt / Bqty / Sqty not found');
@@ -471,7 +474,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-23s';
+const BUILD='2026-11-23t';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
