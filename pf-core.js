@@ -27,7 +27,11 @@ const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))]; rows.forEach(x=>{ if(!x.id) x.id=nid(); });
   const rg={}; rows.forEach(x=>{ const g=rg[x.c]=rg[x.c]||[x.d,x.d]; if(x.d<g[0]) g[0]=x.d; if(x.d>g[1]) g[1]=x.d; });
   const snap={}; rows.forEach(x=>{ if(x.man) snap[x.c]=1; });
-  t.trades=t.trades.filter(x=>!(rg[x.c]&&(!x.man||snap[x.c])&&x.d>=rg[x.c][0]&&x.d<=rg[x.c][1])).concat(rows).sort((a,b)=>a.c.localeCompare(b.c)||a.d.localeCompare(b.d));
+  /* a file replaces that client's earlier fills in its own date range - but only on the exchange(s) it covers: an NSE report and a BSE report
+     for the same period both stay (a combined NSE+BSE report, a file without exchange or a full re-load still replaces everything in range) */
+  const exOf=x=>String(x.ex||'').toUpperCase(), ex={}; rows.forEach(x=>{ (ex[x.c]=ex[x.c]||new Set()).add(exOf(x)); });
+  const sameEx=x=>{ const E=ex[x.c]; return !E||E.has('')||!exOf(x)||E.has(exOf(x)); };
+  t.trades=t.trades.filter(x=>!(rg[x.c]&&(!x.man||snap[x.c])&&x.d>=rg[x.c][0]&&x.d<=rg[x.c][1]&&sameEx(x))).concat(rows).sort((a,b)=>a.c.localeCompare(b.c)||a.d.localeCompare(b.d));
   t.files=t.files.filter(f=>!(f.name===name&&f.clients.join()===cs.join())).concat([{name,at,clients:cs,n:rows.length,from:Object.values(rg).map(g=>g[0]).sort()[0],to:Object.values(rg).map(g=>g[1]).sort().slice(-1)[0]}]); LS.set('jc_pf_tb',t); return cs; }
 function removeTrades(c){ const t=tb(); syncMark('trade',c==null?[...new Set(t.trades.map(x=>x.c))]:[c]); if(c==null){ t.trades=[]; t.files=[]; } else { t.trades=t.trades.filter(x=>x.c!==c); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); } LS.set('jc_pf_tb',t); }
 async function loadTrades(base){ stateSync().catch(()=>0); /* Drive sync runs in the background - pages refresh on the 'pf-drive' event */ const up=tb();
@@ -385,7 +389,11 @@ function parseTradePdf(L,ISM){ const all=L.map(r=>r.text).join('\n'), out=[];
       if(/^\d{5,6}$/.test(sym)){ sc=sym; const isin=rev[sc]; sym=(isin&&ISM.i[isin])||(isin&&(ISM.b[isin]||[])[1])||m[3].trim().toUpperCase().replace(/\b(LTD|LIMITED)\b\.?/g,'').replace(/[^A-Z0-9&]/g,''); }
       const v=m[4].trim().split(/\s+/).map(Number), base={c,sym,ex:bse?'BSE':'NSE',ser:bse?'':m[2],src:'sauda'}; if(sc) base.scode=sc;
       if(v[0]>0&&v[1]>0) pend.push(Object.assign({},base,{side:'B',q:v[0],r:v[1]})); if(v[3]>0&&v[4]>0) pend.push(Object.assign({},base,{side:'S',q:v[3],r:v[4]})); });
-    if(!out.length) throw new Error('no buy / sell rows found in this Sauda summary'); return out; }
+    if(!out.length) throw new Error('no buy / sell rows found in this Sauda summary');
+    const tt=all.match(/^TOTALS\s+([\d.]+)\s+[\d.]+\s+([\d.]+)\s/m);   /* report TOTALS: buy qty, buy value, sell qty, ... (brokerage rows have qty 0) */
+    if(tt){ const bq=out.filter(x=>x.side==='B').reduce((a,x)=>a+x.q,0), sq=out.filter(x=>x.side==='S').reduce((a,x)=>a+x.q,0);
+      if(Math.abs(bq-n2(tt[1]))>0.01||Math.abs(sq-n2(tt[2]))>0.01) throw new Error('rows read (buy '+bq+' / sell '+sq+') do not match the report TOTALS (buy '+n2(tt[1])+' / sell '+n2(tt[2])+') - not imported'); }
+    return out; }
   if(/Settlementwise\s+Summary/i.test(all)){ const hd=L.find(r=>/End Date.*Stlmnt.*Bqty.*Sqty/i.test(r.text)); if(!hd) throw new Error('columns End Date / Stlmnt / Bqty / Sqty not found');
     const sx=(hd.items.find(i=>/^Sqty$/i.test(i.s.trim()))||{}).x; if(sx==null) throw new Error('Sqty column not found');
     const rev={}; Object.entries((ISM&&ISM.b)||{}).forEach(([isin,b])=>{ if(b&&b[0]) rev[String(b[0])]=isin; });
@@ -397,7 +405,12 @@ function parseTradePdf(L,ISM){ const all=L.map(r=>r.text).join('\n'), out=[];
       const nums=r.items.filter(i=>/^[\d,]+(\.\d+)?$/.test(i.s.trim())&&i.x>(r.items[1]?r.items[1].x+5:0));
       const B=nums.filter(i=>i.x<sx-25).map(i=>n2(i.s)), S=nums.filter(i=>i.x>=sx-25).map(i=>n2(i.s)), base={d:ddmm(dm[1]),c,sym,scode:sc,stl:dm[2],src:'settlewise'};
       if(B.length>=2&&B[0]>0&&B[1]>0) out.push(Object.assign({},base,{side:'B',q:B[0],r:B[1]})); if(S.length>=2&&S[0]>0&&S[1]>0) out.push(Object.assign({},base,{side:'S',q:S[0],r:S[1]})); });
-    if(!out.length) throw new Error('no settlement rows found in this summary'); return out; }
+    if(!out.length) throw new Error('no settlement rows found in this summary');
+    const qs=re=>{ const m=all.match(re); if(!m) return null; return m[1].trim().split(/\s+/).map(n2); };   /* summary: Bought / Sold : delivery qty, value, squared-off qty, value, total value */
+    const bo=qs(/^Bought\s*:\s*([\d.\s]+)$/m), so=qs(/^Sold\s*:\s*([\d.\s]+)$/m);
+    if(bo&&so&&bo.length>=4&&so.length>=4){ const bq=out.filter(x=>x.side==='B').reduce((a,x)=>a+x.q,0), sq=out.filter(x=>x.side==='S').reduce((a,x)=>a+x.q,0);
+      if(Math.abs(bq-(bo[0]+bo[2]))>0.01||Math.abs(sq-(so[0]+so[2]))>0.01) throw new Error('rows read (buy '+bq+' / sell '+sq+') do not match the summary (bought '+(bo[0]+bo[2])+' / sold '+(so[0]+so[2])+') - not imported'); }
+    return out; }
   throw new Error('trade PDF not recognised (supported: Sauda Summary - Settlement Wise, Settlementwise Summary)'); }
 
 /* DP "Transaction/Holding" statement - only the closing holding table */
@@ -474,7 +487,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-23t';
+const BUILD='2026-11-23u';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
