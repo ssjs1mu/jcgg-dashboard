@@ -1,5 +1,5 @@
 name: ISIN list (DP holdings matching)
-# NSE's free equity list -> data/isin.json (ISIN -> symbol, company name -> symbol) so DP holding statements that list ISIN / security
+# NSE's free equity list + BSE scrip list (ISIN -> BSE code / ticker / status) -> data/isin.json (ISIN -> symbol, company name -> symbol) so DP holding statements that list ISIN / security
 # name match the trade book. Weekly; run by hand after new listings.
 on:
   schedule: [{ cron: '17 1 * * 1' }]
@@ -13,6 +13,10 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           curl -sSfL -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124 Safari/537.36' -o /tmp/eq.csv https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36'
+          curl -sSL -m 120 -A "$UA" -H 'Referer: https://www.bseindia.com/' -H 'Origin: https://www.bseindia.com' -H 'Accept: application/json' -o /tmp/bse.json 'https://api.bseindia.com/BseIndiaAPI/api/ListofScripData/w?Group=&Scripcode=&industry=&segment=Equity&status=' || true
+          echo "BSE list bytes: $(wc -c </tmp/bse.json 2>/dev/null)"; head -c 300 /tmp/bse.json || true; echo
+          for k in 0 1 2 3 4 5 6; do d=$(date -u -d "-$k day" +%Y%m%d); curl -sSfL -m 60 -A "$UA" -H 'Referer: https://www.bseindia.com/' -o /tmp/bhav.csv "https://www.bseindia.com/download/BhavCopy/Equity/BhavCopy_BSE_CM_0_0_0_${d}_F_0000.CSV" && [ $(wc -c </tmp/bhav.csv) -gt 10000 ] && { echo "BSE bhavcopy $d"; break; }; rm -f /tmp/bhav.csv; done
           python3 - <<'PY'
           import csv, io, json, re
           rows = list(csv.DictReader(io.StringIO(open('/tmp/eq.csv', encoding='latin-1').read())))
@@ -25,8 +29,33 @@ jobs:
               k = re.sub(r'[^a-z0-9]', '', re.sub(r'\b(limited|ltd)\b', '', nm.lower()))
               if k: n[k] = s
           assert len(i) > 1000, len(i)
-          json.dump({'note': 'NSE EQUITY_L.csv - ISIN and company name to NSE symbol', 'i': i, 'n': n}, open('data/isin.json', 'w'), separators=(',', ':'))
-          print(len(i), 'ISINs')
+          # BSE: ISIN -> [scrip code, ticker (Yahoo .BO), status A active / S suspended / D delisted, close]
+          bs = {}
+          try:
+              L = json.load(open('/tmp/bse.json'))
+              L = L.get('Table', L) if isinstance(L, dict) else L
+              for r in L:
+                  isin = (r.get('ISIN_NUMBER') or '').strip(); tk = (r.get('scrip_id') or '').strip()
+                  if not isin or not tk: continue
+                  st = (r.get('Status') or '').strip().lower()
+                  bs[isin] = [str(r.get('SCRIP_CD') or '').strip(), tk, 'A' if st.startswith('act') else 'S' if st.startswith('sus') else 'D', None]
+              print('BSE list', len(bs))
+          except Exception as e: print('BSE list not read:', e)
+          try:
+              for r in csv.DictReader(open('/tmp/bhav.csv', encoding='latin-1')):
+                  isin = (r.get('ISIN') or '').strip(); tk = (r.get('TckrSymb') or '').strip()
+                  if not isin.startswith('IN') or not tk: continue
+                  try: c = float(r.get('ClsPric') or 0)
+                  except ValueError: c = None
+                  b = bs.get(isin) or [str(r.get('FinInstrmId') or '').strip(), tk, 'A', None]
+                  b[3] = c; b[2] = 'A' if b[2] != 'D' else b[2]; bs[isin] = b
+              print('BSE with bhavcopy', len(bs))
+          except Exception as e: print('BSE bhavcopy not read:', e)
+          if len(bs) < 1000:   # keep last week's BSE list when BSE could not be reached
+              try: bs = json.load(open('data/isin.json')).get('b', {}) or bs; print('kept previous BSE list', len(bs))
+              except Exception: pass
+          json.dump({'note': 'i: ISIN -> NSE symbol (NSE EQUITY_L) · n: company name -> NSE symbol · b: ISIN -> [BSE code, BSE ticker, A/S/D status, last BSE close]', 'i': i, 'n': n, 'b': bs}, open('data/isin.json', 'w'), separators=(',', ':'))
+          print(len(i), 'NSE ISINs ·', len(bs), 'BSE ISINs')
           PY
       - run: |
           git config user.name 'github-actions[bot]'; git config user.email 'github-actions[bot]@users.noreply.github.com'
