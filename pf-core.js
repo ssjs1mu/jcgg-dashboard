@@ -23,8 +23,8 @@ function tb(){ let t=LS.get('jc_pf_tb',null);
 const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))]; rows.forEach(x=>{ if(!x.id) x.id=nid(); }); t.trades=t.trades.filter(x=>!cs.includes(x.c)).concat(rows);
   t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>!cs.includes(c))})).filter(f=>f.clients.length).concat([{name,at,clients:cs,n:rows.length}]); LS.set('jc_pf_tb',t); return cs; }
-function removeTrades(c){ const t=tb(); if(c==null){ t.trades=[]; t.files=[]; } else { t.trades=t.trades.filter(x=>x.c!==c); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); } LS.set('jc_pf_tb',t); }
-async function loadTrades(base){ const up=tb();
+function removeTrades(c){ const t=tb(); syncMark('trade',c==null?[...new Set(t.trades.map(x=>x.c))]:[c]); if(c==null){ t.trades=[]; t.files=[]; } else { t.trades=t.trades.filter(x=>x.c!==c); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); } LS.set('jc_pf_tb',t); }
+async function loadTrades(base){ await driveLoad().catch(()=>0); const up=tb();
   if(up.trades.length){ const cs=[...new Set(up.trades.map(x=>x.c))]; return {trades:up.trades,src:'uploaded trade books - '+cs.length+' client'+(cs.length>1?'s':'')+', '+up.trades.length+' fills',up:true}; }
   return {trades:[],src:'no trades yet - upload a trade book or add trades',up:false}; }
 /* single trades: add, edit, delete (manual entries are listed as source 'entered') */
@@ -136,7 +136,7 @@ function addLedger(name,at,byClient,balOnly){ const L=led(), cs=Object.keys(byCl
   cs.forEach(c=>{ if(balOnly){ L.bal[c]=byClient[c]; delete L.E[c]; } else { L.E[c]=byClient[c].sort((a,b)=>a.d.localeCompare(b.d)); delete L.bal[c]; } });
   L.files=L.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>!cs.includes(c))})).filter(f=>f.clients.length).concat([{name,at,clients:cs,balOnly:!!balOnly}]);
   LS.set('jc_pf_led2',L); try{ localStorage.removeItem('jc_pf_ledger'); }catch(e){} return cs; }
-function removeLedger(c){ const L=led(); if(c==null){ LS.set('jc_pf_led2',{files:[],E:{},bal:{}}); return; }
+function removeLedger(c){ const L=led(); syncMark('ledger',c==null?Object.keys(Object.assign({},L.E,L.bal)):[c]); if(c==null){ LS.set('jc_pf_led2',{files:[],E:{},bal:{}}); return; }
   delete L.E[c]; delete L.bal[c]; L.files=L.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); LS.set('jc_pf_led2',L); }
 function ledBal(c){ const L=led(); if(L.E[c]) return L.E[c].reduce((a,e)=>a+e.dr-e.cr,0); if(L.bal[c]!=null) return L.bal[c]; return null; }
 /* trading days after a up to b (weekends skipped; exchange holidays are not known here) */
@@ -196,11 +196,11 @@ function askCode(file){ const c=prompt('Client code for '+file.name+' (no client
 async function importTrades(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
   { const r0=rows[0], bq=col(r0,/^\s*buy\s*qty/i), ba=col(r0,/^\s*buy\s*(avg|rate|price)/i), sq=col(r0,/^\s*sell\s*qty/i), sa=col(r0,/^\s*sell\s*(avg|rate|price)/i);
     if(bq&&ba&&sq&&sa) return importNetPos(file,rows,{bq,ba,sq,sa}); }
-  const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cs=col(r0,/symbol|scrip|security|stock|instrument/i), cb=col(r0,/b\s*\/\s*s|buy.?sell|side|trans.*type|^type$/i), cq=col(r0,/qty|quantity/i), cr=col(r0,/rate|price|avg/i);
+  const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cs=col(r0,/^\s*symbol/i)||col(r0,/symbol|scrip(?!\s*code)|security|stock|instrument/i), cb=col(r0,/b\s*\/\s*s|buy.?sell|side|trans.*type|^type$/i), cq=col(r0,/qty|quantity/i), cr=col(r0,/rate|price|avg/i);
   const miss=[['Date',cd],['Symbol',cs],['Buy/Sell',cb],['Qty',cq],['Rate',cr]].filter(x=>!x[1]).map(x=>x[0]); if(miss.length) throw new Error('columns not found: '+miss.join(', '));
-  const one=cc?null:askCode(file);
+  const one=cc?null:askCode(file), cx=col(r0,/^\s*exch/i), csc=col(r0,/scrip\s*code/i), cse=col(r0,/^\s*ser/i), cpt=col(r0,/product/i), cvp=col(r0,/var\s*%/i), cva=col(r0,/var\s*am/i);
   const out=[]; rows.forEach(r=>{ const d=pdate(r[cd]), q=Math.abs(num(r[cq])), rt=num(r[cr]), side=/^s/i.test(String(r[cb]).trim())?'S':/^b/i.test(String(r[cb]).trim())?'B':null, c=one||String(r[cc]).trim().toUpperCase();
-    if(d&&q>0&&rt>0&&side&&c) out.push({d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}); });
+    if(d&&q>0&&rt>0&&side&&c){ const o={d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}; if(cx) o.ex=String(r[cx]||'').trim(); if(csc) o.scode=String(r[csc]||'').trim(); if(cse) o.ser=String(r[cse]||'').trim(); if(cpt) o.prod=String(r[cpt]||'').trim(); if(cvp&&num(r[cvp])>0) o.varp=num(r[cvp]); if(cva&&num(r[cva])>0) o.vara=num(r[cva]); out.push(o); } });
   if(!out.length) throw new Error('no valid fills (check dates, quantities, rates and Buy/Sell)');
   const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
   driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
@@ -308,7 +308,7 @@ function parseLedgerPdf(L){ const all=L.map(r=>r.text).join('\n');
 let ISIN=null;
 async function isinMap(){ if(ISIN) return ISIN; try{ ISIN=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/isin.json?x='+Math.floor(Date.now()/864e5),{cache:'no-store'}).then(r=>r.json()); }catch(e){ ISIN={i:{},n:{},b:{}}; } ISIN.b=ISIN.b||{}; return ISIN; }
 function dp(){ return LS.get('jc_pf_dp',null)||{files:[],H:{}}; }
-function removeDP(c){ const D=dp(); if(c==null){ LS.set('jc_pf_dp',{files:[],H:{}}); return; } delete D.H[c]; D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); LS.set('jc_pf_dp',D); }
+function removeDP(c){ const D=dp(); syncMark('dp',c==null?Object.keys(D.H):[c]); if(c==null){ LS.set('jc_pf_dp',{files:[],H:{}}); return; } delete D.H[c]; D.files=D.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); LS.set('jc_pf_dp',D); }
 async function importDP(file){
   if(/\.pdf$/i.test(file.name)){ const P=parseDPpdf(await pdfLines(await file.arrayBuffer())), M=await isinMap(), miss=[];
     const H=P.rows.map(x=>{ const sym=M.i[x.isin]||'', bb=(M.b||{})[x.isin]; if(!sym) miss.push(x.isin+' '+x.name+(bb?' (BSE '+bb[1]+')':' (not on BSE)')); return {sym:sym||(bb&&bb[1])||x.isin,bse:bb?bb[0]:'',isin:x.isin,sec:x.name,q:x.q,rate:x.rate,value:x.value,type:x.type,nse:!!sym}; });
@@ -350,7 +350,7 @@ function toast(t,bad,html){ let d=document.getElementById('pfToast'); if(!d){ d=
   d.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9990;max-width:420px;padding:10px 14px;border-radius:12px;font:700 12.5px Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);'+(bad?'background:#FBE3E1;color:#8a1010;border:1px solid #E29A93':'background:#E3F1DF;color:#1C5C0D;border:1px solid #8DC487');
   d[html?'innerHTML':'textContent']=t; clearTimeout(d._t); d._t=setTimeout(()=>d.remove(),bad?12000:7000); }
 const akey=()=>{ try{ return localStorage.getItem('jc_admin_key')||''; }catch(e){ return ''; } };
-async function driveSave(type,name,files,again){ if(!files.length) return null;
+async function driveSave(type,name,files,again){ if(!files.length) return null; syncMark(type,files.map(f=>f.client)); if(LOADING) return null;
   let k=akey(); if(!k){ k=prompt('Admin passcode (the one that locks the client watchlists) - needed once on this device to save uploads to Google Drive:','')||''; if(!k){ driveLog(type,name,files,false,'no passcode - not saved to Drive'); toast('Not saved to Drive - no passcode. Use ☁ Save all to Drive later.',true); return null; } try{ localStorage.setItem('jc_admin_key',k); }catch(e){} }
   try{ const r=await fetch(BE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'pf_save',key:k,type,name,files})});
     const j=JSON.parse(await r.text()); if(j.error) throw new Error(j.error);
@@ -359,6 +359,21 @@ async function driveSave(type,name,files,again){ if(!files.length) return null;
   catch(e){ const m=String(e.message||e);
     if(/bad passcode/.test(m)&&!again){ try{ localStorage.removeItem('jc_admin_key'); }catch(x){} return driveSave(type,name,files,true); }
     driveLog(type,name,files,false,m); toast('Not saved to Drive - '+m+'. Use ☁ Save all to Drive to retry.',true); return null; } }
+/* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
+   A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
+let LOADING=false, LOADED=null;
+function syncMark(type,cs,t){ const S=LS.get('jc_pf_sync',{}); cs.forEach(c=>S[type+'|'+c]=t||Date.now()); LS.set('jc_pf_sync',S); }
+function driveLoad(force){ if(LOADED&&!force) return LOADED; return LOADED=(async()=>{ const k=akey(); if(!k) return {n:0,why:'no passcode on this device'};
+  const ac=new AbortController(); setTimeout(()=>ac.abort(),force?60000:12000);
+  const j=await fetch(BE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'pf_load',key:k}),signal:ac.signal}).then(r=>r.json());
+  if(j.error) throw new Error(j.error);
+  const S=LS.get('jc_pf_sync',{}), done=[]; LOADING=true;
+  try{ for(const f of (j.files||[]).sort((a,b)=>a.t-b.t)){ const key=f.type+'|'+f.client; if(!force&&(S[key]||0)>=f.t) continue;
+      const file=new File([f.csv],f.name.replace(/^.*\((.*)\)\.csv$/,'$1')+' (Drive).csv',{type:'text/csv'});
+      try{ if(f.type==='trade') await importTrades(file); else if(f.type==='ledger') await importLedger(file); else if(f.type==='dp') await importDP(file); syncMark(f.type,[f.client],f.t); done.push(f.type+' '+f.client); }catch(e){ console.warn('drive load',key,e); } } }
+  finally{ LOADING=false; }
+  if(done.length) toast('☁ Loaded from Drive: '+esc2(done.join(', ')),false,true);
+  return {n:done.length,done}; })(); }
 const esc2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function driveLog(type,name,files,ok,err,root){ const L=LS.get('jc_pf_drive',[]); L.unshift({t:Date.now(),type,name,clients:files.map(f=>f.client),ok,err:err||'',root:root||''}); LS.set('jc_pf_drive',L.slice(0,60)); }
 /* push everything held in this browser (uploads + entered trades) to Drive, client-wise */
@@ -374,5 +389,5 @@ const TPL={
   dp:['Client Code,DP A/c,Holding as on,ISIN,Symbol,Security,Holding,Rate,Value,Balance type','C0001,1203410000000000,21/11/2026,INE062A01020,SBIN,SBI - EQ,125,1164.95,145618.75,Beneficiary']};
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
-window.PF={varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
