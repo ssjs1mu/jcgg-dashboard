@@ -55,7 +55,8 @@ ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoi
 </style></head><body>
 <div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><span id="phint" style="align-self:center;background:#fff8e6;border:1px solid #E8C96A;border-radius:8px;padding:6px 10px;font:700 11.5px var(--ff);color:#6b4d0e;box-shadow:0 3px 10px rgba(0,0,0,.15)">In the print window: More settings → untick “Headers and footers”</span><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="history.length>1?history.back():close()" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the report…</div></div>
-<script src="pf-core.js?v=30"></script>
+<script src="jc-params.js?v=1"></script>
+<script src="pf-core.js?v=31"></script>
 <script src="client-report-i18n.js?v=3"></script>
 <script>
 'use strict';
@@ -76,8 +77,13 @@ const today=PF.todayS(), days=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/86
 /* bank benchmarks - SBI card rates (general public) at the date of each deposit; editable here when rates change */
 const FD_RATES=[['2000-01-01',6.80],['2025-04-15',6.70],['2025-05-16',6.50],['2025-06-15',6.25]];   // 1-2 yr FD
 const SB_RATES=[['2000-01-01',2.70],['2025-06-15',2.50]];                                            // savings bank
-const IDX_MU=0.11, MKT_MU=0.12, RHO=0.4;   /* outlook: Nifty base return, long-run market return, correlation between shares */
+let IDX_MU=0.11, MKT_MU=0.12, RHO=0.4;   /* outlook: Nifty base return, long-run market return, correlation between shares */
 const rateOn=(T,d)=>T.filter(x=>x[0]<=d).slice(-1)[0][1];
+/* logic parameters from the master sheet "JC Logic & Formula Reference" (jc-params.js); built-in values if it cannot be read */
+const q=(k,d)=>window.JCP&&JCP.P[k]!=null?JCP.P[k]:d;
+function useParams(){ IDX_MU=q('CR_IDX_MU',0.11); MKT_MU=q('CR_MKT_MU',0.12); RHO=q('CR_RHO',0.4);
+  [[FD_RATES,'CR_FD_RATE'],[SB_RATES,'CR_SB_RATE']].forEach(([T,k])=>{ const v=q(k,null), f=q(k+'_FROM',null); if(v==null||!f) return; const i=T.findIndex(x=>x[0]===f); if(i>=0) T[i][1]=v; else if(f>T[T.length-1][0]){ if(T[T.length-1][1]!==v) T.push([f,v]); } }); }
+useParams();
 /* the same money in a bank: each deposit is its own deposit at the rate of its day (quarterly compounding), withdrawals come out of the oldest */
 function bank(flows,T,toD){ const tr=[], val=(t,d)=>t.p*Math.pow(1+t.r/400,4*days(t.d,d)/365);
   flows.slice().sort((a,b)=>a.d.localeCompare(b.d)).forEach(f=>{ if(f.v<0) tr.push({d:f.d,p:-f.v,r:rateOn(T,f.d)}); else { let w=f.v; while(w>0.005&&tr.length){ const t=tr[0], v=val(t,f.d); if(v<=w){ w-=v; tr.shift(); } else { t.p=(v-w)/Math.pow(1+t.r/400,4*days(t.d,f.d)/365); w=0; } } } });
@@ -97,25 +103,26 @@ function idxRun(S,flows,last){ if(!S.length) return null; let u=0; for(const f o
 const ema=(a,n)=>{ const out=Array(a.length).fill(null); if(a.length<n) return out; const k=2/(n+1); let e=a.slice(0,n).reduce((x,y)=>x+y,0)/n; out[n-1]=e; for(let i=n;i<a.length;i++){ e=a[i]*k+e*(1-k); out[i]=e; } return out; };
 const tick=x=>Math.round(x*20)/20;
 function wlSig(S0,p){ const S=S0.slice(-260).map(x=>Object.assign({},x)); if(S.length<25) return null; if(p){ const z=S[S.length-1]; z.c=p; if(z.h!=null) z.h=Math.max(z.h,p); if(z.l!=null) z.l=Math.min(z.l,p); }
-  const c=S.map(x=>x.c), n=c.length, L=n-1, ltp=c[L], e9=ema(c,9), e21=ema(c,21);
-  let A=null; for(let i=1;i<n;i++){ const h=S[i].h!=null?S[i].h:c[i], l=S[i].l!=null?S[i].l:c[i], tr=Math.max(h-l,Math.abs(h-c[i-1]),Math.abs(l-c[i-1])); A=A==null?tr:(A*13+tr)/14; }
-  let g=0,ls=0; for(let i=1;i<=14;i++){ const d=c[i]-c[i-1]; if(d>0) g+=d; else ls-=d; } g/=14; ls/=14; for(let i=15;i<n;i++){ const d=c[i]-c[i-1]; g=(g*13+Math.max(d,0))/14; ls=(ls*13+Math.max(-d,0))/14; } const R14=ls===0?100:100-100/(1+g/ls);
+  const c=S.map(x=>x.c), n=c.length, L=n-1, ltp=c[L], e9=ema(c,q('WL_EMA_FAST',9)), e21=ema(c,q('WL_EMA_SLOW',21)), NA=q('IND_ATR_PERIOD',14), NR=q('IND_RSI_PERIOD',14);
+  let A=null; for(let i=1;i<n;i++){ const h=S[i].h!=null?S[i].h:c[i], l=S[i].l!=null?S[i].l:c[i], tr=Math.max(h-l,Math.abs(h-c[i-1]),Math.abs(l-c[i-1])); A=A==null?tr:(A*(NA-1)+tr)/NA; }
+  let g=0,ls=0; for(let i=1;i<=NR;i++){ const d=c[i]-c[i-1]; if(d>0) g+=d; else ls-=d; } g/=NR; ls/=NR; for(let i=NR+1;i<n;i++){ const d=c[i]-c[i-1]; g=(g*(NR-1)+Math.max(d,0))/NR; ls=(ls*(NR-1)+Math.max(-d,0))/NR; } const R14=ls===0?100:100-100/(1+g/ls);
   const ref=c.slice(-20).reduce((a,x)=>a+x,0)/Math.min(20,n), V=S.map(x=>x.v), hasV=V.slice(-23).every(v=>v!=null&&v>0);
   const av=a=>a.reduce((x,y)=>x+y,0)/Math.max(1,a.length), vr=hasV?av(V.slice(-3))/(av(V.slice(-23,-3))||1):null, mv=c[L]-c[Math.max(0,L-3)];
   let cross=null; for(let i=L;i>21&&i>L-30;i--){ if(e9[i]==null||e9[i-1]==null||e21[i-1]==null) break; if((e9[i]>e21[i])!==(e9[i-1]>e21[i-1])){ cross=L-i; break; } }
-  const bull=e9[L]>e21[L]; let sc=bull?25:-25; const sl=e21[L]-e21[Math.max(0,L-3)]; sc+=sl>0?10:sl<0?-10:0; sc+=ltp>e9[L]?10:ltp<e9[L]?-10:0; sc+=ltp>ref?15:ltp<ref?-15:0;
-  sc+=R14>55?10:R14<45?-10:0; if(R14>75) sc-=8; if(R14<25) sc+=8; if(vr!=null&&vr>1.15) sc+=mv>0?15:mv<0?-15:0; if(cross!=null&&cross<=3) sc+=bull?15:-15; if(vr!=null&&vr<0.85) sc*=0.8;
-  sc=Math.max(-100,Math.min(100,Math.round(sc))); const call=sc>=45?'BUY':sc<=-45?'SELL':'AVOID';
-  let lv=null; if(call!=='AVOID'&&A){ const dir=call==='BUY'?1:-1, dist=Math.abs(ltp-e21[L])+0.25*A, risk=Math.min(3*A,Math.max(A,dist)), en=tick(ltp); lv={en,sl:tick(en-dir*risk),t1:tick(en+dir*risk),t2:tick(en+dir*2*risk),t3:tick(en+dir*3*risk)}; }
+  const wT=q('WL_W_TREND',25), wS=q('WL_W_SLOPE',10), wE=q('WL_W_LTP_EMA',10), wR=q('WL_W_REF',15), wI=q('WL_W_RSI',10), wX=q('WL_W_RSI_X',8), wV=q('WL_W_VOL',15), wC=q('WL_W_CROSS',15);
+  const bull=e9[L]>e21[L]; let sc=bull?wT:-wT; const sl=e21[L]-e21[Math.max(0,L-3)]; sc+=sl>0?wS:sl<0?-wS:0; sc+=ltp>e9[L]?wE:ltp<e9[L]?-wE:0; sc+=ltp>ref?wR:ltp<ref?-wR:0;
+  sc+=R14>q('RSI_BULL',55)?wI:R14<q('RSI_BEAR',45)?-wI:0; if(R14>q('WL_RSI_HOT',75)) sc-=wX; if(R14<q('WL_RSI_COLD',25)) sc+=wX; if(vr!=null&&vr>q('WL_VOL_HI',1.15)) sc+=mv>0?wV:mv<0?-wV:0; if(cross!=null&&cross<=q('WL_CROSS_BARS',3)) sc+=bull?wC:-wC; if(vr!=null&&vr<q('WL_VOL_LO',0.85)) sc*=q('WL_VOL_DAMP',0.8);
+  sc=Math.max(-100,Math.min(100,Math.round(sc))); const cs=q('WL_CALL_SCORE',45), call=sc>=cs?'BUY':sc<=-cs?'SELL':'AVOID';
+  let lv=null; if(call!=='AVOID'&&A){ const dir=call==='BUY'?1:-1, dist=Math.abs(ltp-e21[L])+q('WL_RISK_EXTRA_ATR',0.25)*A, risk=Math.min(q('WL_SL_MAX_ATR',3)*A,Math.max(q('WL_SL_MIN_ATR',1)*A,dist)), en=tick(ltp); lv={en,sl:tick(en-dir*risk),t1:tick(en+dir*risk),t2:tick(en+dir*2*risk),t3:tick(en+dir*3*risk)}; }
   return {score:sc,conv:Math.abs(sc),call,lv,bull,rsi:R14,vr,e21:e21[L],atr:A}; }
 /* trend, levels and a 1-2 year range from the price history (needs ~1 year of daily closes); the Watchlist signal decides the near-term call */
 function stats(S,p){ const D=S.filter(x=>x.d>addY(today,-1)); if(D.length<120) return null; p=p||S[S.length-1].c;
   const avg=n=>{ const a=S.slice(-n); return a.reduce((s,x)=>s+x.c,0)/a.length; }, d50=avg(50), d200=avg(200), hi=Math.max(...D.map(x=>x.c),p), lo=Math.min(...D.map(x=>x.c),p);
-  const r=[]; for(let i=1;i<D.length;i++) r.push(Math.log(D[i].c/D[i-1].c)); const m=r.reduce((a,b)=>a+b,0)/r.length, vol=Math.min(0.40,Math.sqrt(r.reduce((a,b)=>a+(b-m)*(b-m),0)/(r.length-1))*Math.sqrt(252));
+  const r=[]; for(let i=1;i<D.length;i++) r.push(Math.log(D[i].c/D[i-1].c)); const m=r.reduce((a,b)=>a+b,0)/r.length, vol=Math.min(q('CR_VOL_CAP',0.40),Math.sqrt(r.reduce((a,b)=>a+(b-m)*(b-m),0)/(r.length-1))*Math.sqrt(252));
   const c1=closeOn(S,addY(today,-1)), c3=closeOn(S,addY(today,-3)), r1=c1?p/c1-1:null, cagr3=c3?Math.pow(p/c3,1/3)-1:(r1!=null?r1:MKT_MU);
   const trend=p>d50&&d50>d200?'Strong':p>d200?'Up':(p<d200&&d50<d200&&p<d50)?'Down':'Side', pos=hi>lo?(p-lo)/(hi-lo):0.5;
   const W=wlSig(S,p);
-  let mu=IDX_MU+0.25*(Math.max(-0.15,Math.min(cagr3,0.30))-IDX_MU)+({Strong:0.02,Up:0.01,Side:-0.01,Down:-0.03})[trend]-(p>d200*1.25?0.02:0)+(W?W.score/100*0.02:0); mu=Math.max(0.02,Math.min(0.16,mu));   /* mostly the market's long-run return, tilted by the share's own 3-yr record and its trend */
+  let mu=IDX_MU+q('CR_CAGR_W',0.25)*(Math.max(q('CR_CAGR_MIN',-0.15),Math.min(cagr3,q('CR_CAGR_MAX',0.30)))-IDX_MU)+({Strong:q('CR_ADJ_STRONG',0.02),Up:q('CR_ADJ_UP',0.01),Side:q('CR_ADJ_SIDE',-0.01),Down:q('CR_ADJ_DOWN',-0.03)})[trend]-(p>d200*q('CR_STRETCH',1.25)?q('CR_STRETCH_PEN',0.02):0)+(W?W.score/100*q('CR_WL_TILT',0.02):0); mu=Math.max(q('CR_MU_MIN',0.02),Math.min(q('CR_MU_MAX',0.16),mu));   /* mostly the market's long-run return, tilted by the share's own 3-yr record and its trend */
   const proj=t=>({b:p*Math.pow(1+mu,t),l:p*Math.exp(Math.log(1+mu)*t-vol*Math.sqrt(t)),h:p*Math.exp(Math.log(1+mu)*t+vol*Math.sqrt(t))});
   /* view = long-term trend (50/200-day averages, 52-week position) x the Watchlist call (near term) */
   const up=trend==='Strong'||trend==='Up', call=W?W.call:'AVOID'; let view, txt, rev=null, lv=null;
@@ -143,7 +150,7 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
 
 (async()=>{
   if(!C){ $('msg').textContent=R.msgChoose; return; }
-  await PF.stateSync().catch(()=>0); await Promise.all([PF.isinMap(),PF.corpActs()]);
+  await Promise.all([PF.stateSync().catch(()=>0),window.JCP?JCP.wait(4000):0]); useParams(); await Promise.all([PF.isinMap(),PF.corpActs()]);
   const T=PF.tb().trades.filter(t=>t.c===C), L=(PF.led().E[C]||[]).slice(), D=(PF.dp().H[C]||[]), M=(PF.dp().M||{})[C]||{};
   if(!T.length&&!L.length&&!D.length){ $('msg').textContent=R.msgNo(C); return; }
   const ST=PF.stat(), rateOf=PF.rateOfFrom(PF.rates()), E=PF.fundAdj(PF.compute(PF.caAdjust(T),ST,rateOf));
