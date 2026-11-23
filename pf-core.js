@@ -11,7 +11,7 @@ const addD=(d,n)=>new Date(Date.parse(d)+n*864e5).toISOString().slice(0,10);
 const LS={get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }};
 /* statutory: STT delivery 0.1% buy+sell, intraday 0.025% sell; NSE transaction 0.00307%; SEBI Rs 10/crore;
    stamp duty delivery 0.015% buy, intraday 0.003% buy; GST 18% on brokerage + transaction + SEBI + DP (as of Nov 2026) */
-const STAT0={sttD:0.1,sttI:0.025,exch:0.00307,sebi:0.0001,stampD:0.015,stampI:0.003,gst:18,int:18};
+const STAT0={sttD:0.1,sttI:0.025,exch:0.00307,sebi:0.0001,stampD:0.015,stampI:0.003,gst:18,int:18,hurdle:8};
 const stat=()=>Object.assign({},STAT0,LS.get('jc_pf_stat',{}));
 const rates=()=>LS.get('jc_pf_rates',{_def:{bd:0,bi:0,dp:0}});
 /* a client's own rate wins; where it has none, the rate worked out from that client's ledger bills (jc_pf_brkled) is used before the default */
@@ -378,7 +378,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-23g';
+const BUILD='2026-11-23h';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -475,6 +475,14 @@ function gapHints(gap,rc,rate,ST){ ST=ST||stat(); if(!rc) return []; const H=HIS
   return cands.map(r=>{ const f=(CA&&CA.a||[]).filter(a=>a.s===gap.sym&&(a.t==='bonus'||a.t==='split')&&a.ex>r.d&&a.ex<=gap.first).reduce((m,a)=>m*caFactor(a),1), q0=gap.q/f, est=r.amt/K/q0, p=H[r.d];
       return Object.assign(r,{q0,est,fit:p?(est>=p.l*0.997&&est<=p.h*1.003):null,lo:p&&p.l,hi:p&&p.h}); })
     .filter(r=>r.fit).sort((a,b)=>b.d.localeCompare(a.d)); }
+/* ---------- funding: holding interest only on the part of a client's open holdings that the broker is funding ----------
+   ledger in debit (Dr) -> funded share = min(1, debit / cost of open holdings); ledger in credit or nil -> own money, no holding
+   interest (the holding is judged against the return benchmark instead, STAT.hurdle % p.a.); no ledger uploaded -> assumed funded. */
+function fundAdj(E){ const by={}; E.hold.forEach(h=>{ (by[h.c]=by[h.c]||[]).push(h); }); E.fund={};
+  Object.keys(by).forEach(c=>{ const H=by[c], cost=H.reduce((a,h)=>a+h.q*h.cost,0), bal=ledBal(c), f=bal==null?1:bal<=0?0:Math.min(1,bal/(cost||1));
+    H.forEach(h=>{ h.hcFull=h.hc; h.hc=h.hc*f; h.fund=f; }); E.fund[c]={f,bal,cost,src:bal==null?'no ledger - assumed funded':bal<=0?'ledger in credit - own funds':f<1?'ledger debit covers '+Math.round(f*100)+'% of holdings':'ledger debit covers all holdings'}; });
+  return E; }
+const hurdleOf=(days,ST)=>((ST||stat()).hurdle||0)*Math.max(days,1)/365;   /* benchmark % for the days held */
 let LOADING=false, LOADED=null;
 /* 'rm|type|client' = when this device removed that client's data: Drive files older than that are not loaded back */
 function syncMark(type,cs,t){ const S=LS.get('jc_pf_sync',{}); cs.forEach(c=>S['rm|'+type+'|'+c]=t||Date.now()); LS.set('jc_pf_sync',S); }
@@ -511,5 +519,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
