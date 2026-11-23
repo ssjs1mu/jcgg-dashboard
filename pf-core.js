@@ -22,8 +22,12 @@ function tb(){ let t=LS.get('jc_pf_tb',null);
   let ch=false; t.trades.forEach(x=>{ if(!x.id){ x.id=nid(); ch=true; } }); if(ch) LS.set('jc_pf_tb',t);
   return t; }
 const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))]; rows.forEach(x=>{ if(!x.id) x.id=nid(); }); t.trades=t.trades.filter(x=>!cs.includes(x.c)).concat(rows);
-  t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>!cs.includes(c))})).filter(f=>f.clients.length).concat([{name,at,clients:cs,n:rows.length}]); LS.set('jc_pf_tb',t); return cs; }
+/* an upload replaces a client's trades only inside the dates the file covers (first to last trade date in it) - files of other
+   periods (last year, earlier months) stay, so several files build one date-wise history. Trades entered by hand are kept. */
+function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))]; rows.forEach(x=>{ if(!x.id) x.id=nid(); });
+  const rg={}; rows.forEach(x=>{ const g=rg[x.c]=rg[x.c]||[x.d,x.d]; if(x.d<g[0]) g[0]=x.d; if(x.d>g[1]) g[1]=x.d; });
+  t.trades=t.trades.filter(x=>!(rg[x.c]&&!x.man&&x.d>=rg[x.c][0]&&x.d<=rg[x.c][1])).concat(rows).sort((a,b)=>a.c.localeCompare(b.c)||a.d.localeCompare(b.d));
+  t.files=t.files.filter(f=>!(f.name===name&&f.clients.join()===cs.join())).concat([{name,at,clients:cs,n:rows.length,from:Object.values(rg).map(g=>g[0]).sort()[0],to:Object.values(rg).map(g=>g[1]).sort().slice(-1)[0]}]); LS.set('jc_pf_tb',t); return cs; }
 function removeTrades(c){ const t=tb(); syncMark('trade',c==null?[...new Set(t.trades.map(x=>x.c))]:[c]); if(c==null){ t.trades=[]; t.files=[]; } else { t.trades=t.trades.filter(x=>x.c!==c); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); } LS.set('jc_pf_tb',t); }
 async function loadTrades(base){ driveLoad().catch(()=>0); /* Drive sync runs in the background - pages refresh on the 'pf-drive' event */ const up=tb();
   if(up.trades.length){ const cs=[...new Set(up.trades.map(x=>x.c))]; return {trades:up.trades,src:'uploaded trade books - '+cs.length+' client'+(cs.length>1?'s':'')+', '+up.trades.length+' fills',up:true}; }
@@ -33,7 +37,7 @@ function clean(x){ const o={d:String(x.d).slice(0,10),c:String(x.c).trim().toUpp
   if(!/^\d{4}-\d\d-\d\d$/.test(o.d)||!o.c||!o.sym||!(o.q>0)||!(o.r>0)) throw new Error('date, client code, symbol, quantity and rate are all needed'); return o; }
 function saveTrade(x){ const t=tb(), o=clean(x);
   if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; t.trades[i]=o; }
-  else { o.id=nid(); t.trades.push(o); }
+  else { o.id=nid(); o.man=true; t.trades.push(o); }
   if(!t.files.some(f=>f.clients.includes(o.c))) t.files.push({name:'entered',at:dmy(todayS()),clients:[o.c],n:1});
   LS.set('jc_pf_tb',t); return o; }
 function deleteTrade(id){ const t=tb(); t.trades=t.trades.filter(y=>y.id!==id); const cs=new Set(t.trades.map(y=>y.c)); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>cs.has(c))})).filter(f=>f.clients.length); LS.set('jc_pf_tb',t); }
@@ -133,9 +137,17 @@ function kindOf(n,dr,cr,v){ n=String(n||'').toLowerCase(); v=String(v||'').toUpp
   if(/charges?|fee|gst|stamp|penalty/.test(n)) return 'chg';
   return 'oth'; }
 function led(){ return LS.get('jc_pf_led2',null)||{files:[],E:{},bal:{}}; }
-function addLedger(name,at,byClient,balOnly){ const L=led(), cs=Object.keys(byClient);
-  cs.forEach(c=>{ if(balOnly){ L.bal[c]=byClient[c]; delete L.E[c]; } else { L.E[c]=byClient[c].sort((a,b)=>a.d.localeCompare(b.d)); delete L.bal[c]; } });
-  L.files=L.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>!cs.includes(c))})).filter(f=>f.clients.length).concat([{name,at,clients:cs,balOnly:!!balOnly}]);
+/* a ledger upload replaces a client's entries only inside its own period (statement From-To, else first to last entry date);
+   statements of other years stay, so two years read as one date-wise ledger. A later year's opening balance is dropped when the
+   earlier year is present (it is the same money, carried forward). */
+function addLedger(name,at,byClient,balOnly,per){ const L=led(), cs=Object.keys(byClient);
+  cs.forEach(c=>{ if(balOnly){ L.bal[c]=byClient[c]; delete L.E[c]; return; }
+    const E=byClient[c].slice().sort((a,b)=>a.d.localeCompare(b.d)); if(!E.length) return;
+    const f=(per&&per.from)||E[0].d, t=(per&&per.to)||E[E.length-1].d, keep=(L.E[c]||[]).filter(e=>e.d<f||e.d>t);
+    let all=keep.concat(E).sort((a,b)=>a.d.localeCompare(b.d)||(/opening|b\/f|brought f/i.test(b.n||'')-/opening|b\/f|brought f/i.test(a.n||'')));
+    all=all.filter((e,i)=>!(i>0&&/^\s*(opening balance|balance b\/f|brought forward)/i.test(e.n||'')));
+    L.E[c]=all; delete L.bal[c]; });
+  L.files=L.files.filter(f=>!(f.name===name&&f.clients.join()===cs.join())).concat([{name,at,clients:cs,balOnly:!!balOnly,from:per&&per.from,to:per&&per.to}]);
   LS.set('jc_pf_led2',L); try{ localStorage.removeItem('jc_pf_ledger'); }catch(e){} return cs; }
 function removeLedger(c){ const L=led(); syncMark('ledger',c==null?Object.keys(Object.assign({},L.E,L.bal)):[c]); if(c==null){ LS.set('jc_pf_led2',{files:[],E:{},bal:{}}); return; }
   delete L.E[c]; delete L.bal[c]; L.files=L.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); LS.set('jc_pf_led2',L); }
@@ -228,7 +240,7 @@ async function importNetPos(file,rows,K){ const r0=rows[0], cd=col(r0,/date/i), 
 function varMap(){ const m={}; tb().trades.forEach(t=>{ if(!t.varp) return; const o=m[t.sym]; if(!o||t.d>=o.d) m[t.sym]={p:t.varp,d:t.d}; }); return m; }
 async function importLedger(file){
   if(/\.pdf$/i.test(file.name)){ const P=parseLedgerPdf(await pdfLines(await file.arrayBuffer()));
-    addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),{[P.client]:P.entries},false);
+    addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),{[P.client]:P.entries},false,{from:P.from,to:P.to});
     driveSave('ledger',file.name,[{client:P.client,csv:ledgerCSV(P.client,P.entries)}]);
     const last=P.entries[P.entries.length-1];
     return 'ledger of '+P.client+' · '+P.entries.length+' entries '+dmy(P.from)+' to '+dmy(P.to)+' · closing '+Math.abs(last.bal).toFixed(2)+(last.bal>0?' Dr':' Cr'); }
@@ -351,12 +363,12 @@ function toast(t,bad,html){ let d=document.getElementById('pfToast'); if(!d){ d=
   d.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9990;max-width:420px;padding:10px 14px;border-radius:12px;font:700 12.5px Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);'+(bad?'background:#FBE3E1;color:#8a1010;border:1px solid #E29A93':'background:#E3F1DF;color:#1C5C0D;border:1px solid #8DC487');
   d[html?'innerHTML':'textContent']=t; clearTimeout(d._t); d._t=setTimeout(()=>d.remove(),bad?12000:7000); }
 const akey=()=>{ try{ return localStorage.getItem('jc_admin_key')||''; }catch(e){ return ''; } };
-async function driveSave(type,name,files,again,P){ if(!files.length) return null; syncMark(type,files.map(f=>f.client)); if(LOADING) return null; P=P||PROG; const sz=files.reduce((a,f)=>a+f.csv.length,0);
+async function driveSave(type,name,files,again,P){ if(!files.length) return null; if(LOADING) return null; P=P||PROG; const sz=files.reduce((a,f)=>a+f.csv.length,0);
   if(P) P.set('drive','run','uploading '+KB(sz)+' for '+esc2(files.map(f=>f.client).join(', '))+' - client codes only');
   let k=akey(); if(!k){ k=prompt('Admin passcode (the one that locks the client watchlists) - needed once on this device to save uploads to Google Drive:','')||''; if(!k){ if(P) P.set('drive','err','no admin passcode - kept in the app only. Use ☁ Save all to Drive later.'); driveLog(type,name,files,false,'no passcode - not saved to Drive'); toast('Not saved to Drive - no passcode. Use ☁ Save all to Drive later.',true); return null; } try{ localStorage.setItem('jc_admin_key',k); }catch(e){} }
   try{ const r=await fetch(BE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'pf_save',key:k,type,name,files})});
     const j=JSON.parse(await r.text()); if(j.error) throw new Error(j.error);
-    driveLog(type,name,files,true,'',j.root);
+    driveLog(type,name,files,true,'',j.root); { const SN=LS.get('jc_pf_seen',{}); (j.saved||[]).forEach(x=>{ if(x.id) SN[x.id]=1; }); LS.set('jc_pf_seen',SN); }
     if(P) P.set('drive','ok','saved to Drive · '+esc2(j.type)+' · '+j.saved.map(x=>'<a href="'+x.folder+'" target="_blank" rel="noopener">'+esc2(x.client)+'</a>').join(', '));
     toast('☁ Saved to Drive · '+esc2(j.type)+' · '+j.saved.map(x=>'<a href="'+x.folder+'" target="_blank" rel="noopener">'+esc2(x.client)+'</a>').join(', '),false,true); return j; }
   catch(e){ const m=String(e.message||e);
@@ -366,7 +378,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-23e';
+const BUILD='2026-11-23f';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -438,7 +450,8 @@ function brkFromLedgers(trades){ const cs=Object.keys(led().E||{}), M=LS.get('jc
   cs.forEach(c=>{ const r=ledgerRecon(c,trades); if(!r||r.bd==null) return; const o={bd:r.bd,bi:r.bi!=null?r.bi:(M[c]||{}).bi,nDel:r.nDel,nInt:r.nInt}; if(JSON.stringify(M[c])!==JSON.stringify(o)){ M[c]=o; ch=true; } });
   if(ch) LS.set('jc_pf_brkled',M); return M; }
 let LOADING=false, LOADED=null;
-function syncMark(type,cs,t){ const S=LS.get('jc_pf_sync',{}); cs.forEach(c=>S[type+'|'+c]=t||Date.now()); LS.set('jc_pf_sync',S); }
+/* 'rm|type|client' = when this device removed that client's data: Drive files older than that are not loaded back */
+function syncMark(type,cs,t){ const S=LS.get('jc_pf_sync',{}); cs.forEach(c=>S['rm|'+type+'|'+c]=t||Date.now()); LS.set('jc_pf_sync',S); }
 function driveStat(o){ LS.set('jc_pf_dstat',Object.assign({t:Date.now()},o)); try{ window.dispatchEvent(new Event('pf-drive')); }catch(e){} }
 function driveLoad(force){ if(LOADED&&!force) return LOADED; return LOADED=(async()=>{ const k=akey(); if(!k){ driveStat({ok:false,why:'passcode'}); return {n:0,why:'no passcode on this device'}; }
   const P=force?progOpen('Loading from Google Drive',null,[['list','Fetching the newest uploads of every client'],['app','Loading into the app']]):null; if(P) P.set('list','run','asking Drive…'); driveStat({busy:true});
@@ -447,10 +460,10 @@ function driveLoad(force){ if(LOADED&&!force) return LOADED; return LOADED=(asyn
   const j=await fetch(BE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'pf_load',key:k}),signal:ac.signal}).then(r=>r.json());
   if(j.error) throw new Error(j.error);
   if(P){ P.set('list','ok',(j.files||[]).length+' files in Drive'); P.set('app','run','loading…'); }
-  const S=LS.get('jc_pf_sync',{}), done=[], bad=[]; LOADING=true;
-  try{ for(const f of (j.files||[]).sort((a,b)=>a.t-b.t)){ const key=f.type+'|'+f.client; if(!force&&(S[key]||0)>=f.t) continue;
+  const S=LS.get('jc_pf_sync',{}), SN=LS.get('jc_pf_seen',{}), done=[], bad=[]; LOADING=true;   /* S = when this device removed a client's data; SN = Drive files already merged here */
+  try{ for(const f of (j.files||[]).sort((a,b)=>a.t-b.t)){ const key=f.type+'|'+f.client; if((S['rm|'+key]||0)>=f.t) continue; if(!force&&f.id&&SN[f.id]) continue; if(!force&&!f.id&&(S['up|'+key]||0)>=f.t) continue;
       const file=new File([f.csv],f.name.replace(/^.*\((.*)\)\.csv$/,'$1')+' (Drive).csv',{type:'text/csv'});
-      try{ if(f.type==='trade') await importTrades(file); else if(f.type==='ledger') await importLedger(file); else if(f.type==='dp') await importDP(file); syncMark(f.type,[f.client],f.t); done.push(f.type+' '+f.client); }catch(e){ console.warn('drive load',key,e); bad.push(f.type+' '+f.client+': '+e.message); } } }
+      try{ if(f.type==='trade') await importTrades(file); else if(f.type==='ledger') await importLedger(file); else if(f.type==='dp') await importDP(file); if(f.id) SN[f.id]=1; else S['up|'+key]=f.t; LS.set('jc_pf_seen',SN); LS.set('jc_pf_sync',Object.assign(LS.get('jc_pf_sync',{}),{['up|'+key]:Math.max(f.t,S['up|'+key]||0)})); done.push(f.type+' '+f.client+(f.name?' ('+f.name.replace(/^.*\((.*)\)\.csv$/,'$1')+')':'')); }catch(e){ console.warn('drive load',key,e); bad.push(f.type+' '+f.client+': '+e.message); } } }
   finally{ LOADING=false; }
   if(done.length&&!P) toast('☁ Loaded from Drive: '+esc2(done.join(', ')),false,true);
   if(P) P.set('app',bad.length?'err':'ok',(done.length?'loaded: '+esc2(done.join(', ')):'already up to date')+(bad.length?'<br>not loaded: '+esc2(bad.join(' · ')):''));
