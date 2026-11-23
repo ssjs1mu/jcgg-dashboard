@@ -52,7 +52,7 @@ ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoi
 </style></head><body>
 <div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="history.length>1?history.back():close()" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the report…</div></div>
-<script src="pf-core.js?v=25"></script>
+<script src="pf-core.js?v=26"></script>
 <script src="client-report-i18n.js?v=2"></script>
 <script>
 'use strict';
@@ -260,7 +260,7 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
         <td class="l"><b class="${s.W&&s.W.call==='BUY'?'up':s.W&&s.W.call==='SELL'?'dn':'mu'}">${s.W?R['c'+s.W.call]+' · '+s.W.conv:'–'}</b></td>
         <td class="up">${s.lv?'₹'+px(s.lv.en):'–'}</td><td class="dn">${s.rev?'₹'+px(s.rev):'–'}</td>
         ${['t1','t2','t3'].map(k=>`<td>${s.lv?'₹'+px(s.lv[k]):'–'}</td>`).join('')}
-        <td><b>₹${px(s.y1.b)}</b> <span class="mu">(${pc((Math.pow(1+s.mu,1)-1)*100,0)})</span></td><td><b>₹${px(s.y2.b)}</b></td></tr></tbody></table></div>`; };
+        <td><b>₹${px(s.y1.b)}</b> <span class="mu">(${pc((Math.pow(1+s.mu,1)-1)*100,0)})</span></td><td><b>₹${px(s.y2.b)}</b> <span class="mu">(${pc((s.y2.b/s.p-1)*100,0)})</span></td></tr></tbody></table></div>`; };
   const s5=SH.length?`<h2><i>5</i>${R.s5}</h2><div class="card"><table><thead><tr><th class="l"></th><th>${R.thToday}</th><th>${R.th1}</th><th>${R.th2}</th></tr></thead><tbody>
       <tr><td class="l"><b>${R.rBase}</b></td><td><b>${inr(mine)}</b></td><td class="up"><b>${inr(pB(1))}</b></td><td class="up"><b>${inr(pB(2))}</b></td></tr>
       <tr><td class="l mu">${R.rRange}</td><td></td><td class="mu">${inr(pR(1).l)} – ${inr(pR(1).h)}</td><td class="mu">${inr(pR(2).l)} – ${inr(pR(2).h)}</td></tr>
