@@ -79,7 +79,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, charges &amp; interest (per client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=12"></script>
+<script src="pf-core.js?v=13"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -103,7 +103,7 @@ const LS={get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v)
 const STAT0=PF.STAT0;
 let STAT=Object.assign({},STAT0,LS.get('jc_pf_stat',{}));
 let RATES=LS.get('jc_pf_rates',{_def:{bd:0,bi:0,dp:0}});   /* brokerage % delivery / intraday, DP charge Rs per scrip per sell day */
-const rateOf=c=>Object.assign({},RATES._def,RATES[c]||{});
+const rateOf=c=>PF.rateOfFrom(RATES)(c);   /* client rate, else the rate found in the client's ledger, else default */
 
 /* ---------- data ---------- */
 let SYF=(new URLSearchParams(location.search).get('sym'))||LS.get('jc_pf_sym',''), MF=LS.get('jc_pf_mf','all'), MARK=LS.get('jc_pf_mark',{}), HIST={}, RSI={};
@@ -153,6 +153,7 @@ const mktOpen=()=>{ const n=ist(), d=n.getUTCDay(), m=n.getUTCHours()*60+n.getUT
 /* ---------- render ---------- */
 function render(){
   if(!TR) return;
+  if(TR&&TR.length) PF.brkFromLedgers(TR);
   const E=compute(), LG=PF.led(), clients=[...new Set([...TR.map(t=>t.c),...Object.keys(LG.E),...Object.keys(LG.bal),...Object.keys(PF.dp().H)])].sort();
   if(CL!=='ALL'&&!clients.includes(CL)) CL='ALL';
   $('cl').innerHTML='<option value="ALL">All clients ('+clients.length+')</option>'+clients.map(c=>`<option${c===CL?' selected':''}>${esc(c)}</option>`).join('');
@@ -177,7 +178,7 @@ function render(){
     document.querySelectorAll('tr[data-stk]').forEach(tr=>tr.onclick=()=>{ SYF=tr.dataset.stk; $('sy').value=SYF; LS.set('jc_pf_sym',SYF); DV='client'; $('dv').value=DV; LS.set('jc_pf_dv',DV); render(); scrollTo(0,0); });
     document.querySelectorAll('tr[data-c]').forEach(tr=>tr.onclick=()=>{ CL=tr.dataset.c; LS.set('jc_pf_client',CL); render(); scrollTo(0,0); });
     $('st').innerHTML='<b>●</b> '+(CL==='ALL'?'all clients':'client '+esc(CL))+' · '+(TAB==='dp'?'DP holdings':TAB==='ca'?'corporate actions':'ledger'); ratesPanel(clients); return; }
-  const w=[]; if(!(RATES._def.bd||RATES._def.bi)&&!Object.keys(RATES).some(k=>k!=='_def'&&(RATES[k].bd||RATES[k].bi))) w.push('Brokerage is not set yet - open ⚙ Brokerage, charges & interest below and enter the delivery / intraday rates (default and per client). Taxes and exchange charges are already included.');
+  const w=[]; { const BL=PF.LS.get('jc_pf_brkled',{})||{}, noR=[...new Set(TR.map(t=>t.c))].filter(c=>!(rateOf(c).bd>0)); if(noR.length) w.push('Brokerage not known for '+esc(noR.join(', '))+' - upload the client\'s ledger (the rate is read from its bills) or enter it in ⚙ Brokerage, charges & interest below. Taxes and exchange charges are already included.'); }
   E.warn.filter(x=>CL==='ALL'||x.startsWith(CL+' ')).forEach(x=>w.push(esc(x)));
   if(SYF) w.unshift('🔍 Showing only script <b>'+esc(SYF)+'</b> - <a href="#" id="clrSy">✕ show all scripts</a>');
   if(MF!=='all') w.unshift('Showing '+({T:'Trading',I:'Investment',trig:'holdings with alerts'}[MF]||MF)+' only - <a href="#" id="clrMf">✕ show all holdings</a>');
@@ -272,8 +273,8 @@ function tabBar(){ document.querySelectorAll('#tabs [data-tab]').forEach(b=>b.cl
 const K2=(lab,val,sub)=>`<div class="k"><span>${lab}</span><b>${val}</b>${sub?'<small>'+sub+'</small>':''}</div>`;
 /* DP holding -> exchange info: NSE symbol, BSE code / ticker, live NSE & BSE prices; neither listed nor priced = suspended (no price) */
 function xinfo(x){ const nse=(ISM.i||{})[x.isin]||(x.nse!==false&&!/^IN[E0-9]/.test(x.sym)?x.sym:null), b=(ISM.b||{})[x.isin]||null;
-  const qn=nse&&Q[nse], qb=b&&QB[b[1]], p=qn?qn.p:qb?qb.p:null;
-  return {nse,bc:b?b[0]:'',bt:b?b[1]:'',bst:b?b[2]:'',sym:nse||(b&&b[1])||x.sym,qn,qb,p,src:qn?'NSE':qb?'BSE':'',susp:!p&&!(nse&&!Qat)&&!(b&&!Qat)}; }
+  const qn=nse&&Q[nse], qb=b&&QB[b[1]], listed=!!nse||!!(b&&b[2]==='A'), p=qn?qn.p:qb?qb.p:(listed&&x.rate?x.rate:null);
+  return {nse,bc:b?b[0]:'',bt:b?b[1]:'',bst:b?b[2]:'',sym:nse||(b&&b[1])||x.sym,qn,qb,p,src:qn?'NSE':qb?'BSE':p?'stmt':'',susp:!listed&&!qn&&!qb}; }
 function dpRows(E,clients){ const D=PF.dp(), rows=[];
   clients.filter(c=>CL==='ALL'||c===CL).forEach(c=>{ const dh=D.H[c]; if(!dh) return; const bk={}, m=(D.M||{})[c]||{};
     E.hold.filter(h=>h.c===c).forEach(h=>bk[h.sym]=(bk[h.sym]||0)+h.q);
@@ -325,6 +326,11 @@ function ledTab(clients){ const L=PF.led(), cs=Object.keys(L.E).filter(c=>CL==='
   let h=''; { const nf=cs.filter(c=>!L.E[c].some(e=>e.k==='in'||e.k==='out'));
     if(nf.length){ const vt={}; nf.forEach(c=>L.E[c].forEach(e=>{ const v=(String(e.v||'').match(/^[A-Z]+/)||['–'])[0]; vt[v]=(vt[v]||0)+1; }));
       h+='<div class="warn">No funds in / out in the ledger of '+esc(nf.join(', '))+' - the statement has only '+Object.entries(vt).map(([k,n])=>k+'/ '+n).join(', ')+' vouchers (B = bills, J = journals: interest / transfers, G = DP charges), no bank receipt (R/) or payment (P/). Receipts and payments are in the bank book; upload a ledger that includes them to see funds in / out and the investment return.</div>'; } }
+  { const RC=cs.map(c=>PF.ledgerRecon(c,TR)).filter(Boolean);
+    if(RC.length){ h+=`<h3 class="sec">Ledger bills vs trade book <small>each day's bill = trades ± statutory charges ± brokerage (+GST) · brokerage rate read from the bills</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client code</th><th>Days</th><th>Agree</th><th class="l">Not agreeing</th><th>Delivery brokerage</th><th>Intraday brokerage</th></tr></thead><tbody>`+
+      RC.map(r=>`<tr><td class="l"><b>${esc(r.c)}</b></td><td>${r.rows.length}</td><td class="${r.bad?'':'up'}">${r.rows.length-r.bad}${r.bad?'':' ✓'}</td><td class="l ${r.bad?'dn':'mu'}">${r.bad?r.rows.filter(x=>!x.ok).map(x=>dmy(x.d)+' '+x.why+(x.diff!=null?' ('+sgn(x.diff,2)+')':'')).join(' · '):'none'}</td><td>${r.bd!=null?r.bd.toFixed(2)+'%':'–'}</td><td>${r.bi!=null?r.bi.toFixed(3)+'%':'–'}</td></tr>`).join('')+'</tbody></table></div>';
+      if(CL!=='ALL'&&RC[0]) h+=`<details class="pan"><summary>Day-wise check - ${esc(RC[0].c)} (${RC[0].rows.length} days)</summary><div class="in"><div class="sx"><table class="x"><thead><tr><th class="l">Trade date</th><th>Ledger bill</th><th>Trades (buy − sell)</th><th>Taxes &amp; exch.</th><th>Brokerage + GST</th><th>Expected</th><th>Difference</th><th class="l">Check</th></tr></thead><tbody>`+
+        RC[0].rows.map(x=>`<tr${x.ok?'':' class="hot"'}><td class="l">${dmy(x.d)}</td><td>${x.bill!=null?drcr(x.bill):'–'}</td><td>${fx(x.net)}</td><td>${fx(x.stat)}</td><td>${fx(x.brk)}</td><td>${fx(x.exp)}</td><td class="${x.ok?'mu':'dn'}">${x.diff!=null?sgn(x.diff,2):'–'}</td><td class="l ${x.ok?'up':'dn'}">${x.ok?'✓':esc(x.why)}</td></tr>`).join('')+'</tbody></table></div></div></details>'; } }
   if(CL==='ALL'&&cs.length>1){ h+=`<h3 class="sec">Ledger - client-wise summary <small>tap a client for its ledger</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client code</th><th class="l">Period</th><th>Entries</th><th>Debit</th><th>Credit</th><th>Funds in</th><th>Funds out</th><th>Interest</th><th>DP</th><th>Closing</th></tr></thead><tbody>`+
     cs.map(c=>{ const en=L.E[c], s=k=>en.filter(e=>e.k===k).reduce((a,e)=>a+e.dr+e.cr,0); return `<tr class="clk" data-c="${esc(c)}"><td class="l"><b>${esc(c)}</b></td><td class="l">${dmy(en[0].d)} – ${dmy(en[en.length-1].d)}</td><td>${en.length}</td><td class="dr">${fx(en.reduce((a,e)=>a+e.dr,0),0)}</td><td class="cr">${fx(en.reduce((a,e)=>a+e.cr,0),0)}</td><td>${fx(s('in'),0)}</td><td>${fx(s('out'),0)}</td><td class="dn">${fx(s('int'),0)}</td><td>${fx(s('dp'),0)}</td><td>${drcr(PF.ledBal(c))}</td></tr>`; }).join('')+'</tbody></table></div>'; }
   const one=CL!=='ALL'||cs.length===1;
@@ -377,9 +383,9 @@ function uploadsPanel(){ const T=PF.tb(), L=PF.led(), tc={}; T.trades.forEach(x=
 /* ---------- rates panel ---------- */
 function ratesPanel(clients){ if($('rates').open&&$('ratesIn').dataset.n==clients.join()) return; $('ratesIn').dataset.n=clients.join();
   const row=(c,lab)=>{ const R=c==='_def'?RATES._def:(RATES[c]||{}); const ph=c==='_def'?'':'placeholder="'+RATES._def.bd+'"';
-    return `<tr><td class="l"><b>${lab}</b></td><td><input type="number" step="0.001" min="0" data-c="${esc(c)}" data-f="bd" value="${R.bd!=null?R.bd:''}" placeholder="${c==='_def'?'0':'default'}"></td><td><input type="number" step="0.001" min="0" data-c="${esc(c)}" data-f="bi" value="${R.bi!=null?R.bi:''}" placeholder="${c==='_def'?'0':'default'}"></td><td><input type="number" step="0.5" min="0" data-c="${esc(c)}" data-f="dp" value="${R.dp!=null?R.dp:''}" placeholder="${c==='_def'?'0':'default'}"></td></tr>`; };
+    return `<tr><td class="l"><b>${lab}</b></td><td><input type="number" step="0.001" min="0" data-c="${esc(c)}" data-f="bd" value="${R.bd!=null?R.bd:''}" placeholder="${c==='_def'?'0':'default'}"></td><td><input type="number" step="0.001" min="0" data-c="${esc(c)}" data-f="bi" value="${R.bi!=null?R.bi:''}" placeholder="${c==='_def'?'0':'default'}"></td><td><input type="number" step="0.5" min="0" data-c="${esc(c)}" data-f="dp" value="${R.dp!=null?R.dp:''}" placeholder="${c==='_def'?'0':'default'}"></td><td class="l mu">${c==='_def'?'':(()=>{ const L=(PF.LS.get('jc_pf_brkled',{})||{})[c]; return L?'delivery '+L.bd.toFixed(2)+'% · intraday '+(L.bi!=null?L.bi.toFixed(3)+'%':'–')+(R.bd!=null&&R.bd!==''?' (your rate used)':' (used)'):'–'; })()}</td></tr>`; };
   const st=(k,lab)=>`<tr><td class="l">${lab}</td><td><input type="number" step="0.00001" min="0" data-s="${k}" value="${STAT[k]}"></td><td class="l mu">${STAT0[k]===STAT[k]?'official rate':'changed (official '+STAT0[k]+')'}</td></tr>`;
-  $('ratesIn').innerHTML=`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start"><div><table class="x" style="width:auto"><thead><tr><th class="l">Client</th><th>Delivery brokerage %</th><th>Intraday brokerage %</th><th>DP ₹ / scrip sold</th></tr></thead><tbody>${row('_def','Default (all clients)')}${clients.map(c=>row(c,esc(c))).join('')}</tbody></table><div class="note">Brokerage per side on trade value. A blank client rate uses the default. DP charge is taken once per client, scrip and sale day (delivery sales).</div></div>
+  $('ratesIn').innerHTML=`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start"><div><table class="x" style="width:auto"><thead><tr><th class="l">Client</th><th>Delivery brokerage %</th><th>Intraday brokerage %</th><th>DP ₹ / scrip sold</th><th class="l">From ledger bills</th></tr></thead><tbody>${row('_def','Default (all clients)')}${clients.map(c=>row(c,esc(c))).join('')}</tbody></table><div class="note">Brokerage per side on trade value. A blank client rate uses the default. DP charge is taken once per client, scrip and sale day (delivery sales).</div></div>
    <div><table class="x" style="width:auto"><thead><tr><th class="l">Charge</th><th>Rate %</th><th class="l"></th></tr></thead><tbody>${st('sttD','STT delivery (buy + sell)')}${st('sttI','STT intraday (sell)')}${st('exch','NSE transaction charge')}${st('sebi','SEBI fee (₹10 / crore)')}${st('stampD','Stamp duty delivery (buy)')}${st('stampI','Stamp duty intraday (buy)')}${st('gst','GST on brokerage + exch + SEBI + DP')}${st('int','Holding interest p.a. (from T+1)')}</tbody></table><button class="btn" id="stReset" style="margin-top:6px">Reset to official rates</button></div></div>`;
   $('ratesIn').querySelectorAll('input[data-c]').forEach(i=>i.onchange=()=>{ const c=i.dataset.c, f=i.dataset.f; RATES[c]=RATES[c]||{}; if(i.value===''&&c!=='_def') delete RATES[c][f]; else RATES[c][f]=+i.value||0; LS.set('jc_pf_rates',RATES); render(); });
   $('ratesIn').querySelectorAll('input[data-s]').forEach(i=>i.onchange=()=>{ STAT[i.dataset.s]=+i.value||0; LS.set('jc_pf_stat',STAT); $('ratesIn').dataset.n=''; render(); });
