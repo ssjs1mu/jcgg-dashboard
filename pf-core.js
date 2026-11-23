@@ -18,15 +18,53 @@ const rateOfFrom=R=>c=>Object.assign({},R._def,R[c]||{});
 /* uploaded trade books, client-wise: each upload replaces the trades of the client codes it contains (codes only, never names) */
 function tb(){ let t=LS.get('jc_pf_tb',null);
   if(!t){ const o=LS.get('jc_pf_trades',null); t={files:[],trades:[]}; if(o&&o.trades&&o.trades.length){ t.trades=o.trades; t.files=[{name:o.name,at:o.at,clients:[...new Set(o.trades.map(x=>x.c))],n:o.trades.length}]; } LS.set('jc_pf_tb',t); try{ localStorage.removeItem('jc_pf_trades'); }catch(e){} }
+  let ch=false; t.trades.forEach(x=>{ if(!x.id){ x.id=nid(); ch=true; } }); if(ch) LS.set('jc_pf_tb',t);
   return t; }
-function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))]; t.trades=t.trades.filter(x=>!cs.includes(x.c)).concat(rows);
+const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))]; rows.forEach(x=>{ if(!x.id) x.id=nid(); }); t.trades=t.trades.filter(x=>!cs.includes(x.c)).concat(rows);
   t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>!cs.includes(c))})).filter(f=>f.clients.length).concat([{name,at,clients:cs,n:rows.length}]); LS.set('jc_pf_tb',t); return cs; }
 function removeTrades(c){ const t=tb(); if(c==null){ t.trades=[]; t.files=[]; } else { t.trades=t.trades.filter(x=>x.c!==c); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); } LS.set('jc_pf_tb',t); }
 async function loadTrades(base){ const up=tb();
   if(up.trades.length){ const cs=[...new Set(up.trades.map(x=>x.c))]; return {trades:up.trades,src:'uploaded trade books - '+cs.length+' client'+(cs.length>1?'s':'')+', '+up.trades.length+' fills',up:true}; }
-  if(LS.get('jc_pf_nosample',false)) return {trades:[],src:'no trade book uploaded yet (sample hidden)',up:false};
-  const T=await fetch((base||'')+'data/trades.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json());
-  return {trades:T.trades.map(t=>({d:t.d,c:t.c,sym:t.sym,side:t.side,q:+t.q,r:+t.r})),src:'sample trade book from Trade Audit (as of '+dmy(T.asof)+', client names removed)',up:false}; }
+  return {trades:[],src:'no trades yet - upload a trade book or add trades',up:false}; }
+/* single trades: add, edit, delete (manual entries are listed as source 'entered') */
+function clean(x){ const o={d:String(x.d).slice(0,10),c:String(x.c).trim().toUpperCase(),sym:String(x.sym).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side:x.side==='S'?'S':'B',q:Math.abs(+x.q),r:+x.r};
+  if(!/^\d{4}-\d\d-\d\d$/.test(o.d)||!o.c||!o.sym||!(o.q>0)||!(o.r>0)) throw new Error('date, client code, symbol, quantity and rate are all needed'); return o; }
+function saveTrade(x){ const t=tb(), o=clean(x);
+  if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; t.trades[i]=o; }
+  else { o.id=nid(); t.trades.push(o); }
+  if(!t.files.some(f=>f.clients.includes(o.c))) t.files.push({name:'entered',at:dmy(todayS()),clients:[o.c],n:1});
+  LS.set('jc_pf_tb',t); return o; }
+function deleteTrade(id){ const t=tb(); t.trades=t.trades.filter(y=>y.id!==id); const cs=new Set(t.trades.map(y=>y.c)); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>cs.has(c))})).filter(f=>f.clients.length); LS.set('jc_pf_tb',t); }
+/* trade editor (pop-up) shared by Portfolio and Trade Audit; onDone() after save / delete */
+function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) old.remove(); x=x||{};
+  const tbx=tb(), codes=[...new Set(tbx.trades.map(y=>y.c))].sort(), syms=[...new Set(tbx.trades.map(y=>y.sym))].sort();
+  const m=document.createElement('div'); m.id='pfEd';
+  m.style.cssText='position:fixed;inset:0;z-index:9900;background:rgba(40,38,10,.55);display:flex;align-items:center;justify-content:center;padding:10px';
+  const inp='border:1px solid #CFC9A3;border-radius:8px;padding:7px 9px;font:700 13px Inter,sans-serif;width:100%;box-sizing:border-box;background:#fff;color:#2E2C14';
+  const lab='display:block;font:800 10.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#6E6A45;margin:8px 0 3px';
+  const v=k=>x[k]==null?'':String(x[k]).replace(/"/g,'&quot;');
+  m.innerHTML='<div style="background:#F7F4E6;border-radius:16px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.35);font:600 13px Inter,sans-serif;color:#2E2C14">'+
+    '<div style="background:linear-gradient(180deg,#5f5b00,#3f3c00);color:#F3EFD6;padding:11px 14px;font:900 15px Inter,sans-serif">'+(x.id?'✎ Edit trade':'＋ Add trade')+'</div><div style="padding:6px 16px 14px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">'+
+    '<div><label style="'+lab+'">Trade date</label><input id="edD" type="date" style="'+inp+'" value="'+v('d')+'"></div>'+
+    '<div><label style="'+lab+'">Client code</label><input id="edC" list="edCl" style="'+inp+';text-transform:uppercase" value="'+v('c')+'" placeholder="code, not name"><datalist id="edCl">'+codes.map(c=>'<option value="'+c+'">').join('')+'</datalist></div>'+
+    '<div><label style="'+lab+'">Symbol (NSE)</label><input id="edS" list="edSl" style="'+inp+';text-transform:uppercase" value="'+v('sym')+'"><datalist id="edSl">'+syms.map(c=>'<option value="'+c+'">').join('')+'</datalist></div>'+
+    '<div><label style="'+lab+'">Buy / Sell</label><select id="edB" style="'+inp+'"><option value="B"'+(x.side!=='S'?' selected':'')+'>Buy</option><option value="S"'+(x.side==='S'?' selected':'')+'>Sell</option></select></div>'+
+    '<div><label style="'+lab+'">Quantity</label><input id="edQ" type="number" min="1" step="1" style="'+inp+'" value="'+v('q')+'"></div>'+
+    '<div><label style="'+lab+'">Rate (₹)</label><input id="edR" type="number" min="0" step="0.01" style="'+inp+'" value="'+v('r')+'"></div></div>'+
+    '<div id="edErr" style="color:#B00000;font-weight:800;margin-top:8px"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:12px;align-items:center">'+(x.id?'<button id="edDel" style="border:1px solid #E29A93;background:#FBE3E1;color:#B00000;border-radius:8px;padding:7px 12px;font:800 12.5px Inter,sans-serif;cursor:pointer">🗑 Delete</button>':'')+
+    '<span style="flex:1"></span><button id="edX" style="border:1px solid #CFC9A3;background:#fff;border-radius:8px;padding:7px 12px;font:800 12.5px Inter,sans-serif;cursor:pointer;color:#3f3c00">Cancel</button>'+
+    '<button id="edOk" style="border:1px solid #676300;background:#676300;color:#fff;border-radius:8px;padding:7px 14px;font:800 12.5px Inter,sans-serif;cursor:pointer">Save</button></div></div></div>';
+  document.body.appendChild(m);
+  const g=id=>document.getElementById(id), close=()=>m.remove();
+  if(!x.d) g('edD').value=todayS();
+  m.onclick=e=>{ if(e.target===m) close(); }; g('edX').onclick=close;
+  g('edOk').onclick=()=>{ try{ if(/[a-z]{2,}\s+[a-z]{2,}/i.test(g('edC').value)) throw new Error('enter the client code, not the name');
+      saveTrade({id:x.id,d:g('edD').value,c:g('edC').value,sym:g('edS').value,side:g('edB').value,q:g('edQ').value,r:g('edR').value}); close(); onDone&&onDone(); }catch(e){ g('edErr').textContent=e.message; } };
+  if(g('edDel')) g('edDel').onclick=()=>{ if(!confirm('Delete this trade?')) return; deleteTrade(x.id); close(); onDone&&onDone(); };
+  setTimeout(()=>g(x.id?'edQ':'edC').focus(),50); }
 function compute(TR,STAT,rateOf){
   const fills=TR.map((t,i)=>Object.assign({i},t)).sort((a,b)=>a.d.localeCompare(b.d)||a.i-b.i);
   /* split each fill into intraday / delivery parts: per client + symbol + day, the offsetting quantity is intraday */
@@ -124,5 +162,54 @@ function liquidate(c,hold,Q,marks,need,STAT,rateOf){ const rows=[];
 function xirr(fl){ if(fl.length<2||!fl.some(f=>f.v<0)||!fl.some(f=>f.v>0)) return null; const t0=Date.parse(fl[0].d);
   const f=r=>fl.reduce((a,x)=>a+x.v/Math.pow(1+r,(Date.parse(x.d)-t0)/864e5/365),0); let lo=-0.99, hi=10;
   if(f(lo)*f(hi)>0) return null; for(let i=0;i<200;i++){ const m=(lo+hi)/2; if(f(lo)*f(m)<=0) hi=m; else lo=m; } return (lo+hi)/2*100; }
-window.PF={tb,addTrades,removeTrades,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
+/* ---------- uploads (CSV / Excel), read in the browser only ---------- */
+function xlsxLib(){ return window.XLSX?Promise.resolve():new Promise((ok,no)=>{ const s=document.createElement('script'); s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'; s.onload=ok; s.onerror=()=>no(new Error('Excel reader could not load')); document.head.appendChild(s); }); }
+function csvParse(t){ const out=[]; let row=[], f='', q=false; t=t.replace(/^\uFEFF/,'');
+  for(let i=0;i<t.length;i++){ const ch=t[i];
+    if(q){ if(ch==='"'){ if(t[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=ch; }
+    else if(ch==='"') q=true; else if(ch===','||ch===';'||ch==='\t'){ row.push(f); f=''; } else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&t[i+1]==='\n') i++; row.push(f); out.push(row); row=[]; f=''; } else f+=ch; }
+  if(f!==''||row.length){ row.push(f); out.push(row); } return out; }
+async function readRows(file){ if(/\.(csv|txt)$/i.test(file.name)){ const raw=csvParse(await file.text());
+    let hi=raw.findIndex(r=>r.filter(x=>String(x).trim()).length>=3&&r.some(x=>/date/i.test(x))); if(hi<0) hi=0;
+    const hd=raw[hi].map(x=>String(x).trim()); return raw.slice(hi+1).filter(r=>r.some(x=>String(x).trim())).map(r=>{ const o={}; hd.forEach((h,i)=>o[h]=r[i]); return o; }); }
+  await xlsxLib(); const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true}); const ws=wb.Sheets[wb.SheetNames[0]];
+  const raw=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+  let hi=raw.findIndex(r=>r.filter(x=>String(x).trim()).length>=3&&r.some(x=>/date/i.test(x))); if(hi<0) hi=0;
+  const hd=raw[hi].map(x=>String(x).trim()); return raw.slice(hi+1).filter(r=>r.some(x=>String(x).trim())).map(r=>{ const o={}; hd.forEach((h,i)=>o[h]=r[i]); return o; }); }
+const col=(row,re)=>{ const k=Object.keys(row).find(k=>re.test(k)); return k; };
+function pdate(v){ if(v instanceof Date) return new Date(v.getTime()-v.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+  if(typeof v==='number'&&v>20000&&v<80000) return new Date(Math.round((v-25569)*864e5)).toISOString().slice(0,10);
+  const s=String(v).trim(); let m;
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  if((m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/))) return (m[3].length===2?'20'+m[3]:m[3])+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  if((m=s.match(/^(\d{1,2})[-\s]([A-Za-z]{3})[A-Za-z]*[-\s,]+(\d{2,4})/))){ const mo='janfebmaraprmayjunjulaugsepoctnovdec'.indexOf(m[2].toLowerCase())/3+1; if(mo>0) return (m[3].length===2?'20'+m[3]:m[3])+'-'+String(mo).padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+  return null; }
+const num=v=>{ if(typeof v==='number') return v; const s=String(v).replace(/[,₹\s]/g,''); const n=parseFloat(s); return isFinite(n)?n:0; };
+/* client code column: a code / UCC / account column; a name-only column is refused (codes only, never names) */
+function codeCol(r0,rows){ const k=Object.keys(r0);
+  let c=k.find(h=>/client\s*(code|id|cd|no)|ucc|party\s*code|acc(oun)?t\s*(code|no|id)|^code$|^client$/i.test(h)&&!/name/i.test(h));
+  if(c){ const named=rows.slice(0,40).filter(r=>/[a-z]{2,}\s+[a-z]{2,}/i.test(String(r[c]).trim())).length; if(named>rows.slice(0,40).length/2) c=null; }
+  return c; }
+function askCode(file){ const c=prompt('Client code for '+file.name+' (no client-code column found):',''); if(!c||!c.trim()) throw new Error('no client code given'); if(/\s/.test(c.trim())&&/[a-z]{2,}\s+[a-z]{2,}/i.test(c)) throw new Error('enter the client code, not the name'); return c.trim().toUpperCase(); }
+async function importTrades(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
+  const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cs=col(r0,/symbol|scrip|security|stock|instrument/i), cb=col(r0,/b\s*\/\s*s|buy.?sell|side|trans.*type|^type$/i), cq=col(r0,/qty|quantity/i), cr=col(r0,/rate|price|avg/i);
+  const miss=[['Date',cd],['Symbol',cs],['Buy/Sell',cb],['Qty',cq],['Rate',cr]].filter(x=>!x[1]).map(x=>x[0]); if(miss.length) throw new Error('columns not found: '+miss.join(', '));
+  const one=cc?null:askCode(file);
+  const out=[]; rows.forEach(r=>{ const d=pdate(r[cd]), q=Math.abs(num(r[cq])), rt=num(r[cr]), side=/^s/i.test(String(r[cb]).trim())?'S':/^b/i.test(String(r[cb]).trim())?'B':null, c=one||String(r[cc]).trim().toUpperCase();
+    if(d&&q>0&&rt>0&&side&&c) out.push({d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}); });
+  if(!out.length) throw new Error('no valid fills (check dates, quantities, rates and Buy/Sell)');
+  const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out); return out.length+' fills for '+cl.join(', '); }
+async function importLedger(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
+  const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cdr=col(r0,/^dr$|debit/i), ccr=col(r0,/^cr$|credit/i), cbal=col(r0,/bal/i), cn=col(r0,/narr|particular|descr|remark|detail|voucher/i);
+  if(!(cdr&&ccr)&&!cbal) throw new Error('need Debit + Credit columns or a Balance column');
+  const one=cc?null:askCode(file), by={}, last={};
+  if(cdr&&ccr){ if(!cd) throw new Error('Date column not found');
+    rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(), d=pdate(r[cd]); if(!c||!d) return; const dr=Math.abs(num(r[cdr])), cr=Math.abs(num(r[ccr])), n=cn?String(r[cn]).trim():'';
+      if(!dr&&!cr) return; (by[c]=by[c]||[]).push({d,dr,cr,n,k:/opening|b\/f|brought f/i.test(n)?'oth':kindOf(n,dr,cr)}); });
+    if(!Object.keys(by).length) throw new Error('no dated debit / credit rows');
+    const cl=addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),by,false); return 'ledger entries for '+cl.join(', '); }
+  rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(); if(!c) return; const d=cd?pdate(r[cd])||'':''; const s2=String(r[cbal]); let v=num(s2); if(/cr/i.test(s2)) v=-Math.abs(v); else if(/dr/i.test(s2)) v=Math.abs(v); if(!last[c]||d>=last[c]){ last[c]=d; by[c]=v; } });
+  const cl=addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),by,true); return 'balances for '+cl.join(', ')+' (no entries - debit ageing needs Date / Debit / Credit rows)'; }
+
+window.PF={importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>LS.get('jc_pf_mark',{})};
 })();
