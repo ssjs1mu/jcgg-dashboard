@@ -3,6 +3,7 @@ window.RL = {
 en: {
   name:'English', months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
   msgChoose:'Choose a client in Portfolio and tap 📄 Client report.', msgNo:c=>'No data for '+c+' in this browser.', msgPrep:'Preparing the report…',
+  phint:'In the print window: More settings → untick “Headers and footers”',
   btnPrint:'⬇ Save as PDF / Print', btnClose:'✕ Close',
   s1:'Your money at a glance', kIn:'Money you put in', deposits:n=>n+' deposit'+(n>1?'s':''), payouts:n=>n+' payout'+(n>1?'s':''), netTrades:'net of buys and sells',
   kWorth:'Worth today', wShares:'shares', wCash:'cash', wDp:'DP charges deposit', wDiv:'dividends',
@@ -66,6 +67,7 @@ en: {
 hi: {
   name:'हिंदी', months:['जनवरी','फ़रवरी','मार्च','अप्रैल','मई','जून','जुलाई','अगस्त','सितंबर','अक्टूबर','नवंबर','दिसंबर'],
   msgChoose:'Portfolio में क्लाइंट चुनें और 📄 Client report दबाएँ।', msgNo:c=>'इस ब्राउज़र में '+c+' का डेटा नहीं है।', msgPrep:'रिपोर्ट तैयार हो रही है…',
+  phint:'प्रिंट विंडो में: More settings → “Headers and footers” का टिक हटाएँ',
   btnPrint:'⬇ PDF सेव / प्रिंट', btnClose:'✕ बंद करें',
   s1:'एक नज़र में आपका पैसा', kIn:'लगाया गया पैसा', deposits:n=>n+' जमा', payouts:n=>n+' निकासी', netTrades:'ख़रीद घटा बिक्री',
   kWorth:'आज का मूल्य', wShares:'शेयर', wCash:'नकद', wDp:'DP शुल्क जमा', wDiv:'डिविडेंड',
@@ -129,6 +131,7 @@ hi: {
 bn: {
   name:'বাংলা', months:['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'],
   msgChoose:'Portfolio-তে ক্লায়েন্ট বেছে 📄 Client report চাপুন।', msgNo:c=>'এই ব্রাউজারে '+c+'-এর তথ্য নেই।', msgPrep:'রিপোর্ট তৈরি হচ্ছে…',
+  phint:'প্রিন্ট উইন্ডোতে: More settings → “Headers and footers”-এর টিক তুলে দিন',
   btnPrint:'⬇ PDF সেভ / প্রিন্ট', btnClose:'✕ বন্ধ করুন',
   s1:'এক নজরে আপনার টাকা', kIn:'বিনিয়োগ করা টাকা', deposits:n=>n+'টি জমা', payouts:n=>n+'টি উত্তোলন', netTrades:'কেনা বাদ বিক্রি',
   kWorth:'আজকের মূল্য', wShares:'শেয়ার', wCash:'নগদ', wDp:'DP চার্জ জমা', wDiv:'ডিভিডেন্ড',
