@@ -66,7 +66,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
   <span class="fl"><input type="text" id="sy" list="syl" placeholder="🔍 Script" style="width:130px"><datalist id="syl"></datalist>
   <select id="mf"><option value="all">All Holdings</option><option value="T">Trading</option><option value="I">Investment</option><option value="trig">With Alerts</option></select></span>
   <div class="dd" id="ddU"><button class="btn" title="Upload a file - saved here and to Google Drive (client codes only)">⬆ Upload</button><div class="ddm">
-   <button id="upT" title="Trade file: back-office / ODIN net-position Excel (Date, Client, Symbol, Buy Qty / Avg, Sell Qty / Avg, Product, VAR %) or Date, Client, Symbol, Buy/Sell, Qty, Rate - client name is never read">📈 Trades</button>
+   <button id="upT" title="Trade file: back-office / ODIN net-position Excel (Date, Client, Symbol, Buy Qty / Avg, Sell Qty / Avg, Product, VAR %), Date, Client, Symbol, Buy/Sell, Qty, Rate, or the back-office PDF (Sauda Summary - Settlement Wise / Settlementwise Summary) - client name is never read">📈 Trades</button>
    <button id="upL" title="LEDGER statement (PDF from the back office) or CSV / Excel template - only client code and entries are read">📒 Ledger</button>
    <button id="upD" title="DP HOLDING statement (PDF from the back office) or CSV / Excel template - only client code, DP a/c and holdings are read">🏦 DP Holdings</button><hr>
    <button id="upM" title="See and remove uploaded trade books and ledgers, client-wise">🗂 Manage Uploads</button>
@@ -82,7 +82,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
    <label class="mu">From <input type="date" id="lf"></label><label class="mu">To <input type="date" id="lt"></label><input type="text" id="ls" placeholder="🔍 Particulars / voucher" style="width:170px"></span></span>
   <button class="btn" id="rf">↻ Prices</button>
   <button class="btn" id="dchip" title="Google Drive sync - tap to load the newest uploads from every device">☁ Drive…</button>
-  <input type="file" id="fT" accept=".csv,.xlsx,.xls" hidden><input type="file" id="fL" accept=".pdf,.csv,.xlsx,.xls" hidden>
+  <input type="file" id="fT" accept=".csv,.xlsx,.xls,.pdf" hidden><input type="file" id="fL" accept=".pdf,.csv,.xlsx,.xls" hidden>
 </div>
  <div id="warn"></div>
  <div class="kpis" id="kpis"></div>
@@ -91,7 +91,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=27"></script>
+<script src="pf-core.js?v=28"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -461,7 +461,7 @@ $('fL').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f)
 const CLW={busy:0};
 async function clApi(action,extra){ const k=localStorage.getItem('jc_admin_key'); const j=await fetch(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action,key:k},extra||{}))}).then(r=>r.json()); if(j.error) throw new Error(j.error); return j; }
 function clWant(){ const W={}, add=(c,x)=>{ x=String(x||'').toUpperCase(); if(c&&x&&!/^IN[A-Z0-9]{10}$/.test(x)) (W[c]=W[c]||new Set()).add(x); };
-  (TR||[]).forEach(t=>add(t.c,t.sym)); Object.entries(PF.dp().H||{}).forEach(([c,a])=>(a||[]).forEach(x=>{ const i=xinfo(x); add(c,i.nse||(i.bt?i.bt+'.BO':'')); })); return W; }
+  (TR||[]).forEach(t=>add(t.c,PF.canonSym(t.sym)));   /* current symbol (MAGMA -> POONAWALLA, IBULHSGFIN -> SAMMAANCAP) */ Object.entries(PF.dp().H||{}).forEach(([c,a])=>(a||[]).forEach(x=>{ const i=xinfo(x); add(c,i.nse||(i.bt?i.bt+'.BO':'')); })); return W; }
 async function clSync(force){ if(CLW.busy||!localStorage.getItem('jc_admin_key')){ if(force&&!localStorage.getItem('jc_admin_key')) alertBox('Set the Drive passcode first (☁ Drive button).',true); return; }
   const W=clWant(), done=LS.get('jc_pf_clwl',{}), sig=c=>[...W[c]].sort().join(','), todo=Object.keys(W).filter(c=>force||done[c]!==sig(c));
   if(!todo.length){ if(force) alertBox('Client watchlists are already up to date.'); return; } CLW.busy=1;
