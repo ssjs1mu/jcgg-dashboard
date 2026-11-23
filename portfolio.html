@@ -57,16 +57,18 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
   <select id="mf"><option value="all">All holdings</option><option value="T">Trading</option><option value="I">Investment</option><option value="U">Not marked</option><option value="trig">With alerts</option></select></span>
   <button class="btn" id="upT" title="Trade book: CSV or Excel with Date, Client, Symbol, Buy/Sell, Qty, Rate">⬆ Trade book</button>
   <button class="btn" id="upL" title="Ledger: CSV or Excel with Date, Client, Debit, Credit (and/or Balance)">⬆ Ledger</button>
+  <button class="btn" id="upM" title="See and remove uploaded trade books and ledgers, client-wise">🗂 Uploads</button>
   <button class="btn" id="rf">↻ Prices</button>
   <input type="file" id="fT" accept=".csv,.xlsx,.xls" hidden><input type="file" id="fL" accept=".csv,.xlsx,.xls" hidden>
   <div class="upd" id="upd"></div></div>
  <div id="warn"></div>
  <div class="kpis" id="kpis"></div>
  <div id="body"></div>
+ <details class="pan" id="ups"><summary>🗂 Uploaded trade books &amp; ledgers (client-wise) - remove here</summary><div class="in" id="upIn"></div></details>
  <details class="pan" id="rates"><summary>⚙ Brokerage, charges &amp; interest (per client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploaded trade books and ledgers stay in this browser only - nothing is sent anywhere or saved online. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=2"></script>
+<script src="pf-core.js?v=3"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -94,14 +96,15 @@ const rateOf=c=>Object.assign({},RATES._def,RATES[c]||{});
 
 /* ---------- data ---------- */
 let SYF=(new URLSearchParams(location.search).get('sym'))||LS.get('jc_pf_sym',''), MF=LS.get('jc_pf_mf','all'), MARK=LS.get('jc_pf_mark',{}), HIST={}, RSI={};
-let TR=null, TRsrc='', LED=LS.get('jc_pf_ledger',null), Q={}, Qat=0, CL=LS.get('jc_pf_client','ALL');
+let TR=null, TRsrc='', Q={}, Qat=0, CL=LS.get('jc_pf_client','ALL');
+const hasLed=()=>{ const L=PF.led(); return Object.keys(L.E).length+Object.keys(L.bal).length>0; };
 async function loadTrades(){ const r=await PF.loadTrades(); TR=r.trades; TRsrc=esc(r.src); }
 
 /* ---------- engine (shared: pf-core.js) ---------- */
 function compute(){ const E=PF.compute(TR,STAT,rateOf); E.lr=PF.recovery(E); return E; }
 
 /* ---------- ledger file: balance per client (positive = Dr, client owes) ---------- */
-function ledgerBal(c){ if(!LED||!LED.bal) return null; const b=LED.bal[c]; return b==null?null:b; }
+function ledgerBal(c){ return PF.ledBal(c); }
 
 /* ---------- prices ---------- */
 async function prices(force){ const syms=[...new Set(TR.map(t=>t.sym))]; if(!syms.length) return;
@@ -134,7 +137,7 @@ const mktOpen=()=>{ const n=ist(), d=n.getUTCDay(), m=n.getUTCHours()*60+n.getUT
 /* ---------- render ---------- */
 function render(){
   if(!TR) return;
-  const E=compute(), clients=[...new Set(TR.map(t=>t.c))].sort();
+  const E=compute(), LG=PF.led(), clients=[...new Set([...TR.map(t=>t.c),...Object.keys(LG.E),...Object.keys(LG.bal)])].sort();
   if(CL!=='ALL'&&!clients.includes(CL)) CL='ALL';
   $('cl').innerHTML='<option value="ALL">All clients ('+clients.length+')</option>'+clients.map(c=>`<option${c===CL?' selected':''}>${esc(c)}</option>`).join('');
   const symOK=s=>!SYF||s.toUpperCase().includes(SYF.toUpperCase());
@@ -147,7 +150,7 @@ function render(){
     const unr=val-inv, rel=r.reduce((a,x)=>a+x.pl,0), ipl=it.reduce((a,x)=>a+x.pl,0), hcOpen=h.reduce((a,x)=>a+x.hc,0), hc=hcOpen+r.reduce((a,x)=>a+x.hc,0);
     const bought=pp.filter(x=>x.side!=='S').reduce((a,x)=>a+x.net,0), sold=pp.filter(x=>x.side==='S').reduce((a,x)=>a+x.net,0), chg=pp.reduce((a,x)=>a+x.chg,0);
     let led=null, ledSrc='';
-    if(LED&&LED.bal&&!SYF){ if(c==='ALL'){ const cs=[...new Set(TR.map(t=>t.c))]; const v=cs.map(ledgerBal).filter(v=>v!=null); if(v.length){ led=v.reduce((a,b)=>a+b,0); ledSrc='ledger file ('+v.length+' of '+cs.length+' clients)'; } }
+    if(hasLed()&&!SYF){ if(c==='ALL'){ const cs=[...new Set(TR.map(t=>t.c))]; const v=cs.map(ledgerBal).filter(v=>v!=null); if(v.length){ led=v.reduce((a,b)=>a+b,0); ledSrc='ledger file ('+v.length+' of '+cs.length+' clients)'; } }
       else { led=ledgerBal(c); if(led!=null) ledSrc='ledger file'; } }
     if(led==null){ led=bought-sold; ledSrc=SYF?'this script only (from trades)':'from trades only (no ledger file for this client)'; }
     const lrs=Object.values(E.lr).filter(x=>(c==='ALL'||x.c===c)&&symOK(x.sym)), bal=lrs.reduce((a,x)=>a+x.bal,0), lossB=lrs.reduce((a,x)=>a+x.loss,0), recd=lrs.reduce((a,x)=>a+x.rec,0);
@@ -156,7 +159,7 @@ function render(){
   const S=sum(CL);
   const w=[]; if(!(RATES._def.bd||RATES._def.bi)&&!Object.keys(RATES).some(k=>k!=='_def'&&(RATES[k].bd||RATES[k].bi))) w.push('Brokerage is not set yet - open ⚙ Brokerage, charges & interest below and enter the delivery / intraday rates (default and per client). Taxes and exchange charges are already included.');
   E.warn.filter(x=>CL==='ALL'||x.startsWith(CL+' ')).forEach(x=>w.push(esc(x)));
-  if(!LED) w.push('No ledger file yet - ledger balance is worked out from the trades only (purchases debit, sales credit). Upload the ledger (⬆ Ledger) for the real balance with receipts and payments.');
+  if(!hasLed()) w.push('No ledger file yet - ledger balance is worked out from the trades only (purchases debit, sales credit). Upload the ledger (⬆ Ledger) for the real balance with receipts and payments.');
   $('warn').innerHTML=w.map(x=>'<div class="warn">'+x+'</div>').join('');
   const K=(lab,val,sub)=>`<div class="k"><span>${lab}</span><b>${val}</b>${sub?'<small>'+sub+'</small>':''}</div>`;
   $('kpis').innerHTML=
@@ -167,11 +170,11 @@ function render(){
     K('Unrealised P&amp;L',`<span class="${cls(S.unr)}">${sgn(S.unr,0)}</span>`,pc(S.pct))+
     K('Booked P&amp;L',`<span class="${cls(S.rel+S.ipl)}">${sgn(S.rel+S.ipl,0)}</span>`,'delivery '+sgn(S.rel,0)+' · intraday '+sgn(S.ipl,0))+
     K('Total P&amp;L',`<span class="${cls(S.tot)}">${sgn(S.tot,0)}</span>`,pc(S.totPct)+' of amount bought')+
-    K('Holding cost @'+STAT.int+'%',`<span class="dn">${fx(-S.hc,0)}</span>`,'interest from T+1')+
+    K('Holding cost @'+STAT.int+'%',`<span class="dn">${fx(-S.hc,0)}</span>`,'open positions only, from T+1')+
     K('P&amp;L after holding cost',`<span class="${cls(S.after)}">${sgn(S.after,0)}</span>`,S.inv?pc((S.unr-S.hcOpen)/(S.inv+S.hcOpen)*100)+' on open holdings incl. interest':'')+
     K('Charges paid',fx(S.chg,0),'brokerage + taxes + DP')+
     K('Loss to recover',`<span class="${S.bal>0?'dn':''}">${fx(S.bal?-S.bal:0,0)}</span>`,'booked losses '+fx(S.lossB,0)+' · recovered '+fx(S.recd,0));
-  let h='';
+  let h=liqHtml(E,clients)+acctHtml(E,clients,inC);
   if(CL==='ALL'){ const cs=[...new Set(TR.map(t=>t.c))].sort();
     h+=`<h3 class="sec">Clients <small>click a client to open</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th>Portfolio size</th><th>Invested</th><th>Ledger</th><th>Net balance</th><th>Unrealised</th><th>%</th><th>Booked</th><th>Total P&amp;L</th><th>%</th><th>Holding cost</th><th>After cost</th></tr></thead><tbody>`+
       cs.map(c=>{ const s=sum(c); return `<tr data-c="${esc(c)}" style="cursor:pointer"><td class="l"><b>${esc(c)}</b></td><td>${fx(s.val,0)}</td><td>${fx(s.inv,0)}</td><td>${drcr(s.led)}</td><td class="${cls(s.net)}">${sgn(s.net,0)}</td><td class="${cls(s.unr)}">${sgn(s.unr,0)}</td><td class="${cls(s.pct)}">${pc(s.pct)}</td><td class="${cls(s.rel+s.ipl)}">${sgn(s.rel+s.ipl,0)}</td><td class="${cls(s.tot)}">${sgn(s.tot,0)}</td><td class="${cls(s.totPct)}">${pc(s.totPct)}</td><td class="dn">${fx(-s.hc,0)}</td><td class="${cls(s.after)}">${sgn(s.after,0)}</td></tr>`; }).join('')+
@@ -189,8 +192,8 @@ function render(){
   h+=`<h3 class="sec">Holdings <small>Trading positions in profit on top for booking · alerts beside the symbol · live P&amp;L on net buy and on cost incl. holding interest</small></h3><div class="sx"><table class="x"><thead><tr>${CL==='ALL'?'<th class="l">Client</th>':''}<th class="l">Symbol &amp; alerts</th><th class="l">Mark</th><th>RSI 14</th><th>Qty</th><th>Net buy</th><th>CMP</th><th>Day %</th><th>Value</th><th>P&amp;L on net buy</th><th>%</th><th>Days (T+1)</th><th>Holding cost</th><th>Cost incl. holding</th><th>P&amp;L after holding</th><th>%</th><th>Balance loss</th><th>Recovery price</th><th>After loss recovery</th></tr></thead><tbody>`+
     (rows.length?rows.map(r=>{ const g=r.g, rs=RSI[g.sym];
       return `<tr class="${r.blink?'hot':''}">${CL==='ALL'?'<td class="l">'+esc(g.c)+'</td>':''}<td class="l"><b>${esc(g.sym)}</b>${chips(r.al)}</td><td class="l"><select class="mk ${r.mk}" data-s="${esc(g.sym)}"><option value=""${!r.mk?' selected':''}>–</option><option value="T"${r.mk==='T'?' selected':''}>Trading</option><option value="I"${r.mk==='I'?' selected':''}>Investment</option></select></td><td class="${rs==null?'mu':rs>=70?'dn':rs<=30?'up':''}">${rs==null?'–':rs.toFixed(1)}</td><td>${fx(g.q,0)}</td><td>${fx(g.cost/g.q)}</td><td>${r.q?fx(r.q.p):'–'}</td><td class="${cls(r.dp)}">${pc(r.dp)}</td><td>${r.val!=null?fx(r.val,0):'–'}</td><td class="${cls(r.pl)}">${sgn(r.pl,0)}</td><td class="${cls(r.pl)}">${pc(r.plp)}</td><td>${g.days}</td><td class="dn">${fx(-g.hc,0)}</td><td>${fx(r.cih/g.q)}</td><td class="${cls(r.aft)}">${r.aft!=null?sgn(r.aft,0):'–'}</td><td class="${cls(r.aft)}">${pc(r.aftp)}</td><td class="${r.bal?'dn':'mu'}">${r.bal?fx(-r.bal,0):'–'}</td><td>${r.bal?'<b>'+fx(r.rp)+'</b>':'–'}</td><td class="${cls(r.arv)}">${r.bal&&r.arv!=null?sgn(r.arv,0):'–'}</td></tr>`; }).join(''):`<tr><td class="l mu" colspan="19">No holdings match.</td></tr>`)+`</tbody></table></div>`;
-  if(RL.length) h+=`<h3 class="sec">Booked delivery trades <small>FIFO · holding cost to the sale date</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th class="l">Symbol</th><th>Bought</th><th>Sold</th><th>Qty</th><th>Net buy</th><th>Net sell</th><th>P&amp;L</th><th>%</th><th>Days</th><th>Holding cost</th><th>After cost</th></tr></thead><tbody>`+
-    RL.map(x=>`<tr><td class="l">${esc(x.c)}</td><td class="l"><b>${esc(x.sym)}</b></td><td>${dmy(x.bd)}</td><td>${dmy(x.sd)}</td><td>${fx(x.q,0)}</td><td>${fx(x.buy)}</td><td>${fx(x.sell)}</td><td class="${cls(x.pl)}">${sgn(x.pl,0)}</td><td class="${cls(x.pl)}">${pc(x.pl/x.cost*100)}</td><td>${x.days}</td><td class="dn">${fx(-x.hc,0)}</td><td class="${cls(x.pl-x.hc)}">${sgn(x.pl-x.hc,0)}</td></tr>`).join('')+`</tbody></table></div>`;
+  if(RL.length) h+=`<h3 class="sec">Booked delivery trades <small>FIFO · no holding interest once a position is closed</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th class="l">Symbol</th><th>Bought</th><th>Sold</th><th>Qty</th><th>Net buy</th><th>Net sell</th><th>P&amp;L</th><th>%</th><th>Days held</th></tr></thead><tbody>`+
+    RL.map(x=>`<tr><td class="l">${esc(x.c)}</td><td class="l"><b>${esc(x.sym)}</b></td><td>${dmy(x.bd)}</td><td>${dmy(x.sd)}</td><td>${fx(x.q,0)}</td><td>${fx(x.buy)}</td><td>${fx(x.sell)}</td><td class="${cls(x.pl)}">${sgn(x.pl,0)}</td><td class="${cls(x.pl)}">${pc(x.pl/x.cost*100)}</td><td>${x.days}</td></tr>`).join('')+`</tbody></table></div>`;
   const LRs=Object.values(E.lr).filter(x=>inC(x)&&x.loss>0).sort((a,b)=>b.bal-a.bal||a.c.localeCompare(b.c));
   if(LRs.length) h+=`<h3 class="sec">Loss recovery <small>profit booked after a loss recovers it first · profit before the first loss does not count · balance loss is added to the holding cost (recovery price)</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th class="l">Script</th><th>First loss</th><th>Loss booked</th><th>Recovered</th><th>Balance to recover</th><th>Profit before loss</th><th>Profit after recovery</th><th>Holding now</th><th>Recovery price</th><th>CMP</th><th>Move needed</th></tr></thead><tbody>`+
     LRs.map(x=>{ const g=hg[x.c+'|'+x.sym], q=Q[x.sym], rp=g?(g.cost+g.hc+x.bal)/g.q:null, mv=rp&&q?(rp/q.p-1)*100:null;
@@ -205,10 +208,60 @@ function render(){
   document.querySelectorAll('select.mk').forEach(m=>m.onchange=()=>{ if(m.value) MARK[m.dataset.s]=m.value; else delete MARK[m.dataset.s]; LS.set('jc_pf_mark',MARK); render(); });
   document.querySelectorAll('tr[data-c]').forEach(tr=>tr.onclick=()=>{ CL=tr.dataset.c; LS.set('jc_pf_client',CL); render(); scrollTo(0,0); });
   const pt=Qat?new Date(Qat+19800000).toISOString().slice(11,16)+' IST':'not loaded';
-  $('upd').innerHTML='Updated '+dmy(todayS())+' '+ist().toISOString().slice(11,16)+' IST<br>Trades: '+TRsrc+'<br>Ledger: '+(LED?'file '+esc(LED.name)+' (read '+esc(LED.at)+')':'none uploaded')+' · Prices: '+(mktOpen()?'live, ':'last close, ')+pt;
+  $('upd').innerHTML='Updated '+dmy(todayS())+' '+ist().toISOString().slice(11,16)+' IST<br>Trades: '+TRsrc+'<br>Ledger: '+(hasLed()?PF.led().files.map(f=>esc(f.name)+' ('+f.clients.length+' client'+(f.clients.length>1?'s':'')+', '+esc(f.at)+')').join(', '):'none uploaded')+' · Prices: '+(mktOpen()?'live, ':'last close, ')+pt;
   $('st').innerHTML='<b>●</b> '+(CL==='ALL'?'all clients':'client '+esc(CL))+' · '+fx(S.val,0);
   ratesPanel(clients);
 }
+
+/* ---------- debit ageing -> liquidation alert (T+4 and older), sell suggestion for overdue debit + 2% ---------- */
+function liqHtml(E,clients){ const out=[];
+  clients.filter(c=>CL==='ALL'||c===CL).forEach(c=>{ const a=PF.ageing(c); if(!a||a.debit<=0.5) return;
+    if(a.over4>0){ const need=a.over4*1.02, L=PF.liquidate(c,E.hold,Q,MARK,need,STAT,rateOf); out.push({c,a,need,L,lvl:2}); }
+    else if(a.maxT>=3) out.push({c,a,lvl:1}); });
+  if(!out.length) return '';
+  return '<h3 class="sec" style="color:#B00000">⚠ Debit ageing <small>unpaid debit cleared oldest-first by receipts · T+4 and older = liquidation · sell suggestion covers the overdue debit + 2%, Trading stocks with the highest profit first</small></h3>'+
+   out.sort((x,y)=>y.lvl-x.lvl||y.a.maxT-x.a.maxT).map(o=>{ const a=o.a;
+    const head=`<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:8px 12px;font-weight:800"><span style="font:900 16px Inter,sans-serif">${esc(o.c)}</span>
+      <span class="chip ${o.lvl>1?'bk b2':'pf'}" style="font-size:11px">${o.lvl>1?'LIQUIDATE · T+'+a.maxT:'Due · T+'+a.maxT+' (liquidation from T+4)'}</span>
+      <span>Debit ${drcr(a.debit)}</span><span>since ${dmy(a.oldest)}</span>${o.lvl>1?`<span>Overdue (T+4+): <b class="dn">${fx(a.over4,0)}</b></span><span>To raise (+2%): <b>${fx(o.need,0)}</b></span>`:''}</div>`;
+    const unp='<div class="sx" style="max-height:none;margin:0 12px 8px"><table class="x"><thead><tr><th class="l">Debit date</th><th class="l">Narration</th><th>Unpaid</th><th>Age</th></tr></thead><tbody>'+
+      a.unpaid.map(u=>`<tr><td class="l">${dmy(u.d)}</td><td class="l">${esc(u.n||'')}</td><td>${fx(u.amt,2)}</td><td class="${u.t>=4?'dn':u.t>=3?'':'mu'}"><b>T+${u.t}</b></td></tr>`).join('')+'</tbody></table></div>';
+    const sug=o.L?('<div class="sx" style="max-height:none;margin:0 12px 10px"><table class="x"><thead><tr><th class="l">Sell</th><th class="l">Mark</th><th>Qty</th><th>of held</th><th>CMP</th><th>Sale value (net of charges)</th><th>Profit on qty sold</th><th>%</th></tr></thead><tbody>'+
+      (o.L.pick.length?o.L.pick.map(x=>`<tr><td class="l"><b>${esc(x.sym)}</b></td><td class="l">${x.mk==='T'?'Trading':x.mk==='I'?'Investment':'not marked'}</td><td><b>${fx(x.q,0)}</b></td><td>${fx(x.of,0)}</td><td>${fx(x.p)}</td><td>${fx(x.net,0)}</td><td class="${cls(x.pl)}">${sgn(x.pl,0)}</td><td class="${cls(x.plp)}">${pc(x.plp)}</td></tr>`).join(''):'<tr><td class="l mu" colspan="8">No priced holdings to sell.</td></tr>')+
+      `<tr class="tot"><td class="l" colspan="5">Raised ${o.L.short>0?'- short by '+fx(o.L.short,0):''}</td><td>${fx(o.L.got,0)}</td><td colspan="2"></td></tr></tbody></table></div>`):'';
+    return `<div style="background:#fff;border:2px solid ${o.lvl>1?'#E29A93':'#E7CF8A'};border-radius:12px;margin-bottom:8px">${head}${unp}${sug}</div>`; }).join(''); }
+
+/* ---------- client account: funds in / out, interest, DP, charges, investment return ---------- */
+function acct(c,E){ const L=PF.led(), en=L.E[c]||null, f=x=>x.c===c;
+  const val=E.hold.filter(f).reduce((a,x)=>a+(Q[x.sym]?x.q*Q[x.sym].p:x.q*x.cost),0);
+  const pp=E.parts.filter(f), brk=pp.reduce((a,x)=>a+x.brk,0), stat=pp.reduce((a,x)=>a+x.stt+x.exch+x.sebi+x.stamp+x.gst,0), dpT=pp.reduce((a,x)=>a+x.dp,0), hcO=E.hold.filter(f).reduce((a,x)=>a+x.hc,0);
+  const rel=E.real.filter(f).reduce((a,x)=>a+x.pl,0)+E.intra.filter(f).reduce((a,x)=>a+x.pl,0), unr=E.hold.filter(f).reduce((a,x)=>a+(Q[x.sym]?x.q*Q[x.sym].p:x.q*x.cost)-x.q*x.cost,0);
+  const o={c,val,brk,stat,dpT,hcO,rel,unr,has:!!en,bal:PF.ledBal(c)};
+  if(en){ const k=t=>en.filter(e=>e.k===t); o.fin=k('in').reduce((a,e)=>a+e.cr-e.dr,0); o.fout=k('out').reduce((a,e)=>a+e.dr-e.cr,0); o.int=k('int').reduce((a,e)=>a+e.dr-e.cr,0); o.dp=k('dp').reduce((a,e)=>a+e.dr-e.cr,0); o.chg=k('chg').reduce((a,e)=>a+e.dr-e.cr,0);
+    o.netF=o.fin-o.fout; o.nw=val-o.bal; o.gain=o.nw-o.netF; o.ret=o.netF>0?o.gain/o.netF*100:null;
+    const fl=en.filter(e=>e.k==='in'||e.k==='out').map(e=>({d:e.d,v:e.k==='in'?-(e.cr-e.dr):(e.dr-e.cr)})); if(fl.length) fl.push({d:todayS(),v:o.nw}); o.xirr=fl.length?PF.xirr(fl.sort((a,b)=>a.d.localeCompare(b.d))):null; }
+  return o; }
+function acctHtml(E,clients,inC){ if(SYF) return '';
+  const cs=clients.filter(c=>CL==='ALL'||c===CL), A=cs.map(c=>acct(c,E)), anyL=A.some(a=>a.has);
+  let h=`<h3 class="sec">Client account &amp; investment return <small>funds in / out, interest and DP from the ledger · brokerage and charges from the trade book · return = (holdings value − ledger debit) − net funds in</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client code</th><th>Funds in</th><th>Funds out</th><th>Net funds</th><th>Interest (ledger)</th><th>DP (ledger)</th><th>Other charges</th><th>Brokerage</th><th>Taxes &amp; exch.</th><th>Holding int. (open)</th><th>Booked P&amp;L</th><th>Unrealised</th><th>Ledger</th><th>Holdings value</th><th>Net worth</th><th>Return</th><th>%</th><th>XIRR</th></tr></thead><tbody>`+
+    A.map(a=>`<tr><td class="l"><b>${esc(a.c)}</b>${a.has?'':' <span class="mu">(no ledger)</span>'}</td><td>${a.has?fx(a.fin,0):'–'}</td><td>${a.has?fx(a.fout,0):'–'}</td><td>${a.has?'<b>'+fx(a.netF,0)+'</b>':'–'}</td><td class="dn">${a.has?fx(a.int,0):'–'}</td><td>${a.has?fx(a.dp,0):fx(a.dpT,0)+'*'}</td><td>${a.has?fx(a.chg,0):'–'}</td><td>${fx(a.brk,0)}</td><td>${fx(a.stat,0)}</td><td class="dn">${fx(a.hcO,0)}</td><td class="${cls(a.rel)}">${sgn(a.rel,0)}</td><td class="${cls(a.unr)}">${sgn(a.unr,0)}</td><td>${a.bal!=null?drcr(a.bal):'–'}</td><td>${fx(a.val,0)}</td><td>${a.has?fx(a.nw,0):'–'}</td><td class="${cls(a.gain)}">${a.has?sgn(a.gain,0):'–'}</td><td class="${cls(a.ret)}">${a.has?pc(a.ret):'–'}</td><td class="${cls(a.xirr)}">${a.xirr!=null?pc(a.xirr):'–'}</td></tr>`).join('')+'</tbody></table></div>'+
+    (anyL?'':'<div class="note">* DP from the trade book (your DP rate). Upload the ledger for funds in / out, interest actually charged and the investment return.</div>');
+  if(CL!=='ALL'){ const en=PF.led().E[CL]; if(en&&en.length){ let run=0; const KN={in:'Funds in',out:'Funds out',int:'Interest',dp:'DP / demat',bill:'Trade bill',chg:'Charges',oth:'Other'};
+    h+=`<details class="pan" style="margin-top:8px"><summary>📒 Ledger of ${esc(CL)} - ${en.length} entries</summary><div class="in"><div class="sx"><table class="x"><thead><tr><th class="l">Date</th><th class="l">Narration</th><th class="l">Type</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead><tbody>`+
+      en.map(e=>{ run+=e.dr-e.cr; return `<tr><td class="l">${dmy(e.d)}</td><td class="l">${esc(e.n||'')}</td><td class="l">${KN[e.k]||e.k}</td><td>${e.dr?fx(e.dr):''}</td><td>${e.cr?fx(e.cr):''}</td><td>${drcr(run)}</td></tr>`; }).join('')+'</tbody></table></div></div></details>'; } }
+  return h; }
+
+/* ---------- uploads: client-wise, removable ---------- */
+function uploadsPanel(){ const T=PF.tb(), L=PF.led(), tc={}; T.trades.forEach(x=>tc[x.c]=(tc[x.c]||0)+1);
+  const lc=[...new Set([...Object.keys(L.E),...Object.keys(L.bal)])].sort();
+  $('upIn').innerHTML=`<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+   <div><b>Trade books</b> ${Object.keys(tc).length?`<button class="btn" data-rt="*">Remove all</button>`:''}<table class="x" style="width:auto;margin-top:4px"><thead><tr><th class="l">Client code</th><th>Fills</th><th></th></tr></thead><tbody>${Object.keys(tc).sort().map(c=>`<tr><td class="l"><b>${esc(c)}</b></td><td>${tc[c]}</td><td><button class="btn" data-rt="${esc(c)}">✕ Remove</button></td></tr>`).join('')||'<tr><td class="l mu" colspan="3">None uploaded</td></tr>'}</tbody></table>
+    <div class="note">${T.trades.length?'':(LS.get('jc_pf_nosample',false)?'Sample hidden - the page is empty until you upload a trade book. <button class="btn" id="smpOn">Show sample</button>':'Showing the built-in Trade Audit sample (never uploaded - client names removed). <button class="btn" id="smpOff">Hide sample</button>')}</div></div>
+   <div><b>Ledgers</b> ${lc.length?`<button class="btn" data-rl="*">Remove all</button>`:''}<table class="x" style="width:auto;margin-top:4px"><thead><tr><th class="l">Client code</th><th>Entries</th><th></th></tr></thead><tbody>${lc.map(c=>`<tr><td class="l"><b>${esc(c)}</b></td><td>${L.E[c]?L.E[c].length:'balance only'}</td><td><button class="btn" data-rl="${esc(c)}">✕ Remove</button></td></tr>`).join('')||'<tr><td class="l mu" colspan="3">None uploaded</td></tr>'}</tbody></table></div></div>
+   <div class="note">Upload one file per client or one file with many clients: each upload replaces the trades / ledger of the client codes in it. Only client codes are kept - name columns are ignored. A file without a client column asks for the client code.</div>`;
+  $('upIn').querySelectorAll('[data-rt]').forEach(b=>b.onclick=async()=>{ const c=b.dataset.rt; if(c==='*'){ if(!confirm('Remove all uploaded trade books?')) return; PF.removeTrades(null); } else PF.removeTrades(c); await loadTrades(); render(); uploadsPanel(); });
+  $('upIn').querySelectorAll('[data-rl]').forEach(b=>b.onclick=()=>{ const c=b.dataset.rl; if(c==='*'){ if(!confirm('Remove all uploaded ledgers?')) return; PF.removeLedger(null); } else PF.removeLedger(c); render(); uploadsPanel(); });
+  const so=$('smpOff'), sn=$('smpOn'); if(so) so.onclick=async()=>{ LS.set('jc_pf_nosample',true); await loadTrades(); render(); uploadsPanel(); }; if(sn) sn.onclick=async()=>{ LS.set('jc_pf_nosample',false); await loadTrades(); render(); uploadsPanel(); }; }
 
 /* ---------- rates panel ---------- */
 function ratesPanel(clients){ if($('rates').open&&$('ratesIn').dataset.n==clients.join()) return; $('ratesIn').dataset.n=clients.join();
@@ -224,7 +277,15 @@ function ratesPanel(clients){ if($('rates').open&&$('ratesIn').dataset.n==client
 
 /* ---------- uploads (CSV / Excel), read in the browser only ---------- */
 function xlsxLib(){ return window.XLSX?Promise.resolve():new Promise((ok,no)=>{ const s=document.createElement('script'); s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js'; s.onload=ok; s.onerror=()=>no(new Error('Excel reader could not load')); document.head.appendChild(s); }); }
-async function readRows(file){ await xlsxLib(); const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true}); const ws=wb.Sheets[wb.SheetNames[0]];
+function csvParse(t){ const out=[]; let row=[], f='', q=false; t=t.replace(/^\uFEFF/,'');
+  for(let i=0;i<t.length;i++){ const ch=t[i];
+    if(q){ if(ch==='"'){ if(t[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=ch; }
+    else if(ch==='"') q=true; else if(ch===','||ch===';'||ch==='\t'){ row.push(f); f=''; } else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&t[i+1]==='\n') i++; row.push(f); out.push(row); row=[]; f=''; } else f+=ch; }
+  if(f!==''||row.length){ row.push(f); out.push(row); } return out; }
+async function readRows(file){ if(/\.(csv|txt)$/i.test(file.name)){ const raw=csvParse(await file.text());
+    let hi=raw.findIndex(r=>r.filter(x=>String(x).trim()).length>=3&&r.some(x=>/date/i.test(x))); if(hi<0) hi=0;
+    const hd=raw[hi].map(x=>String(x).trim()); return raw.slice(hi+1).filter(r=>r.some(x=>String(x).trim())).map(r=>{ const o={}; hd.forEach((h,i)=>o[h]=r[i]); return o; }); }
+  await xlsxLib(); const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true}); const ws=wb.Sheets[wb.SheetNames[0]];
   const raw=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
   let hi=raw.findIndex(r=>r.filter(x=>String(x).trim()).length>=3&&r.some(x=>/date/i.test(x))); if(hi<0) hi=0;
   const hd=raw[hi].map(x=>String(x).trim()); return raw.slice(hi+1).filter(r=>r.some(x=>String(x).trim())).map(r=>{ const o={}; hd.forEach((h,i)=>o[h]=r[i]); return o; }); }
@@ -237,27 +298,39 @@ function pdate(v){ if(v instanceof Date) return new Date(v.getTime()-v.getTimezo
   if((m=s.match(/^(\d{1,2})[-\s]([A-Za-z]{3})[A-Za-z]*[-\s,]+(\d{2,4})/))){ const mo='janfebmaraprmayjunjulaugsepoctnovdec'.indexOf(m[2].toLowerCase())/3+1; if(mo>0) return (m[3].length===2?'20'+m[3]:m[3])+'-'+String(mo).padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
   return null; }
 const num=v=>{ if(typeof v==='number') return v; const s=String(v).replace(/[,₹\s]/g,''); const n=parseFloat(s); return isFinite(n)?n:0; };
+/* client code column: a code / UCC / account column; a name-only column is refused (codes only, never names) */
+function codeCol(r0,rows){ const k=Object.keys(r0);
+  let c=k.find(h=>/client\s*(code|id|cd|no)|ucc|party\s*code|acc(oun)?t\s*(code|no|id)|^code$|^client$/i.test(h)&&!/name/i.test(h));
+  if(c){ const named=rows.slice(0,40).filter(r=>/[a-z]{2,}\s+[a-z]{2,}/i.test(String(r[c]).trim())).length; if(named>rows.slice(0,40).length/2) c=null; }
+  return c; }
+function askCode(file){ const c=prompt('Client code for '+file.name+' (no client-code column found):',''); if(!c||!c.trim()) throw new Error('no client code given'); if(/\s/.test(c.trim())&&/[a-z]{2,}\s+[a-z]{2,}/i.test(c)) throw new Error('enter the client code, not the name'); return c.trim().toUpperCase(); }
 async function upTrades(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
-  const r0=rows[0], cd=col(r0,/date/i), cc=col(r0,/client|ucc|code|account/i), cs=col(r0,/symbol|scrip|security|stock|instrument/i), cb=col(r0,/b\s*\/\s*s|buy.?sell|side|trans.*type|^type$/i), cq=col(r0,/qty|quantity/i), cr=col(r0,/rate|price|avg/i);
-  const miss=[['Date',cd],['Client',cc],['Symbol',cs],['Buy/Sell',cb],['Qty',cq],['Rate',cr]].filter(x=>!x[1]).map(x=>x[0]); if(miss.length) throw new Error('columns not found: '+miss.join(', '));
-  const out=[]; rows.forEach(r=>{ const d=pdate(r[cd]), q=Math.abs(num(r[cq])), rt=num(r[cr]), side=/^s/i.test(String(r[cb]).trim())?'S':/^b/i.test(String(r[cb]).trim())?'B':null;
-    if(d&&q>0&&rt>0&&side) out.push({d,c:String(r[cc]).trim(),sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}); });
+  const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cs=col(r0,/symbol|scrip|security|stock|instrument/i), cb=col(r0,/b\s*\/\s*s|buy.?sell|side|trans.*type|^type$/i), cq=col(r0,/qty|quantity/i), cr=col(r0,/rate|price|avg/i);
+  const miss=[['Date',cd],['Symbol',cs],['Buy/Sell',cb],['Qty',cq],['Rate',cr]].filter(x=>!x[1]).map(x=>x[0]); if(miss.length) throw new Error('columns not found: '+miss.join(', '));
+  const one=cc?null:askCode(file);
+  const out=[]; rows.forEach(r=>{ const d=pdate(r[cd]), q=Math.abs(num(r[cq])), rt=num(r[cr]), side=/^s/i.test(String(r[cb]).trim())?'S':/^b/i.test(String(r[cb]).trim())?'B':null, c=one||String(r[cc]).trim().toUpperCase();
+    if(d&&q>0&&rt>0&&side&&c) out.push({d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}); });
   if(!out.length) throw new Error('no valid fills (check dates, quantities, rates and Buy/Sell)');
-  LS.set('jc_pf_trades',{name:file.name,at:dmy(todayS())+' '+ist().toISOString().slice(11,16),trades:out}); return out.length; }
+  const cl=PF.addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out); return out.length+' fills for '+cl.join(', '); }
 async function upLedger(file){ const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
-  const r0=rows[0], cd=col(r0,/date/i), cc=col(r0,/client|ucc|code|account/i), cdr=col(r0,/^dr$|debit/i), ccr=col(r0,/^cr$|credit/i), cbal=col(r0,/bal/i);
-  if(!cc) throw new Error('Client column not found'); if(!(cdr&&ccr)&&!cbal) throw new Error('need Debit + Credit columns or a Balance column');
-  const bal={}, last={};
-  rows.forEach(r=>{ const c=String(r[cc]).trim(); if(!c) return; const d=cd?pdate(r[cd])||'':'';
-    if(cdr&&ccr){ bal[c]=(bal[c]||0)+num(r[cdr])-num(r[ccr]); }
-    else { const s=String(r[cbal]); let v=num(s); if(/cr/i.test(s)) v=-Math.abs(v); else if(/dr/i.test(s)) v=Math.abs(v); if(!last[c]||d>=last[c]){ last[c]=d; bal[c]=v; } } });
-  LED={name:file.name,at:dmy(todayS())+' '+ist().toISOString().slice(11,16),bal}; LS.set('jc_pf_ledger',LED); return Object.keys(bal).length; }
+  const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cdr=col(r0,/^dr$|debit/i), ccr=col(r0,/^cr$|credit/i), cbal=col(r0,/bal/i), cn=col(r0,/narr|particular|descr|remark|detail|voucher/i);
+  if(!(cdr&&ccr)&&!cbal) throw new Error('need Debit + Credit columns or a Balance column');
+  const one=cc?null:askCode(file), by={}, last={};
+  if(cdr&&ccr){ if(!cd) throw new Error('Date column not found');
+    rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(), d=pdate(r[cd]); if(!c||!d) return; const dr=Math.abs(num(r[cdr])), cr=Math.abs(num(r[ccr])), n=cn?String(r[cn]).trim():'';
+      if(!dr&&!cr) return; (by[c]=by[c]||[]).push({d,dr,cr,n,k:/opening|b\/f|brought f/i.test(n)?'oth':PF.kindOf(n,dr,cr)}); });
+    if(!Object.keys(by).length) throw new Error('no dated debit / credit rows');
+    const cl=PF.addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),by,false); return 'ledger entries for '+cl.join(', '); }
+  rows.forEach(r=>{ const c=one||String(r[cc]).trim().toUpperCase(); if(!c) return; const d=cd?pdate(r[cd])||'':''; const s2=String(r[cbal]); let v=num(s2); if(/cr/i.test(s2)) v=-Math.abs(v); else if(/dr/i.test(s2)) v=Math.abs(v); if(!last[c]||d>=last[c]){ last[c]=d; by[c]=v; } });
+  const cl=PF.addLedger(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),by,true); return 'balances for '+cl.join(', ')+' (no entries - debit ageing needs Date / Debit / Credit rows)'; }
 $('upT').onclick=()=>$('fT').click(); $('upL').onclick=()=>$('fL').click();
-$('fT').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await upTrades(f); await loadTrades(); render(); prices(); alertBox('Trade book read: '+n+' fills.'); }catch(x){ alertBox('Trade book not read - '+x.message,true); } e.target.value=''; };
-$('fL').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await upLedger(f); render(); alertBox('Ledger read: '+n+' clients.'); }catch(x){ alertBox('Ledger not read - '+x.message,true); } e.target.value=''; };
+$('fT').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await upTrades(f); await loadTrades(); render(); prices(); history(); uploadsPanel(); alertBox('Trade book read: '+n+'.'); }catch(x){ alertBox('Trade book not read - '+x.message,true); } e.target.value=''; };
+$('fL').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await upLedger(f); render(); uploadsPanel(); alertBox('Ledger read: '+n+'.'); }catch(x){ alertBox('Ledger not read - '+x.message,true); } e.target.value=''; };
 function alertBox(t,bad){ const d=document.createElement('div'); d.className='warn'; d.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:999;'+(bad?'background:#FBE3E1;border-color:#E29A93;color:#8a1010':'background:#E3F1DF;border-color:#8DC487;color:#1C5C0D'); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
 $('cl').onchange=()=>{ CL=$('cl').value; LS.set('jc_pf_client',CL); render(); };
 $('rf').onclick=()=>prices(true);
+$('upM').onclick=()=>{ $('ups').open=true; uploadsPanel(); $('ups').scrollIntoView({behavior:'smooth'}); };
+$('ups').addEventListener('toggle',()=>{ if($('ups').open) uploadsPanel(); });
 $('sy').value=SYF; $('mf').value=MF;
 $('sy').oninput=()=>{ SYF=$('sy').value.trim(); LS.set('jc_pf_sym',SYF); render(); };
 $('mf').onchange=()=>{ MF=$('mf').value; LS.set('jc_pf_mf',MF); render(); };

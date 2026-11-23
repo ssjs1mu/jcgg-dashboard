@@ -208,7 +208,7 @@ body *{letter-spacing:.01em!important;text-shadow:none!important;font-variant-nu
   d.querySelector('#jcZm').onclick=function(){ st(-.1); }; d.querySelector('#jcZp').onclick=function(){ st(.1); }; }); })();</script>
 <script src="perf.js?v=3"></script>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0e1621"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="icons/icon-192.png"><link rel="stylesheet" href="mobile.css?v=7"><script src="mobile.js?v=3"></script>
-<script src="ssj-theme.js?v=3"></script>
+<script src="ssj-theme.js?v=4"></script>
 </head><body>
 <div class="top"><div class="bmw" id="bmW"><div class="bmz">🌡 <b>MARKET BAROMETER</b><span class="mu">loading…</span></div></div><div class="hbr"><h1>Joshi's Corner</h1><span class="mood" id="mood">🌤 reading the market mood…</span></div>
  <nav class="tnav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw on" href="watchlist.html">WATCHLIST</a><a class="sw" href="plan.html">TOMORROW'S CALLS</a><a class="sw" href="calculator.html">PIVOT CALCULATOR</a><a class="sw" href="review.html">TRADE AUDIT</a><a class="sw" href="portfolio.html">PORTFOLIO</a><a class="sw" href="reports.html">REPORTS</a></nav></div>
@@ -1197,7 +1197,7 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   window.addEventListener('beforeunload',e=>{ if(popped()){ e.preventDefault(); e.returnValue=''; } });
 })();
 </script>
-<script src="pf-core.js?v=2"></script>
+<script src="pf-core.js?v=3"></script>
 <script>
 /* ===== Profit-booking pop-up: client holdings (Portfolio page data, same browser) checked against the Watchlist parameters =====
    Holding in profit after holding interest AND
@@ -1214,7 +1214,8 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   const pcl=v=>v==null||!isFinite(v)||!v?'':v>0?'pbu':'pbd';
   function rsi14(c){ if(c.length<16) return null; let g=0,l=0; for(let i=1;i<=14;i++){ const d=c[i]-c[i-1]; g+=Math.max(d,0); l+=Math.max(-d,0); } g/=14; l/=14;
     for(let i=15;i<c.length;i++){ const d=c[i]-c[i-1]; g=(g*13+Math.max(d,0))/14; l=(l*13+Math.max(-d,0))/14; } return l?100-100/(1+g/l):100; }
-  async function holdings(){ const T=pbTr||(pbTr=await PF.loadTrades()); const E=PF.compute(T.trades,PF.stat(),PF.rateOfFrom(PF.rates()));
+  let PBE=null;
+  async function holdings(){ const T=pbTr||(pbTr=await PF.loadTrades()); const E=PBE=PF.compute(T.trades,PF.stat(),PF.rateOfFrom(PF.rates()));
     Object.keys(PBH).forEach(k=>delete PBH[k]); Object.keys(LR).forEach(k=>delete LR[k]); Object.assign(LR,PF.recovery(E));
     E.hold.forEach(h=>{ const g=PBH[h.sym]=PBH[h.sym]||{}; const c=g[h.c]=g[h.c]||{c:h.c,q:0,cost:0,hc:0,days:0,first:h.d};
       c.q+=h.q; c.cost+=h.q*h.cost; c.hc+=h.hc; c.days=Math.max(c.days,h.days); if(h.d<c.first) c.first=h.d; }); }
@@ -1267,7 +1268,7 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
       try{ const j=await getJ(BACKEND+'?action=liveq&symbols='+encodeURIComponent(syms.map(s=>s+'.NS').join(',')),15000);
         if(j&&j.q) Object.keys(j.q).forEach(k=>{ const q=j.q[k]; if(q&&q[0]>0) PBQ[k.replace(/\.NS$/,'')]={p:q[0],pc:q[1]}; }); }catch(e){}
       for(const s of syms) await daily(s);
-      const L=evaluate();
+      const L=evaluate(); lqRun();
       if(mkt().open&&!document.hidden){ const S=seen(), now=Date.now();
         const fresh=L.filter(x=>{ const z=S.x[x.s]; return !z||(z.l<x.lvl)||(z.until&&z.until<now&&z.l<9); });
         if(fresh.length) show(L,false); }
@@ -1306,7 +1307,33 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
     document.getElementById('lrDone').onclick=()=>{ const S=lrSeen(); list.forEach(x=>S.x[x.s]={until:9e15}); PF.LS.set('jc_lr_seen',S); close(); };
     if(!manual){ const S=lrSeen(); list.forEach(x=>{ if(!S.x[x.s]) S.x[x.s]={until:Date.now()+6*3600000}; }); PF.LS.set('jc_lr_seen',S); } }
   async function lrRun(){ const L=await lrCheck(); if(mkt().open&&!document.hidden){ const S=lrSeen(), now=Date.now(), fresh=L.filter(x=>!S.x[x.s]||S.x[x.s].until<now); if(fresh.length) lrShow(L,false); } }
+  /* ===== Liquidation alert: ledger debit unpaid at T+4 or older -> sell suggestion for overdue + 2% (Trading, highest profit first) ===== */
+  function lqList(){ if(!PBE) return []; const L=PF.led(), out=[], STAT=PF.stat(), ro=PF.rateOfFrom(PF.rates()), MK=PF.marks();
+    Object.keys(L.E).forEach(c=>{ const a=PF.ageing(c); if(!a||a.over4<=0) return; const need=a.over4*1.02; out.push({c,a,need,L:PF.liquidate(c,PBE.hold,PBQ,MK,need,STAT,ro)}); });
+    return out.sort((x,y)=>y.a.maxT-x.a.maxT); }
+  function lqShow(list,manual){ if(!list.length) return; let m=document.getElementById('lqM'); if(m) m.remove(); m=document.createElement('div'); m.id='lqM';
+    m.innerHTML=`<div class="lqc"><div class="lqtop"><b>⚠ Liquidation due - ${list.length} client${list.length>1?'s':''} with debit at T+4 or older</b><span class="pbtm">${new Date(Date.now()+19800000).toISOString().slice(11,16)} IST</span><button class="pbz" id="lqClose">✕</button></div><div class="pbbody">`+
+      list.map(o=>`<div class="pbs"><div class="pbh"><b>${esc(o.c)}</b><span class="pbt pbf">T+${o.a.maxT}</span><span class="pbw">Debit ${pfx(o.a.debit,0)} since ${PF.dmy(o.a.oldest)} · overdue ${pfx(o.a.over4,0)} · raise ${pfx(o.need,0)} (+2%)</span></div>
+        <table class="pbx"><thead><tr><th class="l">Sell</th><th class="l">Mark</th><th>Qty</th><th>of held</th><th>CMP</th><th>Sale value (net)</th><th>Profit on qty</th><th>%</th></tr></thead><tbody>${o.L.pick.map(x=>`<tr><td class="l"><b>${esc(x.sym)}</b></td><td class="l">${x.mk==='T'?'Trading':x.mk==='I'?'Investment':'not marked'}</td><td><b>${pfx(x.q,0)}</b></td><td>${pfx(x.of,0)}</td><td>${pfx(x.p)}</td><td>${pfx(x.net,0)}</td><td class="${pcl(x.pl)}">${psg(x.pl)}</td><td class="${pcl(x.plp)}">${ppc(x.plp)}</td></tr>`).join('')||'<tr><td class="l" colspan="8">No priced holdings to sell</td></tr>'}
+        <tr class="pbtot"><td class="l" colspan="5">Raised${o.L.short>0?' - short by '+pfx(o.L.short,0):''}</td><td>${pfx(o.L.got,0)}</td><td colspan="2"></td></tr></tbody></table><div class="pbb"><a class="pbk" href="portfolio.html">Open in Portfolio ▸</a></div></div>`).join('')+
+      `</div><div class="pbfoot">Unpaid ledger debit, cleared oldest-first by receipts, aged in trading days (weekends skipped). Suggestion: Trading holdings with the highest profit first, then Investment, until the sale value after charges covers the overdue debit + 2%.<span style="float:right"><button class="pbz2" id="lqDone">Done for today</button></span></div></div>`;
+    document.body.appendChild(m); const close=()=>m.remove(); m.onclick=e=>{ if(e.target===m) close(); }; document.getElementById('lqClose').onclick=close;
+    document.getElementById('lqDone').onclick=()=>{ PF.LS.set('jc_lq_seen',PF.todayS()); close(); }; }
+  function lqRun(){ const L=lqList(); let p=document.getElementById('lqPill');
+    if(!L.length){ if(p) p.remove(); return; }
+    if(!p){ p=document.createElement('button'); p.id='lqPill'; p.onclick=()=>lqShow(lqList(),true); document.body.appendChild(p); }
+    p.textContent='⚠ '+L.length+' liquidation'+(L.length>1?'s':'')+' due';
+    if(mkt().open&&!document.hidden&&PF.LS.get('jc_lq_seen','')!==PF.todayS()&&!document.getElementById('lqM')) lqShow(L,false); }
   const st=document.createElement('style'); st.textContent=`
+#lqPill{position:fixed;left:14px;bottom:166px;z-index:9000;border:2px solid #D00000;background:#D00000;color:#fff;font:900 12.5px Inter,sans-serif;padding:8px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(160,0,0,.35);cursor:pointer;animation:pbb .9s ease-in-out infinite}
+#lqM{position:fixed;inset:0;z-index:9700;background:rgba(60,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:4vh 10px;overflow:auto}
+#lqM .lqc{background:#FFF7F6;border:3px solid #D00000;border-radius:16px;max-width:1000px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.4);overflow:hidden;font:600 12.5px Inter,sans-serif;color:#2E2C14}
+#lqM .lqtop{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#B00000;color:#fff;font-size:15px}#lqM .pbtm{margin-left:auto;font:700 11.5px ui-monospace,Consolas,monospace}#lqM .pbz{background:none;border:0;color:#fff;font-size:18px;cursor:pointer}
+#lqM .pbbody{padding:8px 12px;max-height:70vh;overflow:auto}#lqM .pbs{background:#fff;border:1px solid #F0C9C5;border-radius:12px;padding:8px 10px;margin:8px 0;overflow-x:auto}#lqM .pbh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}#lqM .pbh>b{font:900 17px Inter,sans-serif}
+#lqM .pbt{background:#FBE3E1;color:#B00000;border:1px solid #E29A93;border-radius:999px;padding:1px 9px;font:900 11px Inter,sans-serif;animation:pbb .7s ease-in-out infinite}#lqM .pbw{color:#6E3A35;font-weight:700}
+#lqM table.pbx{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}#lqM .pbx th{background:#B00000!important;color:#fff!important;font:800 10.5px Inter,sans-serif;text-transform:uppercase;padding:5px 7px;text-align:right}#lqM .pbx td{padding:4px 7px;border-bottom:1px solid #F6E0DD;text-align:right;white-space:nowrap}#lqM .pbx .l{text-align:left}#lqM .pbtot td{background:#FBEDEB;font-weight:900}
+#lqM .pbu{color:#1C820D}#lqM .pbd{color:#D00000}#lqM .pbb{text-align:right;margin-top:5px}#lqM .pbk{font:800 12px Inter,sans-serif;color:#B00000;text-decoration:none}#lqM .pbfoot{padding:9px 14px;border-top:1px solid #F0C9C5;color:#6E3A35;font-size:11.5px;line-height:1.5}#lqM .pbz2{border:1px solid #E29A93;background:#fff;border-radius:8px;padding:5px 10px;font:800 12px Inter,sans-serif;cursor:pointer;color:#B00000}
+@media (prefers-reduced-motion:reduce){#lqPill,#lqM .pbt{animation:none}}
 #lrPill{position:fixed;left:14px;bottom:118px;z-index:9000;border:2px solid #c9a24c;background:linear-gradient(180deg,#fff8df,#f1dfa6);color:#5a4300;font:900 12.5px Inter,sans-serif;padding:8px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(120,90,0,.3);cursor:pointer;animation:pbb 1.6s ease-in-out infinite}
 #lrM{position:fixed;inset:0;z-index:9600;background:rgba(30,24,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:4vh 10px;overflow:auto}
 #lrM .lrc{max-width:1120px;width:100%;border-radius:18px;padding:5px;background:linear-gradient(135deg,#f9e9a8,#b8892b 25%,#fff3c4 50%,#a8782a 75%,#f6df8c);box-shadow:0 0 0 1px #7a5a10,0 20px 60px rgba(0,0,0,.45),0 0 40px rgba(224,194,122,.45)}
@@ -1339,7 +1366,7 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
 #pbM .pbu{color:#1C820D}#pbM .pbd{color:#D00000}#pbM .pbb{text-align:right;margin-top:5px}#pbM .pbk{font:800 12px Inter,sans-serif;color:#676300;text-decoration:none}
 #pbM .pbfoot{padding:9px 14px;border-top:1px solid #E2DDBF;color:#6E6A45;font-size:11.5px;line-height:1.5}#pbM .pbz2{border:1px solid #CFC9A3;background:#fff;border-radius:8px;padding:5px 10px;font:800 12px Inter,sans-serif;cursor:pointer;color:#3f3c00}
 @media (prefers-reduced-motion:reduce){#pbPill.pbf,#pbM .pbt.pbf{animation:none}}`; document.head.appendChild(st);
-  window.pbCheck=check; window.pbDebug={PBH,PBD,PBQ,LR,RC,evaluate,show,lrCheck,lrShow};
+  window.pbCheck=check; window.pbDebug={PBH,PBD,PBQ,LR,RC,evaluate,show,lrCheck,lrShow,lqList,lqShow};
   setTimeout(()=>check().then(lrRun),6000);
   setInterval(()=>{ if(mkt().open&&!document.hidden) check(); },30000);
   setInterval(()=>{ if(mkt().open&&!document.hidden) lrRun(); },60000);

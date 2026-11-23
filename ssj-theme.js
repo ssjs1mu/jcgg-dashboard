@@ -97,7 +97,7 @@
   }
 
   /* ---------- page styles (own <style> blocks only; mobile.css / fonts are left alone) ---------- */
-  var KEEP = /(^|[\s,>+~])h1\b|\.tvv|\.tvph|#tvBox|video|\.chw\b|jcThemeB|\.top\b|#pbM|#pbPill|#lrM|#lrPill/;  // brand script, TV, header band handled below
+  var KEEP = /(^|[\s,>+~])h1\b|\.tvv|\.tvph|#tvBox|video|\.chw\b|jcThemeB|\.top\b|#pbM|#pbPill|#lrM|#lrPill|#lqM|#lqPill/;  // brand script, TV, header band handled below
   function doRules(rules) {
     for (var i = 0; i < rules.length; i++) {
       var r = rules[i];
@@ -121,7 +121,7 @@
 
   /* ---------- inline styles drawn by the page (tiles, tables, popups) ---------- */
   function doEl(el) {
-    if (!el.getAttribute || el.closest && el.closest('h1,.tvv,.tvph,#tvBox,video,#pbM,#lrM')) return;
+    if (!el.getAttribute || el.closest && el.closest('h1,.tvv,.tvph,#tvBox,video,#pbM,#lrM,#lqM')) return;
     var s = el.getAttribute('style');
     if (!s || el.__ssj === s) return;
     var st = el.style, ch = false;
