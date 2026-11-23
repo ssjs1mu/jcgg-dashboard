@@ -64,6 +64,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
   <button class="btn" id="upD" title="DP HOLDING statement (PDF from the back office) or CSV / Excel template - only client code, DP a/c and holdings are read">⬆ DP holdings</button><input type="file" id="fD" accept=".pdf,.csv,.xlsx,.xls" hidden>
   <button class="btn" id="upM" title="See and remove uploaded trade books and ledgers, client-wise">🗂 Uploads</button>
   <button class="btn" id="rf">↻ Prices</button>
+  <button class="btn" id="dchip" title="Google Drive sync - tap to load the newest uploads from every device">☁ Drive…</button>
   <input type="file" id="fT" accept=".csv,.xlsx,.xls" hidden><input type="file" id="fL" accept=".pdf,.csv,.xlsx,.xls" hidden>
   <div class="upd" id="upd"></div></div>
  <div class="tabs" id="tabs"><button data-tab="pf">💼 Portfolio</button><button data-tab="dp">🏦 DP holdings</button><button data-tab="led">📒 Ledger</button>
@@ -77,7 +78,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, charges &amp; interest (per client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=10"></script>
+<script src="pf-core.js?v=11"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -353,7 +354,7 @@ function uploadsPanel(){ const T=PF.tb(), L=PF.led(), tc={}; T.trades.forEach(x=
   $('upIn').querySelectorAll('[data-rd]').forEach(b=>b.onclick=()=>{ const c=b.dataset.rd; if(c==='*'){ if(!confirm('Remove all DP holdings?')) return; PF.removeDP(null); } else PF.removeDP(c); render(); uploadsPanel(); });
   $('upIn').querySelectorAll('[data-tpl]').forEach(b=>b.onclick=()=>PF.template(b.dataset.tpl));
   $('drLoad').onclick=async()=>{ if(!(localStorage.getItem('jc_admin_key')||'')){ const k=prompt('Admin passcode (needed once on this device to read uploads from Google Drive):',''); if(!k) return; try{ localStorage.setItem('jc_admin_key',k); }catch(e){} }
-    $('drLoad').disabled=true; $('drLoad').textContent='Loading…'; try{ const r=await PF.driveLoad(true); alertBox('Loaded from Drive: '+(r.n?r.done.join(', '):'nothing new')+'.'); }catch(e){ alertBox('Drive load failed - '+e.message,true); } await loadTrades(); render(); prices(); history(); uploadsPanel(); };
+    try{ await PF.driveLoad(true); }catch(e){} await loadTrades(); render(); prices(); history(); uploadsPanel(); };
   $('drAll').onclick=async()=>{ $('drAll').disabled=true; $('drAll').textContent='Saving…'; await PF.driveAll(); uploadsPanel(); };
   $('upIn').querySelectorAll('[data-rl]').forEach(b=>b.onclick=()=>{ const c=b.dataset.rl; if(c==='*'){ if(!confirm('Remove all uploaded ledgers?')) return; PF.removeLedger(null); } else PF.removeLedger(c); render(); uploadsPanel(); }); }
 
@@ -372,13 +373,21 @@ function ratesPanel(clients){ if($('rates').open&&$('ratesIn').dataset.n==client
 /* ---------- uploads: readers live in pf-core.js (shared with Trade Audit) ---------- */
 const upTrades=f=>PF.importTrades(f), upLedger=f=>PF.importLedger(f);
 $('upD').onclick=()=>$('fD').click();
-$('fD').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await PF.importDP(f); render(); prices(); uploadsPanel(); alertBox('DP holdings read: '+n+'.'); }catch(x){ alertBox('DP holdings not read - '+x.message,true); } e.target.value=''; };
+$('fD').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('dp',f); }catch(x){} render(); prices(); uploadsPanel(); setTimeout(dchip,3000); };
 $('upT').onclick=()=>$('fT').click(); $('upL').onclick=()=>$('fL').click();
-$('fT').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await upTrades(f); await loadTrades(); render(); prices(); history(); uploadsPanel(); alertBox('Trade book read: '+n+'.'); }catch(x){ alertBox('Trade book not read - '+x.message,true); } e.target.value=''; };
-$('fL').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; try{ const n=await upLedger(f); render(); uploadsPanel(); alertBox('Ledger read: '+n+'.'); }catch(x){ alertBox('Ledger not read - '+x.message,true); } e.target.value=''; };
+$('fT').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('trade',f); }catch(x){} await loadTrades(); render(); prices(); history(); uploadsPanel(); setTimeout(dchip,3000); };
+$('fL').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('ledger',f); }catch(x){} render(); uploadsPanel(); setTimeout(dchip,3000); };
 function alertBox(t,bad){ const d=document.createElement('div'); d.className='warn'; d.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:999;'+(bad?'background:#FBE3E1;border-color:#E29A93;color:#8a1010':'background:#E3F1DF;border-color:#8DC487;color:#1C5C0D'); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
 $('cl').onchange=()=>{ CL=$('cl').value; LS.set('jc_pf_client',CL); render(); };
 $('rf').onclick=()=>prices(true);
+function dchip(){ const d=PF.LS.get('jc_pf_dstat',null), b=$('dchip'), hk=!!localStorage.getItem('jc_admin_key'); if(!b) return;
+  const tm=d&&d.t?new Date(d.t+19800000).toISOString().slice(11,16):''; let t, c='';
+  if(!hk){ t='☁ Drive: set passcode'; c='#8a4a00'; } else if(!d){ t='☁ Drive: not synced yet'; } else if(d.busy){ t='☁ Drive: syncing…'; }
+  else if(d.ok){ t='☁ Drive ✓ '+tm+(d.loaded?' · '+d.loaded+' new':''); c='#1C5C0D'; } else { t='☁ Drive ✗ '+(d.why==='timeout'?'slow - tap':d.why==='passcode'?'set passcode':'failed - tap'); c='#a01010'; }
+  b.textContent=t; b.style.color=c; }
+window.addEventListener('pf-drive',async()=>{ dchip(); const d=PF.LS.get('jc_pf_dstat',null); if(d&&d.loaded&&!document.getElementById('pfProg')){ await loadTrades(); render(); prices(); history(); } }); dchip();
+$('dchip').onclick=async()=>{ if(!localStorage.getItem('jc_admin_key')){ const k=prompt('Admin passcode (needed once on this device to sync uploads with Google Drive):',''); if(!k) return; try{ localStorage.setItem('jc_admin_key',k); }catch(e){} }
+  try{ await PF.driveLoad(true); }catch(e){} await loadTrades(); render(); prices(); history(); dchip(); };
 $('upM').onclick=()=>{ $('ups').open=true; uploadsPanel(); $('ups').scrollIntoView({behavior:'smooth'}); };
 $('ups').addEventListener('toggle',()=>{ if($('ups').open) uploadsPanel(); });
 $('sy').value=SYF; $('mf').value=MF; $('dv').value=DV;

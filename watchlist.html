@@ -1197,7 +1197,7 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   window.addEventListener('beforeunload',e=>{ if(popped()){ e.preventDefault(); e.returnValue=''; } });
 })();
 </script>
-<script src="pf-core.js?v=10"></script>
+<script src="pf-core.js?v=11"></script>
 <script>
 /* ===== Profit-booking pop-up: client holdings (Portfolio page data, same browser) checked against the Watchlist parameters =====
    Holding in profit after holding interest AND
@@ -1208,6 +1208,7 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   if(!window.PF) return;
   const PBH={}, PBD={}, PBQ={}, LR={}, RC={};             // holdings by symbol, daily closes, live quotes
   let PBL=[], pbBusy=false, pbTr=null;
+  window.addEventListener('pf-drive',()=>{ const d=PF.LS.get('jc_pf_dstat',null); if(d&&d.loaded) pbTr=null; });
   const pfx=(v,d=2)=>v==null||!isFinite(v)?'–':v.toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
   const psg=(v,d=0)=>v==null||!isFinite(v)?'–':(v>=0?'+':'')+pfx(v,d);
   const ppc=v=>v==null||!isFinite(v)?'–':(v>=0?'+':'')+v.toFixed(2)+'%';

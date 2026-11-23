@@ -24,7 +24,7 @@ const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))]; rows.forEach(x=>{ if(!x.id) x.id=nid(); }); t.trades=t.trades.filter(x=>!cs.includes(x.c)).concat(rows);
   t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>!cs.includes(c))})).filter(f=>f.clients.length).concat([{name,at,clients:cs,n:rows.length}]); LS.set('jc_pf_tb',t); return cs; }
 function removeTrades(c){ const t=tb(); syncMark('trade',c==null?[...new Set(t.trades.map(x=>x.c))]:[c]); if(c==null){ t.trades=[]; t.files=[]; } else { t.trades=t.trades.filter(x=>x.c!==c); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); } LS.set('jc_pf_tb',t); }
-async function loadTrades(base){ await driveLoad().catch(()=>0); const up=tb();
+async function loadTrades(base){ driveLoad().catch(()=>0); /* Drive sync runs in the background - pages refresh on the 'pf-drive' event */ const up=tb();
   if(up.trades.length){ const cs=[...new Set(up.trades.map(x=>x.c))]; return {trades:up.trades,src:'uploaded trade books - '+cs.length+' client'+(cs.length>1?'s':'')+', '+up.trades.length+' fills',up:true}; }
   return {trades:[],src:'no trades yet - upload a trade book or add trades',up:false}; }
 /* single trades: add, edit, delete (manual entries are listed as source 'entered') */
@@ -350,30 +350,71 @@ function toast(t,bad,html){ let d=document.getElementById('pfToast'); if(!d){ d=
   d.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9990;max-width:420px;padding:10px 14px;border-radius:12px;font:700 12.5px Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);'+(bad?'background:#FBE3E1;color:#8a1010;border:1px solid #E29A93':'background:#E3F1DF;color:#1C5C0D;border:1px solid #8DC487');
   d[html?'innerHTML':'textContent']=t; clearTimeout(d._t); d._t=setTimeout(()=>d.remove(),bad?12000:7000); }
 const akey=()=>{ try{ return localStorage.getItem('jc_admin_key')||''; }catch(e){ return ''; } };
-async function driveSave(type,name,files,again){ if(!files.length) return null; syncMark(type,files.map(f=>f.client)); if(LOADING) return null;
-  let k=akey(); if(!k){ k=prompt('Admin passcode (the one that locks the client watchlists) - needed once on this device to save uploads to Google Drive:','')||''; if(!k){ driveLog(type,name,files,false,'no passcode - not saved to Drive'); toast('Not saved to Drive - no passcode. Use ☁ Save all to Drive later.',true); return null; } try{ localStorage.setItem('jc_admin_key',k); }catch(e){} }
+async function driveSave(type,name,files,again,P){ if(!files.length) return null; syncMark(type,files.map(f=>f.client)); if(LOADING) return null; P=P||PROG; const sz=files.reduce((a,f)=>a+f.csv.length,0);
+  if(P) P.set('drive','run','uploading '+KB(sz)+' for '+esc2(files.map(f=>f.client).join(', '))+' - client codes only');
+  let k=akey(); if(!k){ k=prompt('Admin passcode (the one that locks the client watchlists) - needed once on this device to save uploads to Google Drive:','')||''; if(!k){ if(P) P.set('drive','err','no admin passcode - kept in the app only. Use ☁ Save all to Drive later.'); driveLog(type,name,files,false,'no passcode - not saved to Drive'); toast('Not saved to Drive - no passcode. Use ☁ Save all to Drive later.',true); return null; } try{ localStorage.setItem('jc_admin_key',k); }catch(e){} }
   try{ const r=await fetch(BE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'pf_save',key:k,type,name,files})});
     const j=JSON.parse(await r.text()); if(j.error) throw new Error(j.error);
     driveLog(type,name,files,true,'',j.root);
+    if(P) P.set('drive','ok','saved to Drive · '+esc2(j.type)+' · '+j.saved.map(x=>'<a href="'+x.folder+'" target="_blank" rel="noopener">'+esc2(x.client)+'</a>').join(', '));
     toast('☁ Saved to Drive · '+esc2(j.type)+' · '+j.saved.map(x=>'<a href="'+x.folder+'" target="_blank" rel="noopener">'+esc2(x.client)+'</a>').join(', '),false,true); return j; }
   catch(e){ const m=String(e.message||e);
-    if(/bad passcode/.test(m)&&!again){ try{ localStorage.removeItem('jc_admin_key'); }catch(x){} return driveSave(type,name,files,true); }
+    if(/bad passcode/.test(m)&&!again){ try{ localStorage.removeItem('jc_admin_key'); }catch(x){} return driveSave(type,name,files,true,P); }
+    if(P){ P.set('drive','err','not saved to Drive - '+esc2(m)+' <button data-rt>↻ Retry</button>'); const b=P.el.querySelector('[data-rt]'); if(b) b.onclick=()=>driveSave(type,name,files,true,P); }
     driveLog(type,name,files,false,m); toast('Not saved to Drive - '+m+'. Use ☁ Save all to Drive to retry.',true); return null; } }
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
+/* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
+const BUILD='2026-11-23c';
+let PROG=null;
+function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
+  s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
+  #pfProg .bx{background:#FFFDF4;border:2px solid #A7A15D;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);width:min(460px,92vw);padding:16px 18px}
+  #pfProg h4{margin:0 0 2px;color:#3f3c00;font:800 16px Inter,sans-serif}#pfProg .fn{color:#6E6A45;font-size:12px;margin-bottom:10px;word-break:break-all}
+  #pfProg .st{display:grid;grid-template-columns:26px 1fr;gap:6px;align-items:start;padding:7px 0;border-top:1px solid #EEEAD5}
+  #pfProg .ic{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 12px Inter;background:#EEEAD5;color:#8a8466}
+  #pfProg .run .ic{background:#676300;color:#fff;animation:pfp 1s infinite}#pfProg .ok .ic{background:#1C820D;color:#fff}#pfProg .err .ic{background:#D00000;color:#fff}#pfProg .skip .ic{opacity:.5}
+  #pfProg .t b{display:block;color:#2E2C14}#pfProg .t small{color:#6E6A45;display:block;margin-top:1px}#pfProg .err .t small{color:#a01010}
+  #pfProg .bar{height:6px;border-radius:4px;background:#EEEAD5;overflow:hidden;margin-top:5px}#pfProg .bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,#A7A15D,#676300);animation:pfb 1.1s infinite linear}
+  #pfProg .ok .bar,#pfProg .err .bar,#pfProg .skip .bar,#pfProg .wait .bar{display:none}
+  #pfProg .ft{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}#pfProg button{font:800 12px Inter;padding:7px 14px;border-radius:8px;border:1px solid #A7A15D;background:#FBF8EC;color:#3f3c00;cursor:pointer}#pfProg button.p{background:#3f3c00;color:#fff;border-color:#3f3c00}
+  @keyframes pfp{50%{opacity:.55}}@keyframes pfb{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}`; document.head.appendChild(s); }
+function progOpen(title,file,steps){ progCss(); const old=document.getElementById('pfProg'); if(old) old.remove();
+  const d=document.createElement('div'); d.id='pfProg';
+  d.innerHTML=`<div class="bx"><h4>${esc2(title)}</h4><div class="fn">${file?esc2(file.name)+' · '+(file.size/1024).toFixed(1)+' KB':''}</div>${steps.map((s,i)=>`<div class="st wait" data-k="${s[0]}"><span class="ic">${i+1}</span><span class="t"><b>${esc2(s[1])}</b><small>waiting…</small><span class="bar"><i></i></span></span></div>`).join('')}<div class="ft"><button class="p" data-x>Close</button></div></div>`;
+  document.body.appendChild(d); let tm=null;
+  const P={ set(k,state,msg){ const r=d.querySelector(`[data-k="${k}"]`); if(!r) return; r.className='st '+state; r.querySelector('.ic').textContent={ok:'✓',err:'!',skip:'–'}[state]||r.querySelector('.ic').textContent; r.querySelector('small').innerHTML=msg||'';
+      const all=[...d.querySelectorAll('.st')]; if(all.every(x=>/ok|skip/.test(x.className))){ clearTimeout(tm); tm=setTimeout(P.close,4500); } },
+    close(){ clearTimeout(tm); d.remove(); if(PROG===P) PROG=null; }, el:d };
+  d.querySelector('[data-x]').onclick=P.close; PROG=P; return P; }
+const KB=n=>(n/1024).toFixed(1)+' KB';
+/* one entry point for every upload: kind 'trade' | 'ledger' | 'dp' */
+async function upload(kind,file){ const L={trade:'Trade file',ledger:'Ledger',dp:'DP holdings'}[kind];
+  const P=progOpen('Uploading '+L,file,[['read','Reading the file'],['app','Saving in the app'],['drive','Backing up to Google Drive']]);
+  P.set('read','run',/\.pdf$/i.test(file.name)?'reading the PDF statement - only client code and holdings / entries are kept':'reading rows - personal columns are skipped');
+  let msg; try{ msg=await (kind==='trade'?importTrades:kind==='ledger'?importLedger:importDP)(file); }
+  catch(e){ P.set('read','err',esc2(e.message)); P.set('app','skip','nothing saved'); P.set('drive','skip','nothing sent'); throw e; }
+  P.set('read','ok','file read'); P.set('app','ok',esc2(msg));
+  return msg; }
 let LOADING=false, LOADED=null;
 function syncMark(type,cs,t){ const S=LS.get('jc_pf_sync',{}); cs.forEach(c=>S[type+'|'+c]=t||Date.now()); LS.set('jc_pf_sync',S); }
-function driveLoad(force){ if(LOADED&&!force) return LOADED; return LOADED=(async()=>{ const k=akey(); if(!k) return {n:0,why:'no passcode on this device'};
+function driveStat(o){ LS.set('jc_pf_dstat',Object.assign({t:Date.now()},o)); try{ window.dispatchEvent(new Event('pf-drive')); }catch(e){} }
+function driveLoad(force){ if(LOADED&&!force) return LOADED; return LOADED=(async()=>{ const k=akey(); if(!k){ driveStat({ok:false,why:'passcode'}); return {n:0,why:'no passcode on this device'}; }
+  const P=force?progOpen('Loading from Google Drive',null,[['list','Fetching the newest uploads of every client'],['app','Loading into the app']]):null; if(P) P.set('list','run','asking Drive…'); driveStat({busy:true});
+  try{
   const ac=new AbortController(); setTimeout(()=>ac.abort(),force?60000:12000);
   const j=await fetch(BE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'pf_load',key:k}),signal:ac.signal}).then(r=>r.json());
   if(j.error) throw new Error(j.error);
-  const S=LS.get('jc_pf_sync',{}), done=[]; LOADING=true;
+  if(P){ P.set('list','ok',(j.files||[]).length+' files in Drive'); P.set('app','run','loading…'); }
+  const S=LS.get('jc_pf_sync',{}), done=[], bad=[]; LOADING=true;
   try{ for(const f of (j.files||[]).sort((a,b)=>a.t-b.t)){ const key=f.type+'|'+f.client; if(!force&&(S[key]||0)>=f.t) continue;
       const file=new File([f.csv],f.name.replace(/^.*\((.*)\)\.csv$/,'$1')+' (Drive).csv',{type:'text/csv'});
-      try{ if(f.type==='trade') await importTrades(file); else if(f.type==='ledger') await importLedger(file); else if(f.type==='dp') await importDP(file); syncMark(f.type,[f.client],f.t); done.push(f.type+' '+f.client); }catch(e){ console.warn('drive load',key,e); } } }
+      try{ if(f.type==='trade') await importTrades(file); else if(f.type==='ledger') await importLedger(file); else if(f.type==='dp') await importDP(file); syncMark(f.type,[f.client],f.t); done.push(f.type+' '+f.client); }catch(e){ console.warn('drive load',key,e); bad.push(f.type+' '+f.client+': '+e.message); } } }
   finally{ LOADING=false; }
-  if(done.length) toast('☁ Loaded from Drive: '+esc2(done.join(', ')),false,true);
-  return {n:done.length,done}; })(); }
+  if(done.length&&!P) toast('☁ Loaded from Drive: '+esc2(done.join(', ')),false,true);
+  if(P) P.set('app',bad.length?'err':'ok',(done.length?'loaded: '+esc2(done.join(', ')):'already up to date')+(bad.length?'<br>not loaded: '+esc2(bad.join(' · ')):''));
+  driveStat({ok:!bad.length,n:(j.files||[]).length,loaded:done.length,bad}); return {n:done.length,done,bad};
+  }catch(e){ if(P){ P.set('list','err',esc2(e.message)); P.set('app','skip',''); } driveStat({ok:false,why:e.name==='AbortError'?'timeout':e.message}); LOADED=null; throw e; } })(); }
 const esc2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function driveLog(type,name,files,ok,err,root){ const L=LS.get('jc_pf_drive',[]); L.unshift({t:Date.now(),type,name,clients:files.map(f=>f.client),ok,err:err||'',root:root||''}); LS.set('jc_pf_drive',L.slice(0,60)); }
 /* push everything held in this browser (uploads + entered trades) to Drive, client-wise */
@@ -389,5 +430,6 @@ const TPL={
   dp:['Client Code,DP A/c,Holding as on,ISIN,Symbol,Security,Holding,Rate,Value,Balance type','C0001,1203410000000000,21/11/2026,INE062A01020,SBIN,SBI - EQ,125,1164.95,145618.75,Beneficiary']};
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
-window.PF={driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+(function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
+window.PF={BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
