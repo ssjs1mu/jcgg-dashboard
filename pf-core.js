@@ -15,7 +15,7 @@ const STAT0={sttD:0.1,sttI:0.025,exch:0.00307,sebi:0.0001,stampD:0.015,stampI:0.
 const stat=()=>Object.assign({},STAT0,LS.get('jc_pf_stat',{}));
 const rates=()=>LS.get('jc_pf_rates',{_def:{bd:0,bi:0,dp:0}});
 /* a client's own rate wins; where it has none, the rate worked out from that client's ledger bills (jc_pf_brkled) is used before the default */
-const rateOfFrom=R=>c=>{ const L=(LS.get('jc_pf_brkled',{})||{})[c]||{}, o=Object.assign({},R._def), X=R[c]||{}; ['bd','bi'].forEach(k=>{ if(L[k]!=null&&!(X[k]>0)) o[k]=L[k]; }); return Object.assign(o,...Object.keys(X).filter(k=>X[k]!=null&&X[k]!=='').map(k=>({[k]:X[k]}))); };
+const rateOfFrom=R=>c=>{ const L=(LS.get('jc_pf_brkled',{})||{})[c]||{}, o=Object.assign({},R._def), X=R[c]||{}; ['bd','bi','bmin'].forEach(k=>{ if(L[k]!=null&&!(X[k]>0)) o[k]=L[k]; }); return Object.assign(o,...Object.keys(X).filter(k=>X[k]!=null&&X[k]!=='').map(k=>({[k]:X[k]}))); };
 /* uploaded trade books, client-wise: each upload replaces the trades of the client codes it contains (codes only, never names) */
 function tb(){ let t=LS.get('jc_pf_tb',null);
   if(!t){ const o=LS.get('jc_pf_trades',null); t={files:[],trades:[]}; if(o&&o.trades&&o.trades.length){ t.trades=o.trades; t.files=[{name:o.name,at:o.at,clients:[...new Set(o.trades.map(x=>x.c))],n:o.trades.length}]; } LS.set('jc_pf_tb',t); try{ localStorage.removeItem('jc_pf_trades'); }catch(e){} }
@@ -26,7 +26,8 @@ const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
    periods (last year, earlier months) stay, so several files build one date-wise history. Trades entered by hand are kept. */
 function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))]; rows.forEach(x=>{ if(!x.id) x.id=nid(); });
   const rg={}; rows.forEach(x=>{ const g=rg[x.c]=rg[x.c]||[x.d,x.d]; if(x.d<g[0]) g[0]=x.d; if(x.d>g[1]) g[1]=x.d; });
-  t.trades=t.trades.filter(x=>!(rg[x.c]&&!x.man&&x.d>=rg[x.c][0]&&x.d<=rg[x.c][1])).concat(rows).sort((a,b)=>a.c.localeCompare(b.c)||a.d.localeCompare(b.d));
+  const snap={}; rows.forEach(x=>{ if(x.man) snap[x.c]=1; });
+  t.trades=t.trades.filter(x=>!(rg[x.c]&&(!x.man||snap[x.c])&&x.d>=rg[x.c][0]&&x.d<=rg[x.c][1])).concat(rows).sort((a,b)=>a.c.localeCompare(b.c)||a.d.localeCompare(b.d));
   t.files=t.files.filter(f=>!(f.name===name&&f.clients.join()===cs.join())).concat([{name,at,clients:cs,n:rows.length,from:Object.values(rg).map(g=>g[0]).sort()[0],to:Object.values(rg).map(g=>g[1]).sort().slice(-1)[0]}]); LS.set('jc_pf_tb',t); return cs; }
 function removeTrades(c){ const t=tb(); syncMark('trade',c==null?[...new Set(t.trades.map(x=>x.c))]:[c]); if(c==null){ t.trades=[]; t.files=[]; } else { t.trades=t.trades.filter(x=>x.c!==c); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); } LS.set('jc_pf_tb',t); }
 async function loadTrades(base){ driveLoad().catch(()=>0); /* Drive sync runs in the background - pages refresh on the 'pf-drive' event */ const up=tb();
@@ -36,10 +37,14 @@ async function loadTrades(base){ driveLoad().catch(()=>0); /* Drive sync runs in
 function clean(x){ const o={d:String(x.d).slice(0,10),c:String(x.c).trim().toUpperCase(),sym:String(x.sym).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side:x.side==='S'?'S':'B',q:Math.abs(+x.q),r:+x.r};
   if(!/^\d{4}-\d\d-\d\d$/.test(o.d)||!o.c||!o.sym||!(o.q>0)||!(o.r>0)) throw new Error('date, client code, symbol, quantity and rate are all needed'); return o; }
 function saveTrade(x){ const t=tb(), o=clean(x);
-  if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; t.trades[i]=o; }
+  if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; t.trades[i]=Object.assign({},t.trades[i],o,{edited:true}); }
   else { o.id=nid(); o.man=true; t.trades.push(o); }
   if(!t.files.some(f=>f.clients.includes(o.c))) t.files.push({name:'entered',at:dmy(todayS()),clients:[o.c],n:1});
   LS.set('jc_pf_tb',t); return o; }
+/* a client's whole trade list (uploads + hand entries) saved to Drive as one snapshot file - Source column marks hand entries */
+let BKT={};
+function backupClient(c,why){ if(!c) return; clearTimeout(BKT[c]); BKT[c]=setTimeout(()=>{ const rows=tb().trades.filter(t=>t.c===c); if(!rows.length) return;
+  driveSave('trade',c+' trade book ('+why+')',[{client:c,csv:tradeCSV(rows)}]).catch(()=>0); },1500); }
 function deleteTrade(id){ const t=tb(); t.trades=t.trades.filter(y=>y.id!==id); const cs=new Set(t.trades.map(y=>y.c)); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>cs.has(c))})).filter(f=>f.clients.length); LS.set('jc_pf_tb',t); }
 /* trade editor (pop-up) shared by Portfolio and Trade Audit; onDone() after save / delete */
 function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) old.remove(); x=x||{};
@@ -67,8 +72,8 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
   if(!x.d) g('edD').value=todayS();
   m.onclick=e=>{ if(e.target===m) close(); }; g('edX').onclick=close;
   g('edOk').onclick=()=>{ try{ if(/[a-z]{2,}\s+[a-z]{2,}/i.test(g('edC').value)) throw new Error('enter the client code, not the name');
-      saveTrade({id:x.id,d:g('edD').value,c:g('edC').value,sym:g('edS').value,side:g('edB').value,q:g('edQ').value,r:g('edR').value}); close(); onDone&&onDone(); }catch(e){ g('edErr').textContent=e.message; } };
-  if(g('edDel')) g('edDel').onclick=()=>{ if(!confirm('Delete this trade?')) return; deleteTrade(x.id); close(); onDone&&onDone(); };
+      const sv=saveTrade({id:x.id,d:g('edD').value,c:g('edC').value,sym:g('edS').value,side:g('edB').value,q:g('edQ').value,r:g('edR').value}); close(); onDone&&onDone(); backupClient(sv.c,x.id?'edited trade':'entered trade'); }catch(e){ g('edErr').textContent=e.message; } };
+  if(g('edDel')) g('edDel').onclick=()=>{ if(!confirm('Delete this trade?')) return; deleteTrade(x.id); close(); onDone&&onDone(); backupClient(x.c,'deleted trade'); };
   setTimeout(()=>g(x.id?'edQ':'edC').focus(),50); }
 function compute(TR,STAT,rateOf){
   const fills=TR.map((t,i)=>Object.assign({i},t)).sort((a,b)=>a.d.localeCompare(b.d)||a.i-b.i);
@@ -79,8 +84,11 @@ function compute(TR,STAT,rateOf){
     ['B','S'].forEach(s=>g[s].forEach(f=>{ const qi=Math.min(f.q,iq[s]); iq[s]-=qi; if(qi>0) parts.push(Object.assign({},f,{q:qi,type:'I'})); if(f.q-qi>0) parts.push(Object.assign({},f,{q:f.q-qi,type:'D'})); })); });
   parts.sort((a,b)=>a.d.localeCompare(b.d)||(a.side==='B'?-1:1)||a.i-b.i);
   const dpDone={};
-  parts.forEach(p=>{ const R=rateOf(p.c), v=p.q*p.r, buy=p.side!=='S', D=p.type==='D';
-    p.v=v; p.brk=v*(D?R.bd:R.bi)/100;
+  parts.forEach(p=>{ const R=rateOf(p.c); p.v=p.q*p.r; p.brk=p.v*(p.type==='D'?R.bd:R.bi)/100; });
+  /* minimum brokerage per contract note (client + day): when the day's % brokerage is below it, the minimum is charged, spread over that day's trades */
+  { const og={}; parts.forEach(p=>{ (og[p.c+'|'+p.d]=og[p.c+'|'+p.d]||[]).push(p); });
+    Object.values(og).forEach(P=>{ const m=+rateOf(P[0].c).bmin||0, b=P.reduce((a,p)=>a+p.brk,0), v=P.reduce((a,p)=>a+p.v,0); if(m>b&&v>0) P.forEach(p=>{ p.brk=m*p.v/v; p.minB=true; }); }); }
+  parts.forEach(p=>{ const R=rateOf(p.c), v=p.v, buy=p.side!=='S', D=p.type==='D';
     p.stt=D?v*STAT.sttD/100:(buy?0:v*STAT.sttI/100);
     p.exch=v*STAT.exch/100; p.sebi=v*STAT.sebi/100;
     p.stamp=buy?v*(D?STAT.stampD:STAT.stampI)/100:0;
@@ -211,9 +219,9 @@ async function importTrades(file){ const rows=await readRows(file); if(!rows.len
     if(bq&&ba&&sq&&sa) return importNetPos(file,rows,{bq,ba,sq,sa}); }
   const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cs=col(r0,/^\s*symbol/i)||col(r0,/symbol|scrip(?!\s*code)|security|stock|instrument/i), cb=col(r0,/b\s*\/\s*s|buy.?sell|side|trans.*type|^type$/i), cq=col(r0,/qty|quantity/i), cr=col(r0,/rate|price|avg/i);
   const miss=[['Date',cd],['Symbol',cs],['Buy/Sell',cb],['Qty',cq],['Rate',cr]].filter(x=>!x[1]).map(x=>x[0]); if(miss.length) throw new Error('columns not found: '+miss.join(', '));
-  const one=cc?null:askCode(file), cx=col(r0,/^\s*exch/i), csc=col(r0,/scrip\s*code/i), cse=col(r0,/^\s*ser/i), cpt=col(r0,/product/i), cvp=col(r0,/var\s*%/i), cva=col(r0,/var\s*am/i);
+  const one=cc?null:askCode(file), cx=col(r0,/^\s*exch/i), csc=col(r0,/scrip\s*code/i), cse=col(r0,/^\s*ser/i), cpt=col(r0,/product/i), cvp=col(r0,/var\s*%/i), cva=col(r0,/var\s*am/i), csr=col(r0,/^\s*source\s*$/i);
   const out=[]; rows.forEach(r=>{ const d=pdate(r[cd]), q=Math.abs(num(r[cq])), rt=num(r[cr]), side=/^s/i.test(String(r[cb]).trim())?'S':/^b/i.test(String(r[cb]).trim())?'B':null, c=one||String(r[cc]).trim().toUpperCase();
-    if(d&&q>0&&rt>0&&side&&c){ const o={d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}; if(cx) o.ex=String(r[cx]||'').trim(); if(csc) o.scode=String(r[csc]||'').trim(); if(cse) o.ser=String(r[cse]||'').trim(); if(cpt) o.prod=String(r[cpt]||'').trim(); if(cvp&&num(r[cvp])>0) o.varp=num(r[cvp]); if(cva&&num(r[cva])>0) o.vara=num(r[cva]); out.push(o); } });
+    if(d&&q>0&&rt>0&&side&&c){ const o={d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}; if(cx) o.ex=String(r[cx]||'').trim(); if(csc) o.scode=String(r[csc]||'').trim(); if(cse) o.ser=String(r[cse]||'').trim(); if(cpt) o.prod=String(r[cpt]||'').trim(); if(cvp&&num(r[cvp])>0) o.varp=num(r[cvp]); if(cva&&num(r[cva])>0) o.vara=num(r[cva]); if(csr){ const sv=String(r[csr]||'').trim().toLowerCase(); if(sv==='entered') o.man=true; else if(sv==='edited') o.edited=true; } out.push(o); } });
   if(!out.length) throw new Error('no valid fills (check dates, quantities, rates and Buy/Sell)');
   const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
   driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
@@ -357,7 +365,7 @@ const BE='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqS
 const q2=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
 const csvOf=(head,rows)=>head.join(',')+'\n'+rows.map(r=>r.map(q2).join(',')).join('\n');
 function dpCSV(c,D){ const m=(D.M||{})[c]||{}; return csvOf(['Client Code','DP A/c','Holding as on','Rate date','Symbol','ISIN','Security','Holding','Rate','Value','Balance type'],D.H[c].map(x=>[c,m.dpac||'',m.asOf||'',m.rateDate||'',x.sym,x.isin||'',x.sec||'',x.q,x.rate==null?'':x.rate,x.value==null?'':x.value,x.type||''])); }
-function tradeCSV(rows){ return csvOf(['Date','Client Code','Exchange','Scrip Code','Symbol','Series','Product Type','Buy/Sell','Qty','Rate','VAR %','VAR Amount'],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(x=>[x.d,x.c,x.ex||'',x.scode||'',x.sym,x.ser||'',x.prod||'',x.side==='S'?'SELL':'BUY',x.q,x.r,x.varp||'',x.vara||''])); }
+function tradeCSV(rows){ return csvOf(['Date','Client Code','Exchange','Scrip Code','Symbol','Series','Product Type','Buy/Sell','Qty','Rate','VAR %','VAR Amount','Source'],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(x=>[x.d,x.c,x.ex||'',x.scode||'',x.sym,x.ser||'',x.prod||'',x.side==='S'?'SELL':'BUY',x.q,x.r,x.varp||'',x.vara||'',x.man?'entered':x.edited?'edited':'file'])); }
 function ledgerCSV(c,en){ return Array.isArray(en)?csvOf(['Date','Client Code','Voucher','Particulars','Debit','Credit','Balance (Dr +)','Type'],en.map(e=>[e.d,c,e.v||'',e.n||'',e.dr||0,e.cr||0,e.bal==null?'':e.bal,e.k])):csvOf(['Client Code','Balance (Dr +)'],[[c,en]]); }
 function toast(t,bad,html){ let d=document.getElementById('pfToast'); if(!d){ d=document.createElement('div'); d.id='pfToast'; document.body.appendChild(d); }
   d.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9990;max-width:420px;padding:10px 14px;border-radius:12px;font:700 12.5px Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);'+(bad?'background:#FBE3E1;color:#8a1010;border:1px solid #E29A93':'background:#E3F1DF;color:#1C5C0D;border:1px solid #8DC487');
@@ -378,7 +386,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-23h';
+const BUILD='2026-11-23j';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -436,20 +444,25 @@ function caRows(trades,dpH,A){ A=A||(CA&&CA.a)||[]; const out=[], today=todayS()
    so the client's real brokerage rate comes out of the ledger, and any day that does not agree is flagged ---------- */
 function ledgerRecon(c,trades,ST){ ST=ST||stat(); const L=(led().E||{})[c]; const T=trades.filter(t=>t.c===c); if(!L||!L.length||!T.length) return null;
   const E=compute(caAdjust(T),ST,()=>({bd:0,bi:0,dp:0})), g={};
-  E.parts.forEach(p=>{ const x=g[p.d]=g[p.d]||{d:p.d,net:0,stat:0,tD:0,tI:0,n:0}; x.net+=(p.side==='S'?-1:1)*p.v; x.stat+=p.chg; x[p.type==='I'?'tI':'tD']+=p.v; x.n++; });
+  E.parts.forEach(p=>{ const x=g[p.d]=g[p.d]||{d:p.d,net:0,stat:0,tD:0,tI:0,n:0,man:0}; x.net+=(p.side==='S'?-1:1)*p.v; x.stat+=p.chg; x[p.type==='I'?'tI':'tD']+=p.v; x.n++; if(p.man||p.edited) x.man++; });
   const bills={}, other=[]; L.forEach(e=>{ if(e.k!=='bill') return; const m=String(e.n||'').match(/\((\d\d)\/(\d\d)\/(\d\d)\)/); if(!m){ other.push(e); return; } const d='20'+m[3]+'-'+m[2]+'-'+m[1]; bills[d]=(bills[d]||0)+e.dr-e.cr; });
   const gst=1+ST.gst/100, med=a=>{ a=a.filter(x=>isFinite(x)).sort((x,y)=>x-y); return a.length?a[Math.floor(a.length/2)]:null; };
-  const days=Object.values(g).filter(x=>bills[x.d]!=null).map(x=>Object.assign(x,{bill:bills[x.d],brk:(bills[x.d]-x.net-x.stat)/gst}));
+  const days=Object.values(g).filter(x=>bills[x.d]!=null&&!x.man).map(x=>Object.assign(x,{bill:bills[x.d],brk:(bills[x.d]-x.net-x.stat)/gst}));
   let bd=med(days.filter(x=>!x.tI&&x.tD>0).map(x=>x.brk/x.tD*100)); bd=bd==null?null:Math.round(bd*100)/100;
   let bi=med(days.filter(x=>x.tI>0).map(x=>(x.brk-(bd||0)/100*x.tD)/x.tI*100)); bi=bi==null?null:Math.round(Math.max(0,bi)*1000)/1000;
-  const T0=T.map(t=>t.d).sort()[0], T1=T.map(t=>t.d).sort().slice(-1)[0];
+  /* minimum per order: days with a single order whose bill shows more brokerage than the % rate gives */
+  const mins=days.map(x=>({imp:x.brk,rate:((bd||0)*x.tD+(bi||0)*x.tI)/100})).filter(o=>o.imp>=o.rate*1.3+2).map(o=>o.imp);
+  /* the minimum is the value most of those orders agree on (within Rs 2); fewer than 3 agreeing -> no minimum */
+  let bmin=0, sup=0; mins.forEach(m=>{ const n=mins.filter(x=>Math.abs(x-m)<=2).length; if(n>sup){ sup=n; bmin=Math.round(med(mins.filter(x=>Math.abs(x-m)<=2))); } }); if(sup<3) bmin=0;
+  const ordBrk=d=>Math.max(E.parts.filter(p=>p.d===d).reduce((a,p)=>a+p.v*(p.type==='D'?(bd||0):(bi||0))/100,0),bmin);   /* per contract note */
+  const TF=T.filter(t=>!t.man), T0=(TF.length?TF:T).map(t=>t.d).sort()[0], T1=(TF.length?TF:T).map(t=>t.d).sort().slice(-1)[0];
   const rows=[...new Set([...Object.keys(g),...Object.keys(bills)])].sort().map(d=>{ const x=g[d]||{d,net:0,stat:0,tD:0,tI:0,n:0}, b=bills[d];
     if(!x.n&&(d<T0||d>T1)) return {d,bill:b,net:0,stat:0,brk:0,exp:0,diff:b,n:0,ok:null,out:true,why:'outside the trade files ('+dmy(T0)+' to '+dmy(T1)+')'};
-    const exp=x.net+x.stat+((bd||0)*x.tD+(bi||0)*x.tI)/100*gst, diff=b==null?null:b-exp, tol=Math.max(3,0.0006*(x.tD+x.tI));
-    return {d,bill:b==null?null:b,net:x.net,stat:x.stat,brk:((bd||0)*x.tD+(bi||0)*x.tI)/100*gst,exp,diff,n:x.n,ok:b!=null&&x.n>0&&Math.abs(diff)<=tol,why:b==null?'trades but no bill in the ledger':!x.n?'bill but no trades in the trade book':Math.abs(diff)<=tol?'':'amount differs'}; });
-  const IN=rows.filter(r=>!r.out); return {c,bd,bi,rows:IN,outRows:rows.filter(r=>r.out),T0,T1,nDel:days.filter(x=>!x.tI).length,nInt:days.filter(x=>x.tI).length,bad:IN.filter(r=>!r.ok).length}; }
+    const bk=x.n?ordBrk(d):0, exp=x.net+x.stat+bk*gst, diff=b==null?null:b-exp, tol=Math.max(5,0.0006*(x.tD+x.tI));
+    return {d,bill:b==null?null:b,net:x.net,stat:x.stat,brk:bk*gst,exp,diff,n:x.n,ok:b!=null&&x.n>0&&Math.abs(diff)<=tol,why:b==null?'trades but no bill in the ledger':!x.n?'bill but no trades in the trade book':Math.abs(diff)<=tol?'':'amount differs'}; });
+  const IN=rows.filter(r=>!r.out); return {c,bd,bi,bmin,nMin:bmin?sup:0,rows:IN,outRows:rows.filter(r=>r.out),T0,T1,nDel:days.filter(x=>!x.tI).length,nInt:days.filter(x=>x.tI).length,bad:IN.filter(r=>!r.ok).length}; }
 function brkFromLedgers(trades){ const cs=Object.keys(led().E||{}), M=LS.get('jc_pf_brkled',{})||{}; let ch=false;
-  cs.forEach(c=>{ const r=ledgerRecon(c,trades); if(!r||r.bd==null) return; const o={bd:r.bd,bi:r.bi!=null?r.bi:(M[c]||{}).bi,nDel:r.nDel,nInt:r.nInt}; if(JSON.stringify(M[c])!==JSON.stringify(o)){ M[c]=o; ch=true; } });
+  cs.forEach(c=>{ const r=ledgerRecon(c,trades); if(!r||r.bd==null) return; const o={bd:r.bd,bi:r.bi!=null?r.bi:(M[c]||{}).bi,bmin:r.bmin||0,nMin:r.nMin||0,nDel:r.nDel,nInt:r.nInt}; if(JSON.stringify(M[c])!==JSON.stringify(o)){ M[c]=o; ch=true; } });
   if(ch) LS.set('jc_pf_brkled',M); return M; }
 /* ---------- tally: what keeps the trade book from matching the DP ----------
    gaps = delivery sells with no earlier buy (FIFO), per client + script, in today's share count (after bonus / split),
@@ -519,5 +532,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
