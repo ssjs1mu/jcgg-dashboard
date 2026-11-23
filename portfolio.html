@@ -69,7 +69,8 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
    <button id="upT" title="Trade file: back-office / ODIN net-position Excel (Date, Client, Symbol, Buy Qty / Avg, Sell Qty / Avg, Product, VAR %) or Date, Client, Symbol, Buy/Sell, Qty, Rate - client name is never read">📈 Trades</button>
    <button id="upL" title="LEDGER statement (PDF from the back office) or CSV / Excel template - only client code and entries are read">📒 Ledger</button>
    <button id="upD" title="DP HOLDING statement (PDF from the back office) or CSV / Excel template - only client code, DP a/c and holdings are read">🏦 DP Holdings</button><hr>
-   <button id="upM" title="See and remove uploaded trade books and ledgers, client-wise">🗂 Manage Uploads</button></div></div><input type="file" id="fD" accept=".pdf,.csv,.xlsx,.xls" hidden>
+   <button id="upM" title="See and remove uploaded trade books and ledgers, client-wise">🗂 Manage Uploads</button>
+   <button id="clW" title="Every stock each client has traded (held now or sold out) and every DP holding is added to that client's watchlist in the Stock Analyst (Client reports) for the daily Telegram report. Runs by itself after uploads; this forces it now. Only client codes and symbols are sent.">📱 Sync Client Watchlists</button></div></div><input type="file" id="fD" accept=".pdf,.csv,.xlsx,.xls" hidden>
   <div class="dd" id="ddR"><button class="btn p" id="rpB">📊 Reports · Portfolio</button><div class="ddm">
    <button data-tab="pf">💼 Portfolio</button><button data-tab="dp">🏦 DP Holdings</button><button data-tab="led">📒 Ledger</button><button data-tab="ca">🎁 Corporate Actions</button><button data-tab="tal">🧩 Tally</button><hr>
    <div class="sub" id="crSub"><button id="crep" title="Colourful PDF report for the selected client: investment, return since start, dividends, costs, view and 1-2 yr outlook on each stock, comparison with Nifty 50, Sensex, bank FD and savings">📄 Client Report <span>▸</span></button><div class="ddm" style="min-width:150px">
@@ -90,7 +91,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=24"></script>
+<script src="pf-core.js?v=25"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -450,10 +451,27 @@ function ratesPanel(clients){ if($('rates').open&&$('ratesIn').dataset.n==client
 /* ---------- uploads: readers live in pf-core.js (shared with Trade Audit) ---------- */
 const upTrades=f=>PF.importTrades(f), upLedger=f=>PF.importLedger(f);
 $('upD').onclick=()=>$('fD').click();
-$('fD').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('dp',f); }catch(x){} render(); prices(); uploadsPanel(); setTimeout(dchip,3000); };
+$('fD').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('dp',f); }catch(x){} render(); prices(); uploadsPanel(); setTimeout(dchip,3000); clSoon(); };
 $('upT').onclick=()=>$('fT').click(); $('upL').onclick=()=>$('fL').click();
-$('fT').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('trade',f); }catch(x){} await loadTrades(); render(); prices(); history(); uploadsPanel(); setTimeout(dchip,3000); };
+$('fT').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('trade',f); }catch(x){} await loadTrades(); render(); prices(); history(); uploadsPanel(); setTimeout(dchip,3000); clSoon(); };
 $('fL').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('ledger',f); }catch(x){} render(); uploadsPanel(); setTimeout(dchip,3000); };
+/* ---------- client watchlists for the daily Telegram report (Stock Analyst > Client reports) ----------
+   every stock a client traded (held now or sold out) + every DP holding goes to a client record keyed by the client code (list id pf_<code>).
+   Additive only: stocks are never removed here; an existing record keeps its name, Telegram chat and any stocks added in the Stock Analyst. */
+const CLW={busy:0};
+async function clApi(action,extra){ const k=localStorage.getItem('jc_admin_key'); const j=await fetch(BACKEND,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action,key:k},extra||{}))}).then(r=>r.json()); if(j.error) throw new Error(j.error); return j; }
+function clWant(){ const W={}, add=(c,x)=>{ x=String(x||'').toUpperCase(); if(c&&x&&!/^IN[A-Z0-9]{10}$/.test(x)) (W[c]=W[c]||new Set()).add(x); };
+  (TR||[]).forEach(t=>add(t.c,t.sym)); Object.entries(PF.dp().H||{}).forEach(([c,a])=>(a||[]).forEach(x=>{ const i=xinfo(x); add(c,i.nse||(i.bt?i.bt+'.BO':'')); })); return W; }
+async function clSync(force){ if(CLW.busy||!localStorage.getItem('jc_admin_key')){ if(force&&!localStorage.getItem('jc_admin_key')) alertBox('Set the Drive passcode first (☁ Drive button).',true); return; }
+  const W=clWant(), done=LS.get('jc_pf_clwl',{}), sig=c=>[...W[c]].sort().join(','), todo=Object.keys(W).filter(c=>force||done[c]!==sig(c));
+  if(!todo.length){ if(force) alertBox('Client watchlists are already up to date.'); return; } CLW.busy=1;
+  try{ const cl=(await clApi('cl_list')).clients||[], out=[];
+    for(const c of todo){ const syms=[...W[c]].sort(), rec=cl.find(x=>x.listId==='pf_'+c);
+      if(rec) await clApi('cl_merge',{id:rec.id,syms}); else await clApi('cl_link',{listId:'pf_'+c,listName:c,name:c,syms});
+      done[c]=sig(c); out.push(c+' ('+syms.length+')'); }
+    LS.set('jc_pf_clwl',done); alertBox('📱 Client watchlists updated for the daily Telegram report: '+out.join(', '));
+  }catch(e){ if(force) alertBox('Client watchlist sync failed: '+e.message,true); else console.warn('clSync',e); } finally{ CLW.busy=0; } }
+let clT=0; const clSoon=()=>{ clearTimeout(clT); clT=setTimeout(()=>clSync(false),5000); };
 function alertBox(t,bad){ const d=document.createElement('div'); d.className='warn'; d.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:999;'+(bad?'background:#FBE3E1;border-color:#E29A93;color:#8a1010':'background:#E3F1DF;border-color:#8DC487;color:#1C5C0D'); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
 $('cl').onchange=()=>{ CL=$('cl').value; LS.set('jc_pf_client',CL); render(); };
 $('rf').onclick=()=>prices(true);
@@ -469,9 +487,10 @@ function dchip(){ const d=PF.LS.get('jc_pf_dstat',null), b=$('dchip'), hk=!!loca
   else if(d.ok){ t=d.restored?'☁ Restored from Drive '+tm(d.restored):d.saved?'☁ Saved '+tm(d.saved):'☁ Drive ✓'; c='#1C5C0D'; }
   else { t='☁ Not saved - tap'+(d.why==='timeout'?' (slow)':''); c='#a01010'; }
   b.textContent=t; b.style.color=c; b.title='Everything in the Portfolio is saved to Google Drive a few seconds after any change and comes back on any device or after clearing the browser. Tap to sync now.'; }
-window.addEventListener('pf-drive',async()=>{ dchip(); const d=PF.LS.get('jc_pf_dstat',null); if(d&&d.loaded&&!document.getElementById('pfProg')){ RATES=LS.get('jc_pf_rates',{_def:{bd:0,bi:0,dp:0}}); STAT=Object.assign({},STAT0,LS.get('jc_pf_stat',{})); MARK=LS.get('jc_pf_mark',{}); await loadTrades(); render(); prices(); history(); if($('ups').open) uploadsPanel(); } }); dchip();
+window.addEventListener('pf-drive',async()=>{ dchip(); const d=PF.LS.get('jc_pf_dstat',null); if(d&&d.loaded&&!document.getElementById('pfProg')){ RATES=LS.get('jc_pf_rates',{_def:{bd:0,bi:0,dp:0}}); STAT=Object.assign({},STAT0,LS.get('jc_pf_stat',{})); MARK=LS.get('jc_pf_mark',{}); await loadTrades(); render(); prices(); history(); if($('ups').open) uploadsPanel(); clSoon(); } }); dchip();
 $('dchip').onclick=async()=>{ if(!localStorage.getItem('jc_admin_key')){ const k=prompt('Admin passcode (needed once on this device to sync uploads with Google Drive):',''); if(!k) return; try{ localStorage.setItem('jc_admin_key',k); }catch(e){} }
   try{ await PF.stateSync(); await PF.statePush(); }catch(e){} await loadTrades(); render(); prices(); history(); dchip(); };
+$('clW').onclick=()=>clSync(true);
 $('upM').onclick=()=>{ $('ups').open=true; uploadsPanel(); $('ups').scrollIntoView({behavior:'smooth'}); };
 $('ups').addEventListener('toggle',()=>{ if($('ups').open) uploadsPanel(); });
 $('sy').value=SYF; $('mf').value=MF; $('dv').value=DV;
@@ -488,7 +507,7 @@ $('dv').onchange=()=>{ DV=$('dv').value; LS.set('jc_pf_dv',DV); render(); };
 $('sy').oninput=()=>{ SYF=$('sy').value.trim(); LS.set('jc_pf_sym',SYF); render(); };
 $('mf').onchange=()=>{ MF=$('mf').value; LS.set('jc_pf_mf',MF); render(); };
 
-(async()=>{ try{ [ISM,CA0]=await Promise.all([PF.isinMap().catch(()=>ISM),PF.corpActs()]); await loadTrades(); render(); await prices(); history(); }catch(e){ $('body').innerHTML='<div class="warn">Could not load trades: '+esc(e.message)+'</div>'; } })();
+(async()=>{ try{ [ISM,CA0]=await Promise.all([PF.isinMap().catch(()=>ISM),PF.corpActs()]); await loadTrades(); render(); await prices(); history(); clSoon(); }catch(e){ $('body').innerHTML='<div class="warn">Could not load trades: '+esc(e.message)+'</div>'; } })();
 setInterval(()=>{ if(mktOpen()&&!document.hidden) prices(); },30000);
 </script>
 </body></html>
