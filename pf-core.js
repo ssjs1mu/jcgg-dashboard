@@ -30,7 +30,7 @@ function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))
   t.trades=t.trades.filter(x=>!(rg[x.c]&&(!x.man||snap[x.c])&&x.d>=rg[x.c][0]&&x.d<=rg[x.c][1])).concat(rows).sort((a,b)=>a.c.localeCompare(b.c)||a.d.localeCompare(b.d));
   t.files=t.files.filter(f=>!(f.name===name&&f.clients.join()===cs.join())).concat([{name,at,clients:cs,n:rows.length,from:Object.values(rg).map(g=>g[0]).sort()[0],to:Object.values(rg).map(g=>g[1]).sort().slice(-1)[0]}]); LS.set('jc_pf_tb',t); return cs; }
 function removeTrades(c){ const t=tb(); syncMark('trade',c==null?[...new Set(t.trades.map(x=>x.c))]:[c]); if(c==null){ t.trades=[]; t.files=[]; } else { t.trades=t.trades.filter(x=>x.c!==c); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); } LS.set('jc_pf_tb',t); }
-async function loadTrades(base){ driveLoad().catch(()=>0); /* Drive sync runs in the background - pages refresh on the 'pf-drive' event */ const up=tb();
+async function loadTrades(base){ stateSync().catch(()=>0); /* Drive sync runs in the background - pages refresh on the 'pf-drive' event */ const up=tb();
   if(up.trades.length){ const cs=[...new Set(up.trades.map(x=>x.c))]; return {trades:up.trades,src:'uploaded trade books - '+cs.length+' client'+(cs.length>1?'s':'')+', '+up.trades.length+' fills',up:true}; }
   return {trades:[],src:'no trades yet - upload a trade book or add trades',up:false}; }
 /* single trades: add, edit, delete (manual entries are listed as source 'entered') */
@@ -72,8 +72,8 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
   if(!x.d) g('edD').value=todayS();
   m.onclick=e=>{ if(e.target===m) close(); }; g('edX').onclick=close;
   g('edOk').onclick=()=>{ try{ if(/[a-z]{2,}\s+[a-z]{2,}/i.test(g('edC').value)) throw new Error('enter the client code, not the name');
-      const sv=saveTrade({id:x.id,d:g('edD').value,c:g('edC').value,sym:g('edS').value,side:g('edB').value,q:g('edQ').value,r:g('edR').value}); close(); onDone&&onDone(); backupClient(sv.c,x.id?'edited trade':'entered trade'); }catch(e){ g('edErr').textContent=e.message; } };
-  if(g('edDel')) g('edDel').onclick=()=>{ if(!confirm('Delete this trade?')) return; deleteTrade(x.id); close(); onDone&&onDone(); backupClient(x.c,'deleted trade'); };
+      const sv=saveTrade({id:x.id,d:g('edD').value,c:g('edC').value,sym:g('edS').value,side:g('edB').value,q:g('edQ').value,r:g('edR').value}); close(); onDone&&onDone(); }catch(e){ g('edErr').textContent=e.message; } };
+  if(g('edDel')) g('edDel').onclick=()=>{ if(!confirm('Delete this trade?')) return; deleteTrade(x.id); close(); onDone&&onDone(); };
   setTimeout(()=>g(x.id?'edQ':'edC').focus(),50); }
 function compute(TR,STAT,rateOf){
   const fills=TR.map((t,i)=>Object.assign({i},t)).sort((a,b)=>a.d.localeCompare(b.d)||a.i-b.i);
@@ -386,7 +386,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-23k';
+const BUILD='2026-11-23l';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -512,6 +512,48 @@ function fundAdj(E){ const by={}; E.hold.forEach(h=>{ (by[h.c]=by[h.c]||[]).push
     H.forEach(h=>{ h.hcFull=h.hc; h.hc=h.hc*f; h.fund=f; }); E.fund[c]={f,bal,cost,src:bal==null?'no ledger - assumed funded':bal<=0?'ledger in credit - own funds':f<1?'ledger debit covers '+Math.round(f*100)+'% of holdings':'ledger debit covers all holdings'}; });
   return E; }
 const hurdleOf=(days,ST)=>((ST||stat()).hurdle||0)*Math.max(days,1)/365;   /* benchmark % for the days held */
+/* ---------- whole-app backup to Google Drive ----------
+   Everything the Portfolio keeps in this browser (trades incl. hand entries, ledgers, DP, rates, marks, links, settings - never the
+   passcode) is saved to Drive as one copy a few seconds after any change, and loaded back when a page opens on any device or after the
+   browser data was cleared. Drive keeps the newest copy and 40 earlier ones. */
+const SKIP=new Set(['jc_pf_drive','jc_pf_dstat','jc_pf_seen','jc_pf_sync','jc_pf_state_t','jc_pf_state_h','jc_pf_dirty']);
+const stKeys=()=>{ const k=[]; try{ for(let i=0;i<localStorage.length;i++){ const x=localStorage.key(i); if(/^jc_pf_/.test(x)&&!SKIP.has(x)) k.push(x); } }catch(e){} return k.sort(); };
+const stRaw=()=>stKeys().map(k=>k+'\u0001'+localStorage.getItem(k)).join('\u0002');
+const hsh=s=>{ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36)+'.'+s.length; };
+const lsRaw=(k,v)=>{ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} };
+let ST_BUSY=false, ST_TIMER=null, ST_STARTED=false;
+async function stPost(o){ const k=akey(); if(!k) throw new Error('passcode'); const ac=new AbortController(); setTimeout(()=>ac.abort(),60000);
+  const j=await fetch(BE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({key:k},o)),signal:ac.signal}).then(r=>r.json());
+  if(j.error){ if(/bad passcode/.test(j.error)) try{ localStorage.removeItem('jc_admin_key'); }catch(e){} throw new Error(j.error); } return j; }
+async function statePush(){ if(ST_BUSY) return; const raw=stRaw(), h=hsh(raw); if(h===localStorage.getItem('jc_pf_state_h')){ lsRaw('jc_pf_dirty',null); return; }
+  if(!akey()){ lsRaw('jc_pf_dirty','1'); driveStat({ok:false,why:'passcode',dirty:true}); return; }
+  ST_BUSY=true; driveStat({busy:true,saving:true});
+  try{ const data={}; stKeys().forEach(k=>data[k]=localStorage.getItem(k)); const j=await stPost({action:'pf_state_save',state:JSON.stringify({v:1,t:Date.now(),data})});
+    lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',h); lsRaw('jc_pf_dirty',null); driveStat({ok:true,saved:j.t,mode:'state'}); }
+  catch(e){ lsRaw('jc_pf_dirty','1'); driveStat({ok:false,why:e.name==='AbortError'?'timeout':e.message,dirty:true}); }
+  finally{ ST_BUSY=false; } }
+function stateApply(st){ const D=(st&&st.data)||{}; stKeys().forEach(k=>{ if(!(k in D)) lsRaw(k,null); }); Object.keys(D).forEach(k=>{ if(/^jc_pf_/.test(k)&&!SKIP.has(k)) lsRaw(k,D[k]); }); }
+/* open: newest copy from Drive unless this browser holds changes not saved yet (those go up first) */
+let ST_LAST='';
+async function stateSync(){ if(!ST_STARTED){ ST_STARTED=true;
+    /* every 2 s: if the data changed since the last save, save once it has been still for 2 s (a burst of changes = one save) */
+    setInterval(()=>{ const h=hsh(stRaw()); if(h===localStorage.getItem('jc_pf_state_h')){ ST_LAST=h; return; } if(h!==ST_LAST){ ST_LAST=h; return; } if(!ST_BUSY) statePush(); },2000);
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) stateSync().catch(()=>0); }); window.addEventListener('beforeunload',()=>{ if(hsh(stRaw())!==localStorage.getItem('jc_pf_state_h')) lsRaw('jc_pf_dirty','1'); }); }
+  if(!akey()){ driveStat({ok:false,why:'passcode'}); return {n:0}; }
+  const sh=localStorage.getItem('jc_pf_state_h'), dirty=localStorage.getItem('jc_pf_dirty')==='1'||(!!sh&&hsh(stRaw())!==sh);
+  driveStat({busy:true});
+  try{ const j=await stPost({action:'pf_state_load'}), mine=+localStorage.getItem('jc_pf_state_t')||0;
+    if(j.none){ if(stKeys().length) await statePush(); else { driveStat({ok:true,none:true}); await driveLoad().catch(()=>0); } return {n:0}; }
+    const st=JSON.parse(j.state);
+    if(st.cleared&&j.t>mine){ /* everything was deleted on another device - deletion wins over unsaved changes here */ }
+    else if(dirty&&mine){ await statePush(); return {n:0}; }
+    if(j.t>mine){ stateApply(st); const h=hsh(stRaw()); lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',h); lsRaw('jc_pf_dirty',null);
+      driveStat({ok:true,loaded:1,restored:j.t,cleared:!!st.cleared,mode:'state'}); return {n:1}; }
+    driveStat({ok:true,saved:mine,mode:'state'}); return {n:0}; }
+  catch(e){ driveStat({ok:false,why:e.name==='AbortError'?'timeout':e.message}); return {n:0}; } }
+/* delete everything: this browser, every device (empty state) and the Drive uploads (to Drive trash, 30 days) */
+async function clearAll(){ const j=await stPost({action:'pf_clear'}); stKeys().forEach(k=>lsRaw(k,null)); lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',hsh(stRaw())); lsRaw('jc_pf_dirty',null); lsRaw('jc_pf_seen',null);
+  driveStat({ok:true,saved:j.t,mode:'state'}); return j; }
 let LOADING=false, LOADED=null;
 /* 'rm|type|client' = when this device removed that client's data: Drive files older than that are not loaded back */
 function syncMark(type,cs,t){ const S=LS.get('jc_pf_sync',{}); cs.forEach(c=>S['rm|'+type+'|'+c]=t||Date.now()); LS.set('jc_pf_sync',S); }
@@ -548,5 +590,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
