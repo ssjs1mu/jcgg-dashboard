@@ -11,7 +11,7 @@ const addD=(d,n)=>new Date(Date.parse(d)+n*864e5).toISOString().slice(0,10);
 const LS={get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }};
 /* statutory: STT delivery 0.1% buy+sell, intraday 0.025% sell; NSE transaction 0.00307%; SEBI Rs 10/crore;
    stamp duty delivery 0.015% buy, intraday 0.003% buy; GST 18% on brokerage + transaction + SEBI + DP (as of Nov 2026) */
-const STAT0={sttD:0.1,sttI:0.025,exch:0.00307,sebi:0.0001,stampD:0.015,stampI:0.003,gst:18,int:18,hurdle:8};
+const STAT0={sttD:0.1,sttI:0.025,exch:0.00307,sebi:0.0001,stampD:0.015,stampI:0.003,gst:18,int:18,hurdle:8,slab:30,cess:4};
 /* exchange transaction charges by date (official circulars; NSE includes the IPFT Rs 10/crore from Apr-2023). Used while the Rates screen
    shows the official rate; a rate you type there is used for every date instead. */
 const EXCH_HIST={NSE:[['2000-01-01',0.00325],['2021-01-01',0.00345],['2023-04-01',0.00335],['2024-04-01',0.00332],['2024-10-01',0.00307]],BSE:[['2000-01-01',0.00375]]};
@@ -219,9 +219,47 @@ function ageing(c,today){ const L=led(), E=L.E[c]; if(!E) return null; const q=[
 function sellNet(c,price,q,STAT,rateOf){ const R=rateOf(c), v=price*q, brk=v*R.bd/100, stt=v*STAT.sttD/100, ex=v*STAT.exch/100, se=v*STAT.sebi/100, dp=(+R.dp||0);
   return v-(brk+stt+ex+se+dp+(brk+ex+se+dp)*STAT.gst/100); }
 /* liquidation suggestion: Trading holdings with the largest profit first, then Investment holdings, until the sale value covers 'need' */
+/* ---------- Taxation & Returns (listed equity, STT paid; resident individual).
+   Intraday = speculative business income at the slab % (STAT.slab). Delivery held <= 12 months = STCG, > 12 months = LTCG.
+   Rates by sale date: before 23-07-2024 STCG 15 %, LTCG 10 %; from 23-07-2024 STCG 20 %, LTCG 12.5 % (Budget 2026 unchanged).
+   LTCG exemption per FY: Rs 1,00,000 up to FY 2023-24, Rs 1,25,000 from FY 2024-25. Sales before 01-04-2018: LTCG exempt.
+   Set-off inside a FY: short-term loss against STCG then LTCG; long-term loss only against LTCG; speculative loss only against
+   speculative profit; what is left is shown as loss to carry forward (not carried into later years here). Health & education cess
+   STAT.cess % on the tax; surcharge, grandfathering (31-01-2018 FMV) and bonus-share cost rules are not applied. P&L is after
+   all charges in the trade book. */
+const TAXCUT='2024-07-23';
+const fyOf=d=>{ const y=+d.slice(0,4), m=+d.slice(5,7), s=m>=4?y:y-1; return 'FY '+s+'-'+String((s+1)%100).padStart(2,'0'); };
+const isLT=(bd,sd)=>{ const b=new Date(bd+'T00:00:00Z'); b.setUTCFullYear(b.getUTCFullYear()+1); return sd>b.toISOString().slice(0,10); };
+const stRate=sd=>sd<TAXCUT?15:20, ltRate=sd=>sd<'2018-04-01'?0:sd<TAXCUT?10:12.5, ltEx=fy=>+fy.slice(3,7)>=2024?125000:100000;
+function fyTax(L,STAT){ /* L: [{k:'I'|'S'|'L', pl, sd}] of one client in one FY */
+  const sum=k=>L.filter(x=>x.k===k).reduce((a,x)=>a+x.pl,0), wr=(k,f)=>{ const G=L.filter(x=>x.k===k&&x.pl>0), g=G.reduce((a,x)=>a+x.pl,0); return g?G.reduce((a,x)=>a+x.pl*f(x.sd),0)/g:f(todayS()); };
+  const fy=L.length?fyOf(L[0].sd):fyOf(todayS()), spec=sum('I'); let st=sum('S'), lt=sum('L'), stCF=0, ltCF=0;
+  if(st<0){ if(lt>0){ const u=Math.min(lt,-st); lt-=u; st+=u; } stCF=-st; st=0; }
+  if(lt<0){ ltCF=-lt; lt=0; }
+  const ex=Math.min(lt,ltEx(fy)), ltT=lt-ex, rS=wr('S',stRate), rL=wr('L',ltRate);
+  const tS=Math.max(0,spec)*(+STAT.slab||0)/100, tST=st*rS/100, tLT=ltT*rL/100, base=tS+tST+tLT, cess=base*(+STAT.cess||0)/100;
+  return {fy,spec,specTax:tS,specCF:Math.max(0,-spec),stNet:sum('S'),stTaxable:st,stRate:rS,stTax:tST,stCF,ltNet:sum('L'),ltExempt:ex,ltTaxable:ltT,ltRate:rL,ltTax:tLT,ltCF,cess,tax:base+cess}; }
+function taxCalc(E,Q,STAT,keep){ keep=keep||(()=>true); const today=todayS(), cur=fyOf(today), S={}, R={};
+  const row=(c,sym)=>S[c+'|'+sym]=S[c+'|'+sym]||{c,sym,intra:0,st:0,lt:0,q:0,cost:0,val:0,nST:0,nLT:0,priced:true};
+  (E.intra||[]).filter(keep).forEach(x=>{ row(x.c,x.sym).intra+=x.pl; (R[x.c]=R[x.c]||[]).push({k:'I',pl:x.pl,sd:x.d}); });
+  (E.real||[]).filter(keep).forEach(x=>{ const l=isLT(x.bd,x.sd); row(x.c,x.sym)[l?'lt':'st']+=x.pl; (R[x.c]=R[x.c]||[]).push({k:l?'L':'S',pl:x.pl,sd:x.sd}); });
+  const N={}; (E.hold||[]).filter(keep).forEach(h=>{ const r=row(h.c,h.sym), p=Q&&Q[h.sym]&&Q[h.sym].p, c=h.q*h.cost; r.q+=h.q; r.cost+=c;
+    if(!p){ r.priced=false; return; } const u=h.q*p-c, l=isLT(h.d,today); r.val+=h.q*p; r[l?'nLT':'nST']+=u; (N[h.c]=N[h.c]||[]).push({k:l?'L':'S',pl:u,sd:today}); });
+  const clients=[...new Set(Object.values(S).map(r=>r.c))].sort(), FY=[], CS=[];
+  clients.forEach(c=>{ const L=R[c]||[], by={}; L.forEach(x=>(by[fyOf(x.sd)]=by[fyOf(x.sd)]||[]).push(x));
+    const rows=Object.keys(by).sort().map(f=>Object.assign({c},fyTax(by[f],STAT))); FY.push(...rows);
+    const real=L.reduce((a,x)=>a+x.pl,0), rtax=rows.reduce((a,x)=>a+x.tax,0), curL=by[cur]||[], nl=N[c]||[];
+    const base=fyTax(curL.length?curL:[{k:'S',pl:0,sd:today}],STAT).tax, withN=fyTax(curL.concat(nl).length?curL.concat(nl):[{k:'S',pl:0,sd:today}],STAT).tax;
+    const notional=nl.reduce((a,x)=>a+x.pl,0), ntax=withN-base, inv=Object.values(S).filter(r=>r.c===c).reduce((a,r)=>a+r.cost,0);
+    CS.push({c,real,rtax,realNet:real-rtax,notional,ntax,notNet:notional-ntax,net:real-rtax+notional-ntax,inv}); });
+  return {rows:Object.values(S).sort((a,b)=>a.c.localeCompare(b.c)||a.sym.localeCompare(b.sym)),fy:FY,cs:CS,cur,today}; }
+/* Trading / Investment mark is per client + symbol ('S1MU061|ITC'); an old symbol-wide mark ('ITC') still applies to clients
+   with no mark of their own until one client's mark is changed - then it is copied to every client holding that symbol and removed */
+const markOf=(M,c,sym)=>(M||{})[c+'|'+sym]||(M||{})[sym]||'';
+function markSplit(M,sym,trades){ if(!M||!M[sym]) return M; const v=M[sym]; [...new Set((trades||[]).filter(t=>t.sym===sym||canonSym(t.sym)===sym).map(t=>t.c))].forEach(c=>{ if(!M[c+'|'+sym]) M[c+'|'+sym]=v; }); delete M[sym]; return M; }
 function liquidate(c,hold,Q,marks,need,STAT,rateOf){ const rows=[];
   hold.filter(h=>h.c===c&&Q[h.sym]).forEach(h=>{ const r=rows.find(x=>x.sym===h.sym); if(r){ r.q+=h.q; r.cost+=h.q*h.cost; r.hc+=h.hc; } else rows.push({sym:h.sym,q:h.q,cost:h.q*h.cost,hc:h.hc}); });
-  rows.forEach(r=>{ r.p=Q[r.sym].p; r.mk=marks[r.sym]||''; r.pl=r.q*r.p-r.cost-r.hc; r.plp=r.pl/(r.cost+r.hc)*100; });
+  rows.forEach(r=>{ r.p=Q[r.sym].p; r.mk=markOf(marks,c,r.sym); r.pl=r.q*r.p-r.cost-r.hc; r.plp=r.pl/(r.cost+r.hc)*100; });
   const tier=r=>r.mk==='I'?1:0; rows.sort((a,b)=>tier(a)-tier(b)||b.plp-a.plp);
   let got=0; const pick=[];
   for(const r of rows){ if(got>=need) break; let q=r.q; const full=sellNet(c,r.p,r.q,STAT,rateOf);
@@ -528,7 +566,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25e';
+const BUILD='2026-11-25f';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -761,5 +799,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
