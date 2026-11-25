@@ -275,6 +275,17 @@ function taxPlan(E,Q,STAT,keep){ keep=keep||(()=>true); const today=todayS(), cu
     if(room>1000) gain.filter(o=>o.lt>1).forEach(o=>{ if(room<=1000) return; const per=o.lt/o.ltq, q=Math.min(o.ltq,Math.floor(room/per)); if(q<1) return; const g=q*per; room-=g;
       out.push({c,kind:'exempt',sym:o.sym,q,p:o.p,pl:g,save:g*ltRate(today)/100*(1+(+STAT.cess||0)/100),fy:cur}); }); });
   return out; }
+/* ---------- where the profit went: gross profit (booked + notional, before every charge) split into government levies
+   (STT, stamp duty, GST, SEBI fee, income tax), stock exchange charges, brokerage (without GST), DP charges and what the client kept.
+   ch: {brk,gst,stt,stamp,exch,sebi,dp,turn} ; net: booked + notional P&L after charges ; itax: income tax booked + if sold today.
+   show = true only when it supports the client conversation: in profit (after costs and tax) and either government levies above the
+   brokerage or brokerage at most 5% of the gross profit; more = government levies above brokerage (the 'x times' line is used only then). */
+function chargeSplit(parts,STAT){ const g=(+STAT.gst||0)/100, o={brk:0,gst:0,stt:0,stamp:0,exch:0,sebi:0,dp:0,turn:0};
+  (parts||[]).forEach(p=>{ o.brk+=p.brk||0; o.gst+=((p.brk||0)+(p.exch||0)+(p.sebi||0))*g; o.stt+=p.stt||0; o.stamp+=p.stamp||0; o.exch+=p.exch||0; o.sebi+=p.sebi||0; o.dp+=(p.dp||0)*(1+g); o.turn+=p.v||0; }); return o; }
+function profitSplit(ch,net,itax){ const trade=ch.brk+ch.gst+ch.stt+ch.stamp+ch.exch+ch.sebi, G=net+trade+ch.dp, gov=ch.stt+ch.stamp+ch.gst+ch.sebi+Math.max(0,itax||0), kept=G-gov-ch.exch-ch.brk-ch.dp;
+  const small=G>0&&ch.brk/G<=0.05, more=gov>ch.brk, show=G>0&&kept>0&&(more||small);
+  const why=G<=0?'not in profit':kept<=0?'costs and tax exceed the profit':!show?'brokerage above govt levies and over 5% of profit':'';
+  return Object.assign({},ch,{G,gov,itax:Math.max(0,itax||0),kept,show,more,why,pc:v=>G>0?v/G*100:null}); }
 /* sector names as used in the Indian market, from Yahoo's industry (assetProfile.industry); SECTOR_FIX wins for a symbol */
 const SECTOR_FIX={ITC:'FMCG',RELIANCE:'Oil & Gas / Conglomerate',IRCTC:'Travel & Tourism',LT:'Infrastructure & Construction',ADANIENT:'Conglomerate',COALINDIA:'Mining',ONGC:'Oil & Gas',IRFC:'Finance - Railways',RVNL:'Infrastructure - Railways',IRCON:'Infrastructure - Railways'};
 const SECTOR_RX=[[/aerospace|defen/i,'Defence'],[/auto parts/i,'Auto Ancillary'],[/auto|truck/i,'Auto'],[/resort|casino|lodging/i,'Hotels & Tourism'],[/travel/i,'Travel & Tourism'],[/airline/i,'Aviation'],
@@ -600,7 +611,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25g';
+const BUILD='2026-11-25h';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -833,5 +844,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();

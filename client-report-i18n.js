@@ -236,3 +236,16 @@ Object.assign(window.RL.bn,{ e1:'1 বছর অনু.', e2:'2 বছর অন
   tsSell:'বিক্রি - ক্ষতি বুক করুন', tsSellP:'বিক্রি - লাভ বুক করুন', tsSellX:'বিক্রি ও আবার কিনুন', tsLoss:fy=>fy+'-এ বুক করা লাভের সাথে সমন্বয়', tsPair:s=>s+'-এর লাভের সাথে একসাথে বুক করুন - এই ক্ষতি সেই লাভ সমন্বয় করে',
   tsPairG:t=>'লাভ বুকিং - একা কর '+t, tsEx:'এই বছরের ₹1,25,000 ছাড়ের মধ্যে দীর্ঘমেয়াদি লাভ: এখন কর নেই, খরচ বেশিতে রিসেট (ভবিষ্যতের কর বাঁচে)',
   tsNote:'ডেলিভারিতে বিক্রি করুন এবং শেয়ার রাখতে চাইলে পরের ট্রেডিং দিনে আবার কিনুন (একই দিনে বিক্রি-কেনা ইন্ট্রাডে ধরা হয়)। ব্রোকারেজ, STT ও খরচ সাশ্রয় কমায়। লাইভ দামের ভিত্তিতে - ট্রেডের আগে আবার দেখুন ও কর পরামর্শদাতার সাথে নিশ্চিত করুন।', tsNone:'এখন কর সাশ্রয়ের জন্য কোনো ট্রেড দরকার নেই।' });
+/* where your profit went (added 2026-11-25) */
+Object.assign(window.RL.en,{ wT:'Where your profit went', wHead:'Paid to', wG:'Gross profit before all costs (booked + on shares held)', wGov:'Government', wSTT:'Securities transaction tax (STT)', wStamp:'Stamp duty', wGST:'GST', wSEBI:'SEBI fee', wIT:'Income tax (booked + if sold today)',
+  wExch:'Stock exchanges (NSE / BSE)', wBrk:'Brokerage (without GST)', wDP:'DP / demat charges', wYou:'You kept', wPct:'% of profit',
+  wPer100:(y,g,b)=>`Out of every ₹100 of profit, <b>you kept ₹${y}</b>, the government took <b>₹${g}</b> and the broker <b>₹${b}</b>.`, wX:x=>`Government levies are <b>${x} times</b> the brokerage.`, wTurn:p=>`Brokerage works out to just <b>${p}%</b> of the value of all your trades.`,
+  wNote:'Gross profit = booked P&L + gain on shares held, before brokerage, taxes and charges. Brokerage is shown without GST; GST is counted under government.' });
+Object.assign(window.RL.hi,{ wT:'आपका मुनाफ़ा कहाँ गया', wHead:'किसे', wG:'सभी ख़र्चों से पहले कुल मुनाफ़ा (बुक + रखे शेयरों पर)', wGov:'सरकार', wSTT:'प्रतिभूति लेनदेन कर (STT)', wStamp:'स्टांप शुल्क', wGST:'GST', wSEBI:'SEBI शुल्क', wIT:'आयकर (बुक + आज बेचने पर)',
+  wExch:'स्टॉक एक्सचेंज (NSE / BSE)', wBrk:'ब्रोकरेज (GST के बिना)', wDP:'DP / डीमैट शुल्क', wYou:'आपके पास रहा', wPct:'मुनाफ़े का %',
+  wPer100:(y,g,b)=>`मुनाफ़े के हर ₹100 में से <b>₹${y} आपके पास रहे</b>, सरकार को <b>₹${g}</b> और ब्रोकर को <b>₹${b}</b> गए।`, wX:x=>`सरकारी कर ब्रोकरेज के <b>${x} गुना</b> हैं।`, wTurn:p=>`ब्रोकरेज आपके सभी सौदों के मूल्य का केवल <b>${p}%</b> है।`,
+  wNote:'कुल मुनाफ़ा = बुक किया लाभ/हानि + रखे शेयरों पर लाभ, ब्रोकरेज, कर और शुल्कों से पहले। ब्रोकरेज GST के बिना दिखाया गया है; GST सरकार में गिना गया है।' });
+Object.assign(window.RL.bn,{ wT:'আপনার মুনাফা কোথায় গেল', wHead:'কাকে', wG:'সব খরচের আগে মোট মুনাফা (বুক + রাখা শেয়ারে)', wGov:'সরকার', wSTT:'সিকিউরিটিজ লেনদেন কর (STT)', wStamp:'স্ট্যাম্প ডিউটি', wGST:'GST', wSEBI:'SEBI ফি', wIT:'আয়কর (বুক + আজ বিক্রি করলে)',
+  wExch:'স্টক এক্সচেঞ্জ (NSE / BSE)', wBrk:'ব্রোকারেজ (GST ছাড়া)', wDP:'DP / ডিম্যাট খরচ', wYou:'আপনার কাছে রইল', wPct:'মুনাফার %',
+  wPer100:(y,g,b)=>`মুনাফার প্রতি ₹100-এর মধ্যে <b>₹${y} আপনার কাছে রইল</b>, সরকার নিয়েছে <b>₹${g}</b> আর ব্রোকার <b>₹${b}</b>।`, wX:x=>`সরকারি কর ব্রোকারেজের <b>${x} গুণ</b>।`, wTurn:p=>`ব্রোকারেজ আপনার সব লেনদেনের মূল্যের মাত্র <b>${p}%</b>।`,
+  wNote:'মোট মুনাফা = বুক করা লাভ/ক্ষতি + রাখা শেয়ারে লাভ, ব্রোকারেজ, কর ও খরচের আগে। ব্রোকারেজ GST ছাড়া দেখানো; GST সরকারের মধ্যে ধরা হয়েছে।' });
