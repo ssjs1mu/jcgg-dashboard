@@ -43,7 +43,7 @@ async function loadTrades(base){ stateSync().catch(()=>0); /* Drive sync runs in
   if(up.trades.length){ const cs=[...new Set(up.trades.map(x=>x.c))]; return {trades:up.trades,src:'uploaded trade books - '+cs.length+' client'+(cs.length>1?'s':'')+', '+up.trades.length+' fills',up:true}; }
   return {trades:[],src:'no trades yet - upload a trade book or add trades',up:false}; }
 /* single trades: add, edit, delete (manual entries are listed as source 'entered') */
-function clean(x){ const o={d:String(x.d).slice(0,10),c:String(x.c).trim().toUpperCase(),sym:String(x.sym).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side:x.side==='S'?'S':'B',q:Math.abs(+x.q),r:+x.r};
+function clean(x){ const o={d:String(x.d).slice(0,10),c:String(x.c).trim().toUpperCase(),sym:String(x.sym).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side:x.side==='S'?'S':'B',q:Math.abs(+x.q),r:+x.r}; if(x.ex) o.ex=String(x.ex).toUpperCase();
   if(!/^\d{4}-\d\d-\d\d$/.test(o.d)||!o.c||!o.sym||!(o.q>0)||!(o.r>0)) throw new Error('date, client code, symbol, quantity and rate are all needed'); return o; }
 function saveTrade(x){ const t=tb(), o=clean(x);
   if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; t.trades[i]=Object.assign({},t.trades[i],o,{edited:true}); }
@@ -57,33 +57,65 @@ function backupClient(c,why){ if(!c) return; clearTimeout(BKT[c]); BKT[c]=setTim
 function deleteTrade(id){ const t=tb(); t.trades=t.trades.filter(y=>y.id!==id); const cs=new Set(t.trades.map(y=>y.c)); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(c=>cs.has(c))})).filter(f=>f.clients.length); LS.set('jc_pf_tb',t); }
 /* trade editor (pop-up) shared by Portfolio and Trade Audit; onDone() after save / delete */
 function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) old.remove(); x=x||{};
-  const tbx=tb(), codes=[...new Set(tbx.trades.map(y=>y.c))].sort(), syms=[...new Set(tbx.trades.map(y=>y.sym))].sort();
+  /* one pop-up for a whole day: Trade Date + Client Code + Exchange once, then as many rows (symbol, buy/sell, qty, rate) as needed.
+     Edit mode (x.id) shows that one trade. Paste lines like "SBIN B 25 820.5" (tab, comma or space separated) to fill several rows at once. */
+  const tbx=tb(), codes=[...new Set(tbx.trades.map(y=>y.c))].sort(), syms=[...new Set(tbx.trades.map(y=>y.sym))].sort(), one=!!x.id;
   const m=document.createElement('div'); m.id='pfEd';
   m.style.cssText='position:fixed;inset:0;z-index:9900;background:rgba(40,38,10,.55);display:flex;align-items:center;justify-content:center;padding:10px';
   const inp='border:1px solid #CFC9A3;border-radius:8px;padding:7px 9px;font:700 13px Inter,sans-serif;width:100%;box-sizing:border-box;background:#fff;color:#2E2C14';
   const lab='display:block;font:800 10.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#6E6A45;margin:8px 0 3px';
-  const v=k=>x[k]==null?'':String(x[k]).replace(/"/g,'&quot;');
-  m.innerHTML='<div style="background:#F7F4E6;border-radius:16px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.35);font:600 13px Inter,sans-serif;color:#2E2C14">'+
-    '<div style="background:linear-gradient(180deg,#5f5b00,#3f3c00);color:#F3EFD6;padding:11px 14px;font:900 15px Inter,sans-serif">'+(x.id?'✎ Edit trade':'＋ Add trade')+'</div><div style="padding:6px 16px 14px">'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">'+
-    '<div><label style="'+lab+'">Trade date</label><input id="edD" type="date" style="'+inp+'" value="'+v('d')+'"></div>'+
-    '<div><label style="'+lab+'">Client code</label><input id="edC" list="edCl" style="'+inp+';text-transform:uppercase" value="'+v('c')+'" placeholder="code, not name"><datalist id="edCl">'+codes.map(c=>'<option value="'+c+'">').join('')+'</datalist></div>'+
-    '<div><label style="'+lab+'">Symbol (NSE)</label><input id="edS" list="edSl" style="'+inp+';text-transform:uppercase" value="'+v('sym')+'"><datalist id="edSl">'+syms.map(c=>'<option value="'+c+'">').join('')+'</datalist></div>'+
-    '<div><label style="'+lab+'">Buy / Sell</label><select id="edB" style="'+inp+'"><option value="B"'+(x.side!=='S'?' selected':'')+'>Buy</option><option value="S"'+(x.side==='S'?' selected':'')+'>Sell</option></select></div>'+
-    '<div><label style="'+lab+'">Quantity</label><input id="edQ" type="number" min="1" step="1" style="'+inp+'" value="'+v('q')+'"></div>'+
-    '<div><label style="'+lab+'">Rate (₹)</label><input id="edR" type="number" min="0" step="0.01" style="'+inp+'" value="'+v('r')+'"></div></div>'+
-    '<div id="edErr" style="color:#B00000;font-weight:800;margin-top:8px"></div>'+
-    '<div style="display:flex;gap:8px;margin-top:12px;align-items:center">'+(x.id?'<button id="edDel" style="border:1px solid #E29A93;background:#FBE3E1;color:#B00000;border-radius:8px;padding:7px 12px;font:800 12.5px Inter,sans-serif;cursor:pointer">🗑 Delete</button>':'')+
+  const th='font:800 10.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#6E6A45;text-align:left;padding:2px 4px';
+  const q=v=>v==null?'':String(v).replace(/"/g,'&quot;');
+  const exV=String(x.ex||'').toUpperCase().indexOf('BSE')>=0?'BSE':'NSE';
+  m.innerHTML='<div style="background:#F7F4E6;border-radius:16px;width:100%;max-width:'+(one?'480':'640')+'px;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.35);font:600 13px Inter,sans-serif;color:#2E2C14">'+
+    '<div style="background:linear-gradient(180deg,#5f5b00,#3f3c00);color:#F3EFD6;padding:11px 14px;font:900 15px Inter,sans-serif">'+(one?'✎ Edit Trade':'＋ Add Trades <span style="font:600 12px Inter,sans-serif;opacity:.8">- one day, one client, many rows</span>')+'</div><div style="padding:6px 16px 14px;overflow:auto">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 110px;gap:0 10px">'+
+    '<div><label style="'+lab+'">Trade Date</label><input id="edD" type="date" style="'+inp+'" value="'+q(x.d)+'"></div>'+
+    '<div><label style="'+lab+'">Client Code</label><input id="edC" list="edCl" style="'+inp+';text-transform:uppercase" value="'+q(x.c)+'" placeholder="code, not name"><datalist id="edCl">'+codes.map(c=>'<option value="'+c+'">').join('')+'</datalist></div>'+
+    '<div><label style="'+lab+'">Exchange</label><select id="edE" style="'+inp+'"><option'+(exV==='NSE'?' selected':'')+'>NSE</option><option'+(exV==='BSE'?' selected':'')+'>BSE</option></select></div></div>'+
+    '<datalist id="edSl">'+syms.map(c=>'<option value="'+c+'">').join('')+'</datalist>'+
+    '<table style="width:100%;border-collapse:collapse;margin-top:10px"><thead><tr><th style="'+th+'">#</th><th style="'+th+'">Symbol (NSE)</th><th style="'+th+'">Buy / Sell</th><th style="'+th+'">Quantity</th><th style="'+th+'">Rate (₹)</th><th style="'+th+';text-align:right">Value (₹)</th>'+(one?'':'<th></th>')+'</tr></thead><tbody id="edRows"></tbody></table>'+
+    (one?'':'<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="edAdd" style="border:1px dashed #676300;background:#fff;color:#3f3c00;border-radius:8px;padding:5px 10px;font:800 12px Inter,sans-serif;cursor:pointer">＋ Add Row</button><span style="font:600 11.5px Inter,sans-serif;color:#6E6A45">Enter on the last rate adds a row · paste several lines into a Symbol box</span></div>')+
+    '<div id="edTot" style="margin-top:8px;font:800 12.5px Inter,sans-serif;color:#3f3c00"></div>'+
+    '<div id="edErr" style="color:#B00000;font-weight:800;margin-top:6px"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:12px;align-items:center">'+(one?'<button id="edDel" style="border:1px solid #E29A93;background:#FBE3E1;color:#B00000;border-radius:8px;padding:7px 12px;font:800 12.5px Inter,sans-serif;cursor:pointer">🗑 Delete</button>':'')+
     '<span style="flex:1"></span><button id="edX" style="border:1px solid #CFC9A3;background:#fff;border-radius:8px;padding:7px 12px;font:800 12.5px Inter,sans-serif;cursor:pointer;color:#3f3c00">Cancel</button>'+
     '<button id="edOk" style="border:1px solid #676300;background:#676300;color:#fff;border-radius:8px;padding:7px 14px;font:800 12.5px Inter,sans-serif;cursor:pointer">Save</button></div></div></div>';
   document.body.appendChild(m);
-  const g=id=>document.getElementById(id), close=()=>m.remove();
+  const g=id=>document.getElementById(id), close=()=>m.remove(), body=g('edRows');
+  const fmt=n=>n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const tot=()=>{ let b=0,s=0,n=0; body.querySelectorAll('tr').forEach(tr=>{ const qq=+tr.querySelector('.q').value||0, rr=+tr.querySelector('.r').value||0, v=qq*rr; tr.querySelector('.v').textContent=v?fmt(v):''; if(v){ n++; if(tr.querySelector('.b').value==='S') s+=v; else b+=v; } });
+    g('edTot').textContent=n?n+' row'+(n>1?'s':'')+' · Buy ₹'+fmt(b)+' · Sell ₹'+fmt(s)+' · Net '+(b-s>=0?'pay ₹':'receive ₹')+fmt(Math.abs(b-s)):''; };
+  const renum=()=>body.querySelectorAll('tr').forEach((tr,k)=>{ tr.querySelector('.n').textContent=k+1; });
+  const addRow=(o,focus)=>{ o=o||{}; const tr=document.createElement('tr');
+    tr.innerHTML='<td class="n" style="padding:3px 4px;color:#6E6A45;font-weight:800"></td>'+
+      '<td style="padding:3px 4px"><input class="s" list="edSl" style="'+inp+';text-transform:uppercase" value="'+q(o.sym)+'"></td>'+
+      '<td style="padding:3px 4px;width:86px"><select class="b" style="'+inp+'"><option value="B"'+(o.side!=='S'?' selected':'')+'>Buy</option><option value="S"'+(o.side==='S'?' selected':'')+'>Sell</option></select></td>'+
+      '<td style="padding:3px 4px;width:90px"><input class="q" type="number" min="1" step="1" style="'+inp+'" value="'+q(o.q)+'"></td>'+
+      '<td style="padding:3px 4px;width:100px"><input class="r" type="number" min="0" step="0.01" style="'+inp+'" value="'+q(o.r)+'"></td>'+
+      '<td class="v" style="padding:3px 4px;text-align:right;font-weight:800;white-space:nowrap;width:90px"></td>'+
+      (one?'':'<td style="padding:3px 2px;width:26px"><button class="x" title="remove row" style="border:none;background:none;color:#B00000;font:900 15px Inter,sans-serif;cursor:pointer">✕</button></td>');
+    body.appendChild(tr); renum();
+    tr.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',tot));
+    if(tr.querySelector('.x')) tr.querySelector('.x').onclick=()=>{ tr.remove(); if(!body.children.length) addRow(); renum(); tot(); };
+    tr.querySelector('.r').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!one&&tr===body.lastElementChild){ e.preventDefault(); addRow({side:tr.querySelector('.b').value},true); } });
+    tr.querySelector('.s').addEventListener('paste',e=>{ if(one) return; const t=(e.clipboardData||window.clipboardData).getData('text'); const L=t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean); if(L.length<2&&!/[\t,]/.test(t)) return;
+      e.preventDefault(); let first=true; L.forEach(l=>{ const f=l.split(/[\t,;]+|\s+/).filter(Boolean); const sd=f.find(z=>/^(B|S|BUY|SELL)$/i.test(z)); const nums=f.filter(z=>/^[\d.]+$/.test(z)); const sym=f.find(z=>/[A-Za-z]/.test(z)&&!/^(B|S|BUY|SELL)$/i.test(z));
+        const o2={sym:sym||'',side:sd&&/^S/i.test(sd)?'S':'B',q:nums[0]||'',r:nums[1]||''};
+        if(first&&!tr.querySelector('.s').value){ tr.querySelector('.s').value=o2.sym; tr.querySelector('.b').value=o2.side; tr.querySelector('.q').value=o2.q; tr.querySelector('.r').value=o2.r; first=false; } else addRow(o2); }); tot(); });
+    if(focus) setTimeout(()=>tr.querySelector('.s').focus(),20); tot(); return tr; };
+  addRow(one||x.sym||x.q?x:{});   /* a pre-filled suggestion (e.g. a missing buy) lands in the first row */
   if(!x.d) g('edD').value=todayS();
-  m.onclick=e=>{ if(e.target===m) close(); }; g('edX').onclick=close;
+  m.onclick=e=>{ if(e.target===m) close(); }; g('edX').onclick=close; if(g('edAdd')) g('edAdd').onclick=()=>addRow({},true);
   g('edOk').onclick=()=>{ try{ if(/[a-z]{2,}\s+[a-z]{2,}/i.test(g('edC').value)) throw new Error('enter the client code, not the name');
-      const sv=saveTrade({id:x.id,d:g('edD').value,c:g('edC').value,sym:g('edS').value,side:g('edB').value,q:g('edQ').value,r:g('edR').value}); close(); onDone&&onDone(); }catch(e){ g('edErr').textContent=e.message; } };
+      const head={d:g('edD').value,c:g('edC').value,ex:g('edE').value}, rows=[];
+      body.querySelectorAll('tr').forEach((tr,k)=>{ const o={sym:tr.querySelector('.s').value,side:tr.querySelector('.b').value,q:tr.querySelector('.q').value,r:tr.querySelector('.r').value};
+        if(!one&&!o.sym.trim()&&!o.q&&!o.r) return;   /* blank row - skipped */
+        try{ clean(Object.assign({},head,o)); }catch(e){ throw new Error('Row '+(k+1)+': '+e.message); } rows.push(o); });
+      if(!rows.length) throw new Error('add at least one row');
+      rows.forEach(o=>saveTrade(Object.assign({id:one?x.id:undefined},head,o))); close(); onDone&&onDone(rows.length); }catch(e){ g('edErr').textContent=e.message; } };
   if(g('edDel')) g('edDel').onclick=()=>{ if(!confirm('Delete this trade?')) return; deleteTrade(x.id); close(); onDone&&onDone(); };
-  setTimeout(()=>g(x.id?'edQ':'edC').focus(),50); }
+  setTimeout(()=>(one?body.querySelector('.q'):g('edC')).focus(),50); }
 function compute(TR,STAT,rateOf){
   const fills=TR.map((t,i)=>Object.assign({i},t)).sort((a,b)=>a.d.localeCompare(b.d)||a.i-b.i);
   /* split each fill into intraday / delivery parts: per client + symbol + day, the offsetting quantity is intraday */
@@ -496,7 +528,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25b';
+const BUILD='2026-11-25c';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
