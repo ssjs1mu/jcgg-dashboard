@@ -635,7 +635,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25s';
+const BUILD='2026-11-25t';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -695,7 +695,7 @@ async function corpActs(force){ if(CA&&!force) return CA; try{ CA=await fetch('h
 async function caYahoo(sym,tk){ const u='https://query2.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(tk)+'?period1=1262304000&period2='+Math.floor(Date.now()/1000)+'&interval=1mo&events=split%7Cdiv';
   const j=await fetch(BE+'?action=fetch&url='+encodeURIComponent(u)).then(r=>r.json()), x=j&&j.chart&&j.chart.result&&j.chart.result[0]; if(!x) return null; const ev=x.events||{}, out=[], d=t=>new Date((t+19800)*1000).toISOString().slice(0,10);
   Object.values(ev.splits||{}).forEach(e=>{ const n=+e.numerator, m=+e.denominator; if(!(n>0&&m>0)||n===m) return; const bon=Number.isInteger(n-m)&&n>m&&(n-m)%1===0;
-    out.push({s:sym,ex:d(e.date),t:'split',f:n/m,sub:'Bonus / split '+n+':'+m+' (BSE'+(n>m?' - e.g. bonus '+(n-m)+':'+m:'')+')',src:'yahoo'}); });
+    out.push({s:sym,ex:d(e.date),t:'split',f:n/m,sub:'Bonus / split - '+m+' share'+(m>1?'s':'')+' became '+n+' (BSE)',src:'yahoo'}); });
   Object.values(ev.dividends||{}).forEach(e=>{ if(+e.amount>0) out.push({s:sym,ex:d(e.date),t:'div',amt:+e.amount,sub:'Dividend ₹'+(+e.amount)+' / share (BSE)',src:'yahoo'}); });
   return out.sort((a,b)=>a.ex.localeCompare(b.ex)); }
 async function yTicker(q){ try{ const j=await fetch(BE+'?action=fetch&url='+encodeURIComponent('https://query1.finance.yahoo.com/v1/finance/search?q='+encodeURIComponent(q)+'&quotesCount=6&newsCount=0')).then(r=>r.json()); return ((j.quotes||[]).find(x=>/\.BO$/.test(x.symbol))||{}).symbol||null; }catch(e){ return null; } }
