@@ -223,6 +223,12 @@ function addLedger(name,at,byClient,balOnly,per){ const L=led(), cs=Object.keys(
   LS.set('jc_pf_led2',L); try{ localStorage.removeItem('jc_pf_ledger'); }catch(e){} return cs; }
 function removeLedger(c){ const L=led(); syncMark('ledger',c==null?Object.keys(Object.assign({},L.E,L.bal)):[c]); if(c==null){ LS.set('jc_pf_led2',{files:[],E:{},bal:{}}); return; }
   delete L.E[c]; delete L.bal[c]; L.files=L.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); LS.set('jc_pf_led2',L); }
+/* the periods a client's uploaded ledger files cover (from the file names / statement dates; else first-last entry) */
+function ledCover(c){ const L=led(), F=(L.files||[]).filter(f=>(f.clients||[]).includes(c)&&f.from&&f.to).map(f=>[f.from,f.to]); const E=L.E[c]||[];
+  if(!F.length&&E.length) F.push([E[0].d,E[E.length-1].d]); F.sort((a,b)=>a[0].localeCompare(b[0])); const M=[]; F.forEach(r=>{ const l=M[M.length-1]; if(l&&r[0]<=dayAfter(l[1])) { if(r[1]>l[1]) l[1]=r[1]; } else M.push(r.slice()); }); return M; }
+const inCover=(M,d)=>M.some(r=>d>=r[0]&&d<=r[1]);
+/* the ledger is current only if it reaches the client's last trade - else its balance, receipts and payouts are an old period */
+function ledFresh(c,trades){ const M=ledCover(c); if(!M.length) return false; const last=(trades||[]).filter(t=>t.c===c).map(t=>t.d).sort().pop(); return !last||M[M.length-1][1]>=last; }
 function ledBal(c){ const L=led(); if(L.E[c]) return L.E[c].reduce((a,e)=>a+e.dr-e.cr,0); if(L.bal[c]!=null) return L.bal[c]; return null; }
 /* trading days after a up to b (weekends skipped; exchange holidays are not known here) */
 function tdays(a,b){ let n=0, d=Date.parse(a)+864e5; const e=Date.parse(b); while(d<=e){ const w=new Date(d).getUTCDay(); if(w>0&&w<6) n++; d+=864e5; } return n; }
@@ -628,7 +634,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25o';
+const BUILD='2026-11-25p';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -741,9 +747,10 @@ function ledgerRecon(c,trades,ST,RX){ ST=ST||stat(); const L=(led().E||{})[c]; c
   const ordBrk=d=>{ const U=Uat(d), by={}; E.parts.filter(p=>p.d===d).forEach(p=>{ const e=exOfP(p), o=by[e]=by[e]||{ch:0,card:0}, D=p.type==='D';
       o.ch+=p.v*(D?(U.bd||0):(U.bi||0))/100; o.card+=p.v*(D?(U.bdc||U.bd||0):(U.bic||U.bi||0))/100; });
     const mn=U.bminFrom&&d<U.bminFrom?0:(U.bmin||0); return Object.values(by).reduce((a,o)=>a+o.ch+Math.max(0,mn-o.card),0); };   /* per exchange note: charged % + shortfall of card-rate brokerage below the minimum */   /* one contract note per exchange per day, each with the minimum */
-  const TF=T.filter(t=>!t.man), T0=(TF.length?TF:T).map(t=>t.d).sort()[0], T1=(TF.length?TF:T).map(t=>t.d).sort().slice(-1)[0];
+  const CV=ledCover(c), TF=T.filter(t=>!t.man), T0=(TF.length?TF:T).map(t=>t.d).sort()[0], T1=(TF.length?TF:T).map(t=>t.d).sort().slice(-1)[0];
   const rows=[...new Set([...Object.keys(g),...Object.keys(bills)])].sort().map(d=>{ const x=g[d]||{d,net:0,stat:0,tD:0,tI:0,n:0}, b=bills[d];
-    if(!x.n&&(d<T0||d>T1)) return {d,bill:b,net:0,stat:0,brk:0,exp:0,diff:b,n:0,ok:null,out:true,why:'outside the trade files ('+dmy(T0)+' to '+dmy(T1)+')'};
+    if(!x.n&&(d<T0||d>T1)) return {d,bill:b,net:0,stat:0,brk:0,exp:0,diff:b,n:0,ok:null,out:true,kind:'bill',why:'outside the trade files ('+dmy(T0)+' to '+dmy(T1)+')'};
+    if(x.n&&b==null&&CV.length&&!inCover(CV,d)) return {d,bill:null,net:x.net,stat:x.stat,brk:0,exp:null,diff:null,n:x.n,ok:null,out:true,kind:'trade',why:'outside the ledger file'+(CV.length>1?'s':'')+' ('+CV.map(r=>dmy(r[0])+' to '+dmy(r[1])).join(', ')+') - upload the ledger for '+fyOf(d)};
     const bk=x.n?ordBrk(d):0, exp=x.net+x.stat+bk*gst, diff=b==null?null:b-exp, tol=Math.max(5,0.0006*(x.tD+x.tI));
     if(b==null&&x.n&&x.man===x.n) return {d,bill:null,net:x.net,stat:x.stat,brk:0,exp:null,diff:null,n:x.n,ok:true,why:'entered by you (IPO allotment / off-market) - no exchange bill expected'};
     return {d,bill:b==null?null:b,net:x.net,stat:x.stat,statOff:x.statOff||0,brk:bk*gst,exp,expOff:x.net+(x.statOff||0)+bk*gst,diff,n:x.n,tD:x.tD,tI:x.tI,man:x.man,ok:b!=null&&x.n>0&&Math.abs(diff)<=tol,why:b==null?'trades but no bill in the ledger':!x.n?'bill but no trades in the trade book':Math.abs(diff)<=tol?'':'amount differs'}; });
@@ -958,5 +965,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();

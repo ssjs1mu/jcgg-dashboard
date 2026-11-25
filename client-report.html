@@ -58,7 +58,7 @@ ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoi
 <div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><span id="phint" style="align-self:center;background:#fff8e6;border:1px solid #E8C96A;border-radius:8px;padding:6px 10px;font:700 11.5px var(--ff);color:#6b4d0e;box-shadow:0 3px 10px rgba(0,0,0,.15)">In the print window: More settings → untick “Headers and footers”</span><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="repClose()" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the report…</div></div>
 <script src="jc-params.js?v=1"></script>
-<script src="pf-core.js?v=46"></script>
+<script src="pf-core.js?v=47"></script>
 <script src="client-report-i18n.js?v=43"></script>
 <script>/* close the report tab; if the browser refuses (tab not opened by a script), go back to Portfolio instead */
 function repClose(){ try{ window.close(); }catch(e){} setTimeout(()=>{ if(!window.closed) location.replace('portfolio.html'); },250); }</script>
@@ -150,11 +150,14 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
 (async()=>{
   if(!C){ $('msg').textContent=R.msgChoose; return; }
   await Promise.all([PF.stateSync().catch(()=>0),window.JCP?JCP.wait(4000):0]); useParams(); await Promise.all([PF.isinMap(),PF.corpActs()]);
-  const T=PF.tb().trades.filter(t=>t.c===C), L=(PF.led().E[C]||[]).slice(), D=(PF.dp().H[C]||[]), M=(PF.dp().M||{})[C]||{};
+  const T=PF.tb().trades.filter(t=>t.c===C), LB=(PF.led().E[C]||[]).slice(), D=(PF.dp().H[C]||[]), M=(PF.dp().M||{})[C]||{};
+  /* a ledger that ends before the last trade is an old period: its receipts, payouts, balance, interest and DP charges are not used
+     (money put in is then taken from the trades); its bills still check the trades of the days it covers */
+  const LFR=PF.ledFresh(C,T), L=LFR?LB:[];
   if(!T.length&&!L.length&&!D.length){ $('msg').textContent=R.msgNo(C); return; }
   const ST=PF.stat(), rateOf=PF.rateOfFrom(PF.rates()), E=PF.fundAdj(PF.compute(PF.caAdjust(T),ST,rateOf));
   /* holdings: the DP statement when there is one (what is really in the demat), cost from the trade book */
-  const bills={}; L.forEach(e=>{ const m=String(e.n||'').match(/\((\d\d)\/(\d\d)\/(\d\d)\)/); if(e.k==='bill'&&m){ const d='20'+m[3]+'-'+m[2]+'-'+m[1]; bills[d]=(bills[d]||0)+e.dr-e.cr; } });
+  const bills={}; LB.forEach(e=>{ const m=String(e.n||'').match(/\((\d\d)\/(\d\d)\/(\d\d)\)/); if(e.k==='bill'&&m){ const d='20'+m[3]+'-'+m[2]+'-'+m[1]; bills[d]=(bills[d]||0)+e.dr-e.cr; } });
   const dayNet={}, dayGross={}, dayStat={}; E.parts.forEach(p=>{ dayNet[p.d]=(dayNet[p.d]||0)+(p.side==='S'?-p.net:p.net); dayGross[p.d]=(dayGross[p.d]||0)+(p.side==='S'?-p.v:p.v); dayStat[p.d]=(dayStat[p.d]||0)+p.stt+p.exch+p.sebi+p.stamp+(p.exch+p.sebi)*ST.gst/100; });
   const dayTurn={}; E.parts.forEach(p=>dayTurn[p.d]=(dayTurn[p.d]||0)+p.v);
   const billOK=d=>{ if(bills[d]==null) return false; const c=bills[d]-dayGross[d]; return c>=-1&&c<=Math.max(50,0.025*dayTurn[d]); };   /* bill charges must look like charges, not missing trades */
