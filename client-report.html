@@ -58,8 +58,8 @@ ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoi
 <div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><span id="phint" style="align-self:center;background:#fff8e6;border:1px solid #E8C96A;border-radius:8px;padding:6px 10px;font:700 11.5px var(--ff);color:#6b4d0e;box-shadow:0 3px 10px rgba(0,0,0,.15)">In the print window: More settings → untick “Headers and footers”</span><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="repClose()" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the report…</div></div>
 <script src="jc-params.js?v=1"></script>
-<script src="pf-core.js?v=39"></script>
-<script src="client-report-i18n.js?v=39"></script>
+<script src="pf-core.js?v=40"></script>
+<script src="client-report-i18n.js?v=40"></script>
 <script>/* close the report tab; if the browser refuses (tab not opened by a script), go back to Portfolio instead */
 function repClose(){ try{ window.close(); }catch(e){} setTimeout(()=>{ if(!window.closed) location.replace('portfolio.html'); },250); }</script>
 <script>
@@ -170,6 +170,12 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
   const divs=PF.caRows(T,{[C]:D},(window.CAX||null)).filter(r=>!r.up&&r.div>0);
   const divT=divs.reduce((a,r)=>a+r.div,0);
   let tax=0, brk=0; Object.keys(dayNet).forEach(d=>{ const st=dayStat[d]; if(bills[d]!=null&&adj[d]){ const all=bills[d]-dayGross[d]; tax+=st; brk+=Math.max(0,all-st); } else { const Pp=E.parts.filter(p=>p.d===d); tax+=st; brk+=Pp.reduce((a,p)=>a+p.brk*(1+ST.gst/100),0); } });
+  /* the same costs split for the report: brokerage without GST, GST, STT, stamp, exchange, SEBI (contract-note bill where the ledger has it), DP from the ledger */
+  const CH={brk:0,gst:0,stt:0,stamp:0,exch:0,sebi:0,dp:0,turn:0}; { const g=ST.gst/100, byD={}; E.parts.forEach(p=>(byD[p.d]=byD[p.d]||[]).push(p));
+    Object.keys(byD).forEach(d=>{ const c=PF.chargeSplit(byD[d],ST);
+      if(bills[d]!=null&&adj[d]){ const all=bills[d]-dayGross[d], rem=all-(c.stt+c.stamp+c.exch+c.sebi); if(rem>0){ c.brk=(rem-(c.exch+c.sebi)*g)/(1+g); c.gst=rem-c.brk; } else { c.brk=0; c.gst=0; } }   /* the bill's own brokerage + GST */
+      Object.keys(CH).forEach(k=>CH[k]+=c[k]); });
+    CH.dp=L.length?Math.max(0,dpChg):CH.dp; }
   const other=PF.caRows(T,{[C]:D}).filter(r=>!r.up&&!/^(div|bonus|split)$/.test(r.a.t));
   const led=L.length?PF.ledBal(C):null, cash=led!=null?-led:0;   /* credit balance = client's money with the broker */
   const hv=H.reduce((a,h)=>a+h.v,0), rest=Math.max(0,cash)+Math.max(0,dpDep), worth=hv+cash+Math.max(0,dpDep);
@@ -298,22 +304,18 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
     if(x.kind==='loss') tpRows.push(row(R.tsSell,x.sym,x.q,x.p,x.pl,x.save,R.tsLoss(x.fy),1));
     else if(x.kind==='pair'){ tpRows.push(row(R.tsSellP,x.sym,x.q,x.p,x.pl,null,R.tsPairG(inr(x.tax)))); x.with.forEach((w,i)=>tpRows.push(row(R.tsSell,w.sym,w.q,w.p,w.pl,i===0?x.save:null,R.tsPair(esc(x.sym)),1))); }
     else tpRows.push(row(R.tsSellX,x.sym,x.q,x.p,x.pl,x.save,R.tsEx)); });
-  /* where the profit went - only when it supports the conversation (in profit, government levies above brokerage) */
-  { const g=ST.gst/100, byD={}, ch={brk:0,gst:0,stt:0,stamp:0,exch:0,sebi:0,dp:0,turn:0}; E.parts.forEach(p=>(byD[p.d]=byD[p.d]||[]).push(p));
-    Object.keys(byD).forEach(d=>{ const c=PF.chargeSplit(byD[d],ST);
-      if(bills[d]!=null&&adj[d]){ const rem=(bills[d]-dayGross[d])-(c.stt+c.stamp+c.exch+c.sebi); if(rem>0){ c.brk=(rem-(c.exch+c.sebi)*g)/(1+g); c.gst=rem-c.brk; } }   /* the bill's own brokerage + GST */
-      Object.keys(ch).forEach(k=>ch[k]+=c[k]); });
-    if(L.length) ch.dp=Math.max(0,dpChg);
-    const W=PF.profitSplit(ch,cs.real+cs.notional,cs.rtax+cs.ntax);
+  /* where the profit went - only when it supports the conversation; same cost figures as 'Costs of investing', profit = page 1 gain + all costs */
+  {
+    const W=PF.profitSplit(Object.assign({},CH,{int:Math.max(0,intr)}),gain,cs.rtax+cs.ntax);
     if(W.show){ const pr=v=>W.pc(v)==null?'–':W.pc(v).toFixed(1)+'%', ln=(lab,v,cls,ind)=>r1(`<tr${cls==='tot'?' class="tot"':''}><td class="l"${ind?' style="padding-left:18px"':''}>${lab}</td><td class="${cls==='you'?'up':''}">${inr(v)}</td><td class="${cls==='you'?'up':''}">${pr(v)}</td></tr>`);
       const r100=v=>Math.round(W.pc(v)), x=W.brk>0?(W.gov/W.brk).toFixed(1):'–';
       table(8,R.xT+' · '+R.wT,`<tr><th class="l">${R.wHead}</th><th>${R.xAmt}</th><th>${R.wPct}</th></tr>`,22,[
         r1(`<tr class="tot"><td class="l"><b>${R.wG}</b></td><td><b>${inr(W.G)}</b></td><td><b>100%</b></td></tr>`),
         r1(`<tr><td class="l"><b>${R.wGov}</b></td><td><b>${inr(W.gov)}</b></td><td><b>${pr(W.gov)}</b></td></tr>`),
         ln(R.wSTT,W.stt,'',1),ln(R.wStamp,W.stamp,'',1),ln(R.wGST,W.gst,'',1),ln(R.wSEBI,W.sebi,'',1),ln(R.wIT,W.itax,'',1),
-        ln(R.wExch,W.exch),ln(R.wBrk,W.brk),ln(R.wDP,W.dp),
+        ln(R.wExch,W.exch),ln(R.wBrk,W.brk),ln(R.wDP,W.dp),...(W.int>0.5?[ln(R.wInt,W.int)]:[]),
         r1(`<tr class="tot"><td class="l"><b>${R.wYou}</b></td><td class="up"><b>${inr(W.kept)}</b></td><td class="up"><b>${pr(W.kept)}</b></td></tr>`)],
-        {note:`<span style="font-size:11px;color:var(--ink)">${R.wPer100(r100(W.kept),r100(W.gov),r100(W.brk))} ${W.more?R.wX(x):''} ${W.turn?R.wTurn((W.brk/W.turn*100).toFixed(2)):''}</span><br>${R.wNote}`}); } }
+        {note:`<span style="font-size:11px;color:var(--ink)">${R.wPer100(r100(W.kept),r100(W.gov),r100(W.brk))} ${W.more?R.wX(x):''} ${W.turn?R.wTurn((W.brk/W.turn*100).toFixed(2)):''}</span><br>${R.wRec(inr(W.G),inr(gain),inr(W.kept))} ${R.wNote}`}); } }
   tpRows.forEach(r=>r.h=30);   /* the reason wraps to two lines */
   table(8,R.xT+' · '+R.tsT+' ('+TX.cur+')',`<tr><th class="l">${R.tsAct}</th><th class="l">${R.thShare}</th><th>${R.thQty}</th><th>${R.tsAt}</th><th>${R.tsPL}</th><th>${R.tsSave}</th><th class="l">${R.tsWhy}</th></tr>`,22,tpRows,
     {empty:R.tsNone,tot:tpRows.length?`<tr class="tot"><td class="l" colspan="5">${R.total}</td><td class="up">${inr(tpSave)}</td><td></td></tr>`:'',note:tpRows.length?R.tsNote:''});
@@ -328,9 +330,10 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
       </div>
       <div class="card"><div class="big">${R.costT}</div>
         <table style="margin-top:4px"><tbody>
-          <tr><td class="l">${R.cBrk}</td><td>${inr(brk,2)}</td></tr><tr><td class="l">${R.cTax}</td><td>${inr(tax,2)}</td></tr>
-          <tr><td class="l">${R.cDp}</td><td>${inr(dpChg,2)}</td></tr>${intr?`<tr><td class="l">${R.cInt}</td><td>${inr(intr,2)}</td></tr>`:''}
-          <tr class="tot"><td class="l">${R.total}</td><td>${inr(brk+tax+dpChg+intr,2)}</td></tr></tbody></table>
+          <tr><td class="l">${R.wBrk}</td><td>${inr(CH.brk,2)}</td></tr><tr><td class="l">${R.wGST}</td><td>${inr(CH.gst,2)}</td></tr>
+          <tr><td class="l">${R.wSTT}</td><td>${inr(CH.stt,2)}</td></tr><tr><td class="l">${R.wStamp}</td><td>${inr(CH.stamp,2)}</td></tr><tr><td class="l">${R.cExSe}</td><td>${inr(CH.exch+CH.sebi,2)}</td></tr>
+          <tr><td class="l">${R.cDp}</td><td>${inr(CH.dp,2)}</td></tr>${intr?`<tr><td class="l">${R.cInt}</td><td>${inr(intr,2)}</td></tr>`:''}
+          <tr class="tot"><td class="l">${R.total}</td><td>${inr(CH.brk+CH.gst+CH.stt+CH.stamp+CH.exch+CH.sebi+CH.dp+intr,2)}</td></tr></tbody></table>
         <div class="note">${R.costNote}</div></div>
     </div>
     <h2><i>10</i>${R.s7}</h2>

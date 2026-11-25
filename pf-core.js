@@ -282,7 +282,7 @@ function taxPlan(E,Q,STAT,keep){ keep=keep||(()=>true); const today=todayS(), cu
    brokerage or brokerage at most 5% of the gross profit; more = government levies above brokerage (the 'x times' line is used only then). */
 function chargeSplit(parts,STAT){ const g=(+STAT.gst||0)/100, o={brk:0,gst:0,stt:0,stamp:0,exch:0,sebi:0,dp:0,turn:0};
   (parts||[]).forEach(p=>{ o.brk+=p.brk||0; o.gst+=((p.brk||0)+(p.exch||0)+(p.sebi||0))*g; o.stt+=p.stt||0; o.stamp+=p.stamp||0; o.exch+=p.exch||0; o.sebi+=p.sebi||0; o.dp+=(p.dp||0)*(1+g); o.turn+=p.v||0; }); return o; }
-function profitSplit(ch,net,itax){ const trade=ch.brk+ch.gst+ch.stt+ch.stamp+ch.exch+ch.sebi, G=net+trade+ch.dp, gov=ch.stt+ch.stamp+ch.gst+ch.sebi+Math.max(0,itax||0), kept=G-gov-ch.exch-ch.brk-ch.dp;
+function profitSplit(ch,net,itax){ const it=+ch.int||0, trade=ch.brk+ch.gst+ch.stt+ch.stamp+ch.exch+ch.sebi, G=net+trade+ch.dp+it, gov=ch.stt+ch.stamp+ch.gst+ch.sebi+Math.max(0,itax||0), kept=G-gov-ch.exch-ch.brk-ch.dp-it;   /* ch.int = interest paid on borrowed funds (optional) */
   const small=G>0&&ch.brk/G<=0.05, more=gov>ch.brk, show=G>0&&kept>0&&(more||small);
   const why=G<=0?'not in profit':kept<=0?'costs and tax exceed the profit':!show?'brokerage above govt levies and over 5% of profit':'';
   return Object.assign({},ch,{G,gov,itax:Math.max(0,itax||0),kept,show,more,why,pc:v=>G>0?v/G*100:null}); }
@@ -611,7 +611,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25h';
+const BUILD='2026-11-25i';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}

@@ -249,3 +249,10 @@ Object.assign(window.RL.bn,{ wT:'আপনার মুনাফা কোথা
   wExch:'স্টক এক্সচেঞ্জ (NSE / BSE)', wBrk:'ব্রোকারেজ (GST ছাড়া)', wDP:'DP / ডিম্যাট খরচ', wYou:'আপনার কাছে রইল', wPct:'মুনাফার %',
   wPer100:(y,g,b)=>`মুনাফার প্রতি ₹100-এর মধ্যে <b>₹${y} আপনার কাছে রইল</b>, সরকার নিয়েছে <b>₹${g}</b> আর ব্রোকার <b>₹${b}</b>।`, wX:x=>`সরকারি কর ব্রোকারেজের <b>${x} গুণ</b>।`, wTurn:p=>`ব্রোকারেজ আপনার সব লেনদেনের মূল্যের মাত্র <b>${p}%</b>।`,
   wNote:'মোট মুনাফা = বুক করা লাভ/ক্ষতি + রাখা শেয়ারে লাভ, ব্রোকারেজ, কর ও খরচের আগে। ব্রোকারেজ GST ছাড়া দেখানো; GST সরকারের মধ্যে ধরা হয়েছে।' });
+/* one set of cost figures for 'Costs of investing' and 'Where your profit went' (added 2026-11-25) */
+Object.assign(window.RL.en,{ cExSe:'Stock exchange + SEBI fee', wInt:'Interest on borrowed funds', wRec:(g,c,k)=>`Gross profit ${g} = your gain of ${c} (page 1, after all costs) + all costs paid. You kept = that gain less income tax = ${k}.` });
+Object.assign(window.RL.hi,{ cExSe:'स्टॉक एक्सचेंज + SEBI शुल्क', wInt:'उधार राशि पर ब्याज', wRec:(g,c,k)=>`कुल मुनाफ़ा ${g} = आपका लाभ ${c} (पेज 1, सभी ख़र्चों के बाद) + चुकाए गए सभी ख़र्च। आपके पास रहा = वह लाभ घटा आयकर = ${k}।` });
+Object.assign(window.RL.bn,{ cExSe:'স্টক এক্সচেঞ্জ + SEBI ফি', wInt:'ধার করা টাকার সুদ', wRec:(g,c,k)=>`মোট মুনাফা ${g} = আপনার লাভ ${c} (পৃষ্ঠা 1, সব খরচের পরে) + দেওয়া সব খরচ। আপনার কাছে রইল = সেই লাভ বাদ আয়কর = ${k}।` });
+Object.assign(window.RL.en,{ wG:'Gross profit before all costs (booked + on shares held + dividends)' });
+Object.assign(window.RL.hi,{ wG:'सभी ख़र्चों से पहले कुल मुनाफ़ा (बुक + रखे शेयरों पर + डिविडेंड)' });
+Object.assign(window.RL.bn,{ wG:'সব খরচের আগে মোট মুনাফা (বুক + রাখা শেয়ারে + ডিভিডেন্ড)' });
