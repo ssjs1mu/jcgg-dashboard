@@ -53,11 +53,13 @@ ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoi
 .noprint select{background:#a0761a}
 #msg{max-width:760px;margin:40px auto;font:600 15px var(--ff);color:#3f3c00;text-align:center}
 </style></head><body>
-<div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><span id="phint" style="align-self:center;background:#fff8e6;border:1px solid #E8C96A;border-radius:8px;padding:6px 10px;font:700 11.5px var(--ff);color:#6b4d0e;box-shadow:0 3px 10px rgba(0,0,0,.15)">In the print window: More settings → untick “Headers and footers”</span><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="history.length>1?history.back():close()" style="background:#8a8466">✕ Close</button></div>
+<div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><span id="phint" style="align-self:center;background:#fff8e6;border:1px solid #E8C96A;border-radius:8px;padding:6px 10px;font:700 11.5px var(--ff);color:#6b4d0e;box-shadow:0 3px 10px rgba(0,0,0,.15)">In the print window: More settings → untick “Headers and footers”</span><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="repClose()" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the report…</div></div>
 <script src="jc-params.js?v=1"></script>
-<script src="pf-core.js?v=35"></script>
+<script src="pf-core.js?v=36"></script>
 <script src="client-report-i18n.js?v=3"></script>
+<script>/* close the report tab; if the browser refuses (tab not opened by a script), go back to Portfolio instead */
+function repClose(){ try{ window.close(); }catch(e){} setTimeout(()=>{ if(!window.closed) location.replace('portfolio.html'); },250); }</script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), P=new URLSearchParams(location.search), C=(P.get('c')||'').toUpperCase();
@@ -310,6 +312,6 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
   const pages=[p1,...vp,p3], N=pages.length;
   $('root').innerHTML=pages.map((b,i)=>`<div class="page">${head(i+1,N)}<div class="bd">${b}</div>${foot(i+1,N)}</div>`).join('');
   document.title=C+' Portfolio report '+today+(LG!=='en'?' '+LG:'');
-  if(P.get('print')==='1') setTimeout(()=>window.print(),1200);
+  /* no automatic print dialog: it is modal and froze the Portfolio tab until this tab closed; the 🖨 button prints */
 })().catch(e=>{ $('msg').textContent='Could not build the report - '+e.message; });
 </script></body></html>
