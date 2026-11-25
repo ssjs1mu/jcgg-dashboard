@@ -224,6 +224,7 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
   /* rows: [{html,h}] ; head: thead html, hh its height ; tot: total row html ; note: html under the table */
   const table=(n,title,head,hh,rows,opt)=>{ opt=opt||{}; const tail=(opt.tot?RH+2:0)+(opt.note?Math.ceil(opt.note.replace(/<[^>]+>/g,'').length/150)*14+6:0); let i=0, first=true;
     if(!rows.length){ put(H2(n,title)+`<div class="note">${opt.empty||''}</div>`,56); return; }
+    if(rows.length<=14&&used&&used+34+hh+rows.reduce((a,r)=>a+r.h,0)+tail>CAP) nextPg();   /* short tables stay on one page */
     while(i<rows.length){ if(used&&used+34+hh+RH*Math.min(3,rows.length-i)+(rows.length-i<=3?tail:0)>CAP) nextPg();
       let h=34+hh, body=''; while(i<rows.length){ const last=i===rows.length-1, need=rows[i].h+(last?tail:0); if(used+h+need>CAP&&body) break; body+=rows[i].html; h+=rows[i].h; i++; }
       const end=i>=rows.length; cur+=H2(n,title+(first?'':R.contd))+`<table class="gx${opt.cls?' '+opt.cls:''}"><thead>${head}</thead><tbody>${body}${end&&opt.tot?opt.tot:''}</tbody></table>${end&&opt.note?`<div class="note" style="margin-top:3px">${opt.note}</div>`:''}`;
