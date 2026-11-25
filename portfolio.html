@@ -91,7 +91,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=48"></script>
+<script src="pf-core.js?v=49"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -197,6 +197,7 @@ function render(){
   if(TAB!=='pf'){ $('warn').innerHTML=''; $('body').innerHTML=TAB==='xs'?xsTab():TAB==='tax'?taxTab(E,inC):TAB==='dp'?dpTab(E,clients):TAB==='ca'?caTab(clients):TAB==='tal'?talTab(clients):ledTab(clients);
     if($('ledK')) $('ledK').onchange=()=>{ $('lk').value=$('ledK').value; render(); };
     if($('recNow')) $('recNow').onclick=()=>{ recon(); alertBox('Charges reconciled - see the table'); };
+    if($('clrSy2')) $('clrSy2').onclick=e=>{ e.preventDefault(); SYF=''; $('sy').value=''; LS.set('jc_pf_sym',''); render(); };
     document.querySelectorAll('[data-unal]').forEach(b=>b.onclick=()=>{ PF.setAlias(b.dataset.unal,''); render(); });
     document.querySelectorAll('select[data-al]').forEach(sl=>sl.onchange=()=>{ if(!sl.value) return; const [to,isin,sec]=sl.value.split('|'); PF.setAlias(sl.dataset.al,to,isin,sec); render(); });
     document.querySelectorAll('[data-gb]').forEach(b=>b.onclick=()=>{ const o=JSON.parse(b.dataset.gb); PF.editor(o,async()=>{ await loadTrades(); recon(); prices(); history(); }); });
@@ -272,6 +273,7 @@ function render(){
   document.querySelectorAll('select.mk').forEach(m=>m.onchange=()=>{ const s=m.dataset.s, c=m.dataset.c; PF.markSplit(MARK,s,PF.tb().trades); if(m.value) MARK[c+'|'+s]=m.value; else delete MARK[c+'|'+s]; LS.set('jc_pf_mark',MARK); render(); });   /* Trading / Investment is per client */
   document.querySelectorAll('tr[data-c]').forEach(tr=>tr.onclick=()=>{ CL=tr.dataset.c; LS.set('jc_pf_client',CL); render(); scrollTo(0,0); });
   if($('clrSy')) $('clrSy').onclick=e=>{ e.preventDefault(); SYF=''; $('sy').value=''; LS.set('jc_pf_sym',''); render(); };
+  if($('clrSy2')) $('clrSy2').onclick=e=>{ e.preventDefault(); SYF=''; $('sy').value=''; LS.set('jc_pf_sym',''); render(); };
   if($('clrMf')) $('clrMf').onclick=e=>{ e.preventDefault(); MF='all'; $('mf').value='all'; LS.set('jc_pf_mf','all'); render(); };
   if($('goDP')) $('goDP').onclick=e=>{ e.preventDefault(); TAB='dp'; LS.set('jc_pf_tab',TAB); render(); };
   const pt=Qat?new Date(Qat+19800000).toISOString().slice(11,16)+' IST':'not loaded';
@@ -326,7 +328,7 @@ function dpTab(E,clients){ const D=PF.dp();
   const R=dpRows(E,clients), tv=R.reduce((a,r)=>a+r.v,0), pv=R.filter(r=>r.pl).reduce((a,r)=>a+r.v,0), bad=R.filter(r=>Math.abs(r.diff)>0.0001&&!r.susp).length, cs=[...new Set(R.filter(r=>r.d).map(r=>r.c))], ss=[...new Set(R.filter(r=>r.d).map(r=>r.sy))], SU=R.filter(r=>r.susp);
   const sv=R.reduce((a,r)=>a+(r.d*(r.x.rate||0)),0), asOf=[...new Set(cs.map(c=>((D.M||{})[c]||{}).asOf).filter(Boolean))].sort();
   $('kpis').innerHTML=K2('Clients',cs.length,CL==='ALL'?'with DP holdings':esc(CL))+K2('Stocks',ss.length,SYF?'matching '+esc(SYF):'in DP')+K2('DP Value (Live)',fx(tv,0),Qat?'NSE price, BSE where not on NSE':'prices loading…')+K2('Statement Value',fx(sv,0),'BSE close on the statement · change '+sgn(tv-sv,0))+K2('Pledged',fx(pv,0),tv?pc(pv/tv*100).replace('+','')+' of DP value':'')+K2('Free (Beneficiary)',fx(tv-pv,0),'')+K2('Suspended / No Price',`<span class="${SU.length?'dn':''}">${SU.length?[...new Set(SU.map(r=>r.sy))].length:'none'}</span>`,'no NSE or BSE price · not valued')+K2('Mismatch vs Trade Book',`<span class="${bad?'dn':'up'}">${bad||'none'}</span>`,'DP qty ≠ trade book qty')+K2('Holding As On',asOf.length?asOf.map(dmy).join(', '):'–','statement date');
-  if(!R.length) return '<div class="warn">No DP holdings match this client / stock.</div>';
+  if(!R.length) return SYF?`<div class="warn">No DP holdings${CL!=='ALL'?' for '+esc(CL):''} match the symbol filter <b>"${esc(SYF)}"</b>. <button class="btn" id="clrSy2">✕ Clear Symbol Filter</button></div>`:'<div class="warn">No DP holdings for this client.</div>';
   const chipsOf=r=>(r.susp?'<span class="chip ls">Suspended · no price</span>':'')+(!r.b&&r.d?'<span class="chip bk">not in trade book</span>':'')+(r.b&&!r.d?'<span class="chip bk">not in DP</span>':'');
   const ty=r=>r.x.type?(r.pl?'<span class="chip pf">'+esc(r.x.type)+'</span>':esc(r.x.type)):'–';
   const used=r=>r.p?`<b>${fx(r.p)}</b> <span class="mu">${r.i.src}</span>`:'<span class="dn">no price</span>';
@@ -583,7 +585,9 @@ async function clSync(force){ if(CLW.busy||!localStorage.getItem('jc_admin_key')
   }catch(e){ if(force) alertBox('Client watchlist sync failed: '+e.message,true); else console.warn('clSync',e); } finally{ CLW.busy=0; } }
 let clT=0; const clSoon=()=>{ clearTimeout(clT); clT=setTimeout(()=>clSync(false),5000); };
 function alertBox(t,bad){ const d=document.createElement('div'); d.className='warn'; d.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:999;'+(bad?'background:#FBE3E1;border-color:#E29A93;color:#8a1010':'background:#E3F1DF;border-color:#8DC487;color:#1C5C0D'); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
-$('cl').onchange=()=>{ CL=$('cl').value; LS.set('jc_pf_client',CL); render(); };
+$('cl').onchange=()=>{ CL=$('cl').value; LS.set('jc_pf_client',CL);
+  if(SYF&&CL!=='ALL'){ const u=SYF.toUpperCase(), has=(TR||[]).some(t=>t.c===CL&&t.sym.toUpperCase().includes(u))||(PF.dp().H[CL]||[]).some(x=>String(x.sym||'').toUpperCase().includes(u)); if(!has){ SYF=''; $('sy').value=''; LS.set('jc_pf_sym',''); } }   /* a filter the new client has nothing for would show an empty page */
+  render(); };
 $('rf').onclick=()=>prices(true);
 function openRep(lg){ closeDd(); if(CL==='ALL'){ alertBox('Choose a client first (Client dropdown), then Reports → Client Report.',true); return; } try{ localStorage.setItem('jc_rep_lang',lg); }catch(e){} window.open('client-report.html?c='+encodeURIComponent(CL)+'&lang='+lg+'&print=1','_blank','noopener'); }
 $('crep').onclick=e=>{ e.stopPropagation(); $('crSub').classList.toggle('op'); };

@@ -635,7 +635,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25q';
+const BUILD='2026-11-25r';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -751,6 +751,7 @@ function ledgerRecon(c,trades,ST,RX){ ST=ST||stat(); const L=(led().E||{})[c]; c
   const CV=ledCover(c), TF=T.filter(t=>!t.man), T0=(TF.length?TF:T).map(t=>t.d).sort()[0], T1=(TF.length?TF:T).map(t=>t.d).sort().slice(-1)[0];
   const rows=[...new Set([...Object.keys(g),...Object.keys(bills)])].sort().map(d=>{ const x=g[d]||{d,net:0,stat:0,tD:0,tI:0,n:0}, b=bills[d];
     if(!x.n&&(d<T0||d>T1)) return {d,bill:b,net:0,stat:0,brk:0,exp:0,diff:b,n:0,ok:null,out:true,kind:'bill',why:'outside the trade files ('+dmy(T0)+' to '+dmy(T1)+')'};
+    if(x.n&&x.man===x.n&&(d<T0||d>T1)) return {d,bill:b==null?null:b,net:x.net,stat:x.stat,brk:0,exp:null,diff:null,n:x.n,ok:null,out:true,kind:'manual',why:'only your hand entries on this day - the trade file of '+fyOf(d)+' is not uploaded (trade files cover '+dmy(T0)+' to '+dmy(T1)+'), so the bill cannot be checked'};
     if(x.n&&b==null&&CV.length&&!inCover(CV,d)) return {d,bill:null,net:x.net,stat:x.stat,brk:0,exp:null,diff:null,n:x.n,ok:null,out:true,kind:'trade',why:'outside the ledger file'+(CV.length>1?'s':'')+' ('+CV.map(r=>dmy(r[0])+' to '+dmy(r[1])).join(', ')+') - upload the ledger for '+fyOf(d)};
     const bk=x.n?ordBrk(d):0, exp=x.net+x.stat+bk*gst, diff=b==null?null:b-exp, tol=Math.max(5,0.0006*(x.tD+x.tI));
     if(b==null&&x.n&&x.man===x.n) return {d,bill:null,net:x.net,stat:x.stat,brk:0,exp:null,diff:null,n:x.n,ok:true,why:'entered by you (IPO allotment / off-market) - no exchange bill expected'};
