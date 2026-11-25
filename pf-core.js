@@ -253,6 +253,40 @@ function taxCalc(E,Q,STAT,keep){ keep=keep||(()=>true); const today=todayS(), cu
     const notional=nl.reduce((a,x)=>a+x.pl,0), ntax=withN-base, inv=Object.values(S).filter(r=>r.c===c).reduce((a,r)=>a+r.cost,0);
     CS.push({c,real,rtax,realNet:real-rtax,notional,ntax,notNet:notional-ntax,net:real-rtax+notional-ntax,inv}); });
   return {rows:Object.values(S).sort((a,b)=>a.c.localeCompare(b.c)||a.sym.localeCompare(b.sym)),fy:FY,cs:CS,cur,today}; }
+/* ---------- Tax-saving suggestions for the current FY (per client), from open holdings at live prices:
+   loss  = book a loss to set off gains already booked this FY (short-term loss sets off STCG then LTCG; long-term loss only LTCG)
+   pair  = if a profit is booked in a holding, book a loss in another the same day so the gain is set off
+   exempt= LTCG still inside this FY's exemption: book long-term gains tax-free and buy back the next trading day (cost resets higher)
+   Each holding is taken whole (all lots, FIFO terms); saving = tax before - tax after, incl. cess. */
+function taxPlan(E,Q,STAT,keep){ keep=keep||(()=>true); const today=todayS(), cur=fyOf(today), out=[], tx=L=>fyTax(L.length?L:[{k:'S',pl:0,sd:today}],STAT);
+  const cs=[...new Set((E.hold||[]).filter(keep).map(h=>h.c))].sort();
+  cs.forEach(c=>{ const L=[]; (E.intra||[]).filter(x=>x.c===c&&keep(x)&&fyOf(x.d)===cur).forEach(x=>L.push({k:'I',pl:x.pl,sd:x.d}));
+    (E.real||[]).filter(x=>x.c===c&&keep(x)&&fyOf(x.sd)===cur).forEach(x=>L.push({k:isLT(x.bd,x.sd)?'L':'S',pl:x.pl,sd:x.sd}));
+    const it={}; (E.hold||[]).filter(h=>h.c===c&&keep(h)).forEach(h=>{ const p=Q&&Q[h.sym]&&Q[h.sym].p; if(!p) return; const o=it[h.sym]=it[h.sym]||{sym:h.sym,q:0,p,lots:[],pl:0,lt:0,ltq:0};
+      const u=h.q*(p-h.cost), l=isLT(h.d,today); o.q+=h.q; o.pl+=u; o.lots.push({k:l?'L':'S',pl:u,sd:today}); if(l){ o.lt+=u; o.ltq+=h.q; } });
+    const I=Object.values(it), lose=I.filter(o=>o.pl<-1), gain=I.filter(o=>o.pl>1).sort((a,b)=>b.pl-a.pl), used=new Set();
+    let base=L.slice(); const t0=tx(base).tax;
+    if(t0>1){ for(;;){ let best=null; lose.filter(o=>!used.has(o.sym)).forEach(o=>{ const sv=tx(base).tax-tx(base.concat(o.lots)).tax; if(sv>(best?best.sv:50)) best={o,sv}; }); if(!best) break;
+        used.add(best.o.sym); base=base.concat(best.o.lots); out.push({c,kind:'loss',sym:best.o.sym,q:best.o.q,p:best.o.p,pl:best.o.pl,save:best.sv,fy:cur}); } }
+    gain.slice(0,5).forEach(g=>{ const tA=tx(base.concat(g.lots)).tax-tx(base).tax; if(tA<100) return; let B=base.concat(g.lots), w=[], sv=0;
+      for(;;){ let best=null; lose.filter(o=>!used.has(o.sym)&&!w.includes(o)).forEach(o=>{ const s2=tx(B).tax-tx(B.concat(o.lots)).tax; if(s2>(best?best.s2:50)) best={o,s2}; }); if(!best) break; w.push(best.o); B=B.concat(best.o.lots); sv+=best.s2; }
+      if(w.length){ w.forEach(o=>used.add(o.sym)); out.push({c,kind:'pair',sym:g.sym,q:g.q,p:g.p,pl:g.pl,tax:tA,with:w.map(o=>({sym:o.sym,q:o.q,p:o.p,pl:o.pl})),save:sv,fy:cur}); } });
+    const f=tx(base); let room=ltEx(cur)-f.ltExempt;
+    if(room>1000) gain.filter(o=>o.lt>1).forEach(o=>{ if(room<=1000) return; const per=o.lt/o.ltq, q=Math.min(o.ltq,Math.floor(room/per)); if(q<1) return; const g=q*per; room-=g;
+      out.push({c,kind:'exempt',sym:o.sym,q,p:o.p,pl:g,save:g*ltRate(today)/100*(1+(+STAT.cess||0)/100),fy:cur}); }); });
+  return out; }
+/* sector names as used in the Indian market, from Yahoo's industry (assetProfile.industry); SECTOR_FIX wins for a symbol */
+const SECTOR_FIX={ITC:'FMCG',RELIANCE:'Oil & Gas / Conglomerate',IRCTC:'Travel & Tourism',LT:'Infrastructure & Construction',ADANIENT:'Conglomerate',COALINDIA:'Mining',ONGC:'Oil & Gas',IRFC:'Finance - Railways',RVNL:'Infrastructure - Railways',IRCON:'Infrastructure - Railways'};
+const SECTOR_RX=[[/aerospace|defen/i,'Defence'],[/auto parts/i,'Auto Ancillary'],[/auto|truck/i,'Auto'],[/resort|casino|lodging/i,'Hotels & Tourism'],[/travel/i,'Travel & Tourism'],[/airline/i,'Aviation'],
+  [/^banks/i,'Banking'],[/insurance/i,'Insurance'],[/credit services|mortgage|financial conglomerate/i,'NBFC / Finance'],[/asset management|capital markets|financial data|exchange/i,'Capital Markets'],
+  [/information technology|software/i,'IT'],[/drug|biotech|pharma/i,'Pharma'],[/medical care|diagnostic|health information/i,'Healthcare Services'],[/medical (device|instrument)/i,'Medical Equipment'],
+  [/tobacco|packaged food|household & personal|beverages|confection|food distribution|farm products/i,'FMCG'],[/steel/i,'Metals - Steel'],[/alumin|copper|industrial metals|gold|silver|precious/i,'Metals & Mining'],[/coal|mining/i,'Mining'],
+  [/utilities|power|renewable|solar/i,'Power'],[/oil|gas/i,'Oil & Gas'],[/agricultural inputs/i,'Agro Chemicals & Fertilisers'],[/chemical/i,'Chemicals'],[/building materials/i,'Cement & Building Materials'],
+  [/engineering & construction|infrastructure/i,'Infrastructure & Construction'],[/real estate/i,'Realty'],[/telecom/i,'Telecom'],[/electrical equipment|machinery|tools & accessories|industrial distribution|pollution/i,'Capital Goods'],
+  [/marine shipping|railroad|trucking|freight|logistics|airport/i,'Logistics & Transport'],[/apparel|textile|footwear/i,'Textiles & Apparel'],[/restaurant/i,'QSR / Restaurants'],[/luxury/i,'Jewellery & Luxury'],
+  [/department|specialty retail|internet retail|grocery|discount/i,'Retail'],[/entertainment|broadcast|publishing|advertising|internet content/i,'Media & Entertainment'],[/semiconductor|electronic|computer hardware|communication equipment/i,'Electronics'],
+  [/furnishing|appliance|fixtures|recreational|leisure/i,'Consumer Durables'],[/packaging/i,'Packaging'],[/paper|lumber/i,'Paper'],[/conglomerate/i,'Conglomerate'],[/education/i,'Education'],[/rental|staffing|consulting|business services|security/i,'Services']];
+const sectorOf=(sym,ind,sec)=>SECTOR_FIX[sym]||((SECTOR_RX.find(([r])=>r.test(ind||''))||[])[1])||sec||'';
 /* Trading / Investment mark is per client + symbol ('S1MU061|ITC'); an old symbol-wide mark ('ITC') still applies to clients
    with no mark of their own until one client's mark is changed - then it is copied to every client holding that symbol and removed */
 const markOf=(M,c,sym)=>(M||{})[c+'|'+sym]||(M||{})[sym]||'';
@@ -566,7 +600,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25f';
+const BUILD='2026-11-25g';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -799,5 +833,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();

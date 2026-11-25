@@ -58,8 +58,8 @@ ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoi
 <div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><span id="phint" style="align-self:center;background:#fff8e6;border:1px solid #E8C96A;border-radius:8px;padding:6px 10px;font:700 11.5px var(--ff);color:#6b4d0e;box-shadow:0 3px 10px rgba(0,0,0,.15)">In the print window: More settings → untick “Headers and footers”</span><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="repClose()" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the report…</div></div>
 <script src="jc-params.js?v=1"></script>
-<script src="pf-core.js?v=37"></script>
-<script src="client-report-i18n.js?v=37"></script>
+<script src="pf-core.js?v=38"></script>
+<script src="client-report-i18n.js?v=38"></script>
 <script>/* close the report tab; if the browser refuses (tab not opened by a script), go back to Portfolio instead */
 function repClose(){ try{ window.close(); }catch(e){} setTimeout(()=>{ if(!window.closed) location.replace('portfolio.html'); },250); }</script>
 <script>
@@ -101,7 +101,8 @@ async function hist(tk){ const u='https://query1.finance.yahoo.com/v8/finance/ch
 /* fundamentals (Yahoo quoteSummary via the backend): ratios as reported; null when not available */
 async function fund(s){ try{ const u='https://query2.finance.yahoo.com/v10/finance/quoteSummary/'+encodeURIComponent(s+'.NS')+'?modules=summaryDetail,defaultKeyStatistics,financialData,assetProfile,price';
   const j=await fetch(BE+'?action=fetch&url='+encodeURIComponent(u)).then(r=>r.json()), x=j.quoteSummary.result[0], r=o=>o&&o.raw!=null&&isFinite(o.raw)?o.raw:null, d=x.summaryDetail||{}, k=x.defaultKeyStatistics||{}, f=x.financialData||{};
-  return {sec:(x.assetProfile||{}).sector||'',mcap:r((x.price||{}).marketCap),pe:r(d.trailingPE),pb:r(k.priceToBook),eps:r(k.trailingEps),bv:r(k.bookValue),roe:r(f.returnOnEquity),pm:r(f.profitMargins),rg:r(f.revenueGrowth),eg:r(f.earningsGrowth),de:r(f.debtToEquity),dy:r(d.dividendYield),tgt:r(f.targetMeanPrice)}; }catch(e){ return null; } }
+  const ap=x.assetProfile||{};
+  return {sec:PF.sectorOf(s,ap.industry,ap.sector),ind:ap.industry||'',mcap:r((x.price||{}).marketCap),pe:r(d.trailingPE),pb:r(k.priceToBook),eps:r(k.trailingEps),bv:r(k.bookValue),roe:r(f.returnOnEquity),pm:r(f.profitMargins),rg:r(f.revenueGrowth),eg:r(f.earningsGrowth),de:r(f.debtToEquity),dy:r(d.dividendYield),tgt:r(f.targetMeanPrice)}; }catch(e){ return null; } }
 const closeOn=(S,d)=>{ let c=null; for(const p of S){ if(p.d<=d) c=p.c; else break; } return c; };
 /* the same deposits and payouts bought / sold in an index on the same dates */
 function idxRun(S,flows,last){ if(!S.length) return null; let u=0; for(const f of flows.slice().sort((a,b)=>a.d.localeCompare(b.d))){ const c=closeOn(S,f.d); if(!c) return null; u+=-f.v/c; }
@@ -249,18 +250,18 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
   /* 3 · every DP holding */
   const plT=H.reduce((a,h)=>a+(h.pl||0),0);
   table(3,R.s3,`<tr><th class="l">${R.thShare}</th><th class="l">${R.thSec}</th><th>${R.thQty}</th><th>${R.thAvg}</th><th>${R.thNow}</th><th>${R.thVal}</th><th>${R.thGain}</th><th>${R.thPct}</th><th>${R.thPort}</th></tr>`,26,
-    H.map(h=>{ const f=FU[h.sym]; return r1(`<tr><td class="l"><b>${esc(h.sym)}</b>${h.since?' <span class="mu">'+R.since(dmy(h.since))+'</span>':''}</td><td class="l mu">${esc(h.sec||(f&&f.sec)||'')}</td><td>${num(h.q)}</td><td>${h.avg!=null?num(h.avg,2):'–'}</td><td>${h.p?num(h.p,2):'–'}</td><td><b>${inr(h.v)}</b></td><td class="${cl(h.pl)}">${h.pl!=null?inr(h.pl):'–'}</td><td class="${cl(h.pl)}">${h.pl!=null&&h.c?pc(h.pl/h.c*100,1):'–'}</td><td>${hv?(h.v/hv*100).toFixed(1)+'%':'–'}</td></tr>`); }),
+    H.map(h=>{ const f=FU[h.sym]; return r1(`<tr><td class="l"><b>${esc(h.sym)}</b>${h.since?' <span class="mu">'+R.since(dmy(h.since))+'</span>':''}</td><td class="l mu">${esc((f&&f.sec)||'–')}</td><td>${num(h.q)}</td><td>${h.avg!=null?num(h.avg,2):'–'}</td><td>${h.p?num(h.p,2):'–'}</td><td><b>${inr(h.v)}</b></td><td class="${cl(h.pl)}">${h.pl!=null?inr(h.pl):'–'}</td><td class="${cl(h.pl)}">${h.pl!=null&&h.c?pc(h.pl/h.c*100,1):'–'}</td><td>${hv?(h.v/hv*100).toFixed(1)+'%':'–'}</td></tr>`); }),
     {tot:`<tr class="tot"><td class="l" colspan="5">${R.total}</td><td>${inr(hv)}</td><td class="${cl(plT)}">${inr(plT)}</td><td></td><td>100%</td></tr>`,
      note:other.filter(r=>/demerger/i.test(r.a.sub)).map(r=>R.demerger(esc(r.sym),dlong(r.a.ex),r.q<10,num(r.q))).join(' ')+' '+R.prices(asOf,M.asOf?dlong(M.asOf):'',M.dpac?esc(M.dpac):'')});
 
   /* 4 · fundamentals */
   table(4,R.fT,`<tr><th class="l">${R.thShare}</th><th class="l">${R.thSec}</th><th>${R.thNow}</th><th>${R.fMcap}</th><th>${R.fPE}</th><th>${R.fPB}</th><th>${R.fEPS}</th><th>${R.fBV}</th><th>${R.fROE}</th><th>${R.fPM}</th><th>${R.fRG}</th><th>${R.fEG}</th><th>${R.fDE}</th><th>${R.fDY}</th><th>${R.fTgt}</th></tr>`,36,
-    H.map(h=>{ const f=FU[h.sym]||{}; return r1(`<tr><td class="l"><b>${esc(h.sym)}</b></td><td class="l mu">${esc(f.sec||h.sec||'–')}</td><td>${h.p?num(h.p,2):'–'}</td><td>${f.mcap?num(f.mcap/1e7,0):'–'}</td><td>${n2(f.pe,1)}</td><td>${n2(f.pb,1)}</td><td>${n2(f.eps)}</td><td>${n2(f.bv,1)}</td><td class="${cl(f.roe)}">${p1x(f.roe)}</td><td class="${cl(f.pm)}">${p1x(f.pm)}</td><td class="${cl(f.rg)}">${p1x(f.rg)}</td><td class="${cl(f.eg)}">${p1x(f.eg)}</td><td>${f.de==null?'–':num(f.de/100,2)}</td><td>${f.dy==null?'–':num(f.dy*100,2)}</td><td>${f.tgt?num(f.tgt,0)+(h.p?' <span class="'+cl(f.tgt-h.p)+'">('+pc((f.tgt/h.p-1)*100,0)+')</span>':''):'–'}</td></tr>`); }),
+    H.map(h=>{ const f=FU[h.sym]||{}; return r1(`<tr><td class="l"><b>${esc(h.sym)}</b></td><td class="l mu">${esc(f.sec||'–')}</td><td>${h.p?num(h.p,2):'–'}</td><td>${f.mcap?num(f.mcap/1e7,0):'–'}</td><td>${n2(f.pe,1)}</td><td>${n2(f.pb,1)}</td><td>${n2(f.eps)}</td><td>${n2(f.bv,1)}</td><td class="${cl(f.roe)}">${p1x(f.roe)}</td><td class="${cl(f.pm)}">${p1x(f.pm)}</td><td class="${cl(f.rg)}">${p1x(f.rg)}</td><td class="${cl(f.eg)}">${p1x(f.eg)}</td><td>${f.de==null?'–':num(f.de/100,2)}</td><td>${f.dy==null?'–':num(f.dy*100,2)}</td><td>${f.tgt?num(f.tgt,0)+(h.p?' <span class="'+cl(f.tgt-h.p)+'">('+pc((f.tgt/h.p-1)*100,0)+')</span>':''):'–'}</td></tr>`); }),
     {cls:'gs',note:R.fNote});
 
   /* 5 · technical targets */
   const sigC=s=>s&&s.W?`<b class="${s.W.call==='BUY'?'up':s.W.call==='SELL'?'dn':'mu'}">${R['c'+s.W.call]}</b> <span class="mu">${s.W.conv}</span>`:'–';
-  table(5,R.tT,`<tr><th class="l">${R.thShare}</th><th>${R.thQty}</th><th>${R.thAvg}</th><th>${R.thNow}</th><th>${R.tLo}</th><th>${R.tHi}</th><th class="l">${R.tTrend}</th><th class="l">${R.lSig}</th><th>${R.tRsi}</th><th class="l">${R.tView}</th><th>${R.lEn}</th><th>${R.tRev}</th><th>T1</th><th>T2</th><th>T3</th><th>${R.l1}</th><th>${R.l2}</th></tr>`,36,
+  table(5,R.tT,`<tr><th class="l">${R.thShare}</th><th>${R.thQty}</th><th>${R.thAvg}</th><th>${R.thNow}</th><th>${R.tLo}</th><th>${R.tHi}</th><th class="l">${R.tTrend}</th><th class="l">${R.lSig}</th><th>${R.tRsi}</th><th class="l">${R.tView}</th><th>${R.lEn}</th><th>${R.tRev}</th><th>T1</th><th>T2</th><th>T3</th><th>${R.e1}</th><th>${R.e2}</th></tr>`,36,
     H.map(h=>{ const s=h.st; if(!s) return r1(`<tr><td class="l"><b>${esc(h.sym)}</b></td><td>${num(h.q)}</td><td>${h.avg!=null?num(h.avg,2):'–'}</td><td>${h.p?num(h.p,2):'–'}</td><td class="l mu" colspan="13">${R.noHist}</td></tr>`);
       return r1(`<tr><td class="l"><b>${esc(h.sym)}</b></td><td>${num(h.q)}</td><td>${h.avg!=null?num(h.avg,2):'–'}</td><td><b>${num(s.p,2)}</b></td><td>${px(s.lo)}</td><td>${px(s.hi)}</td><td class="l">${R['t'+s.trend]}</td><td class="l">${sigC(s)}</td><td class="${s.W&&s.W.rsi>=70?'dn':s.W&&s.W.rsi<=30?'up':''}">${s.W?s.W.rsi.toFixed(0):'–'}</td><td class="l"><span class="vw v${s.view}">${R['v'+s.view]}</span></td><td class="up">${s.lv?px(s.lv.en):'–'}</td><td class="dn">${s.rev?px(s.rev):'–'}</td>${['t1','t2','t3'].map(k=>`<td>${s.lv?px(s.lv[k]):'–'}</td>`).join('')}<td><b>${px(s.y1.b)}</b></td><td><b>${px(s.y2.b)}</b> <span class="mu">${pc((s.y2.b/s.p-1)*100,0)}</span></td></tr>`); }),
     {cls:'gs',note:R.tNote});
@@ -270,12 +271,13 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
     H.map(h=>{ const s=h.st, gp1=h.pl!=null&&h.c?h.pl/h.c*100:null, t=s?s.txt+(gp1!=null&&gp1>40&&s.pos>=0.8?' '+R.profit(gp1.toFixed(0)):'')+' '+R.outlook(px(s.y1.b),px(s.y2.b),px(s.y2.l),px(s.y2.h)):R.noHist;
       return {html:`<tr><td class="l"><b>${esc(h.sym)}</b></td><td class="l"><span class="vw v${s?s.view:'NA'}">${R['v'+(s?s.view:'NA')]}</span></td><td class="l w" style="font-size:9.6px;line-height:1.3">${t}</td></tr>`,h:Math.max(RH,Math.ceil(t.replace(/<[^>]+>/g,'').length/118)*13+6)}; }));
 
+  const gw=(a,b)=>b?`<span class="${a>=b?'up':'dn'}" style="font-size:9px">(${pc((a/b-1)*100,1)})</span>`:'';
   /* 7 · 1-2 year outlook */
   if(SH.length) table(7,R.s5,`<tr><th class="l"></th><th>${R.thToday}</th><th>${R.th1}</th><th>${R.th2}</th></tr>`,22,[
-      r1(`<tr><td class="l"><b>${R.rBase}</b></td><td><b>${inr(mine)}</b></td><td class="up"><b>${inr(pB(1))}</b></td><td class="up"><b>${inr(pB(2))}</b></td></tr>`),
-      r1(`<tr><td class="l mu">${R.rRange}</td><td></td><td class="mu">${inr(pR(1).l)} – ${inr(pR(1).h)}</td><td class="mu">${inr(pR(2).l)} – ${inr(pR(2).h)}</td></tr>`)]
-      .concat(NR?[r1(`<tr><td class="l">${R.rNifty}</td><td>${inr(NR.v)}</td><td>${inr(NR.v*(1+IDX_MU))}</td><td>${inr(NR.v*Math.pow(1+IDX_MU,2))}</td></tr>`)]:[])
-      .concat([r1(`<tr><td class="l">${R.rFd(fdNow)}</td><td>${inr(fdV)}</td><td>${inr(fdT(fdV,1))}</td><td>${inr(fdT(fdV,2))}</td></tr>`)]),{note:R.note5});
+      r1(`<tr><td class="l"><b>${R.rBase}</b></td><td><b>${inr(mine)}</b></td><td class="up"><b>${inr(pB(1))}</b> ${gw(pB(1),mine)}</td><td class="up"><b>${inr(pB(2))}</b> ${gw(pB(2),mine)}</td></tr>`),
+      r1(`<tr><td class="l mu">${R.rRange}</td><td></td><td class="mu">${inr(pR(1).l)} – ${inr(pR(1).h)} <span class="mu">(${pc((pR(1).l/mine-1)*100,0)} to ${pc((pR(1).h/mine-1)*100,0)})</span></td><td class="mu">${inr(pR(2).l)} – ${inr(pR(2).h)} <span class="mu">(${pc((pR(2).l/mine-1)*100,0)} to ${pc((pR(2).h/mine-1)*100,0)})</span></td></tr>`)]
+      .concat(NR?[r1(`<tr><td class="l">${R.rNifty}</td><td>${inr(NR.v)}</td><td>${inr(NR.v*(1+IDX_MU))} ${gw(NR.v*(1+IDX_MU),NR.v)}</td><td>${inr(NR.v*Math.pow(1+IDX_MU,2))} ${gw(NR.v*Math.pow(1+IDX_MU,2),NR.v)}</td></tr>`)]:[])
+      .concat([r1(`<tr><td class="l">${R.rFd(fdNow)}</td><td>${inr(fdV)}</td><td>${inr(fdT(fdV,1))} ${gw(fdT(fdV,1),fdV)}</td><td>${inr(fdT(fdV,2))} ${gw(fdT(fdV,2),fdV)}</td></tr>`)]),{note:R.note5});
 
   /* 8 · taxation & returns: booked P&L by holding period, FY-wise tax, then notional P&L less tax and the net return on date */
   const TX=PF.taxCalc(E,Q,ST), cs=TX.cs[0]||{real:0,rtax:0,realNet:0,notional:0,ntax:0,notNet:0,net:0,inv:0}, sm=(L,k)=>L.reduce((a,r)=>a+(r[k]||0),0), XR=TX.rows, FY=TX.fy;
@@ -291,6 +293,14 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
   table(8,R.xT+' · '+R.xRet(dlong(today)),`<tr><th class="l">${R.xItem}</th><th style="width:150px">${R.xAmt}</th></tr>`,22,
     [lr(R.xR1,cs.real),lr(R.xR2,cs.rtax,0,1),lr(R.xR3,cs.realNet,1),lr(R.xR4,cs.notional),lr(R.xR5,cs.ntax,0,1),lr(R.xR6,cs.notNet,1),lr(R.xR7,cs.net,1),
      r1(`<tr class="tot"><td class="l"><b>${R.xR8}</b></td><td class="${cl(cs.net)}"><b>${cs.inv?pc(cs.net/cs.inv*100,2):'–'}</b></td></tr>`)],{note:R.xNote(ST.slab,ST.cess)});
+  const TP=PF.taxPlan(E,Q,ST), tpRows=[]; let tpSave=0;
+  TP.forEach(x=>{ tpSave+=x.save; const row=(act,sym,q,p,pl,save,why,b)=>r1(`<tr><td class="l">${act}</td><td class="l"><b>${esc(sym)}</b></td><td>${num(q)}</td><td>${num(p,2)}</td><td class="${cl(pl)}">${sg(pl)}</td><td class="up">${save!=null?(b?'<b>'+inr(save)+'</b>':inr(save)):''}</td><td class="l w" style="font-size:9.4px">${why}</td></tr>`);
+    if(x.kind==='loss') tpRows.push(row(R.tsSell,x.sym,x.q,x.p,x.pl,x.save,R.tsLoss(x.fy),1));
+    else if(x.kind==='pair'){ tpRows.push(row(R.tsSellP,x.sym,x.q,x.p,x.pl,null,R.tsPairG(inr(x.tax)))); x.with.forEach((w,i)=>tpRows.push(row(R.tsSell,w.sym,w.q,w.p,w.pl,i===0?x.save:null,R.tsPair(esc(x.sym)),1))); }
+    else tpRows.push(row(R.tsSellX,x.sym,x.q,x.p,x.pl,x.save,R.tsEx)); });
+  tpRows.forEach(r=>r.h=30);   /* the reason wraps to two lines */
+  table(8,R.xT+' · '+R.tsT+' ('+TX.cur+')',`<tr><th class="l">${R.tsAct}</th><th class="l">${R.thShare}</th><th>${R.thQty}</th><th>${R.tsAt}</th><th>${R.tsPL}</th><th>${R.tsSave}</th><th class="l">${R.tsWhy}</th></tr>`,22,tpRows,
+    {empty:R.tsNone,tot:tpRows.length?`<tr class="tot"><td class="l" colspan="5">${R.total}</td><td class="up">${inr(tpSave)}</td><td></td></tr>`:'',note:tpRows.length?R.tsNote:''});
   nextPg();
 
   /* ---------- journey, dividends, costs, meaning, method ---------- */
