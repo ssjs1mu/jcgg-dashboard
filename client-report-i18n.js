@@ -259,3 +259,7 @@ Object.assign(window.RL.bn,{ wG:'সব খরচের আগে মোট ম�
 Object.assign(window.RL.en,{ wNote:'Brokerage is shown without GST; GST is counted under government.' });
 Object.assign(window.RL.hi,{ wNote:'ब्रोकरेज GST के बिना दिखाया गया है; GST सरकार में गिना गया है।' });
 Object.assign(window.RL.bn,{ wNote:'ব্রোকারেজ GST ছাড়া দেখানো; GST সরকারের মধ্যে ধরা হয়েছে।' });
+/* net return reconciled to page 1 (added 2026-11-25) */
+Object.assign(window.RL.en,{ xR9:'Dividends received', xR10:'Shares in DP without purchase trades (today\'s value)', xR11:'Interest and DP charges', xR12:'Other differences between ledger and trade book (e.g. missing trades)', xR13:'Your gain (same as page 1)', xR8:'Net return % on money put in', xR7:'Net return on date (after income tax)' });
+Object.assign(window.RL.hi,{ xR9:'प्राप्त डिविडेंड', xR10:'DP में शेयर जिनके ख़रीद सौदे नहीं हैं (आज का मूल्य)', xR11:'ब्याज और DP शुल्क', xR12:'लेजर और ट्रेड बुक में अन्य अंतर (जैसे छूटे सौदे)', xR13:'आपका लाभ (पेज 1 जैसा)', xR8:'लगाई गई राशि पर शुद्ध रिटर्न %', xR7:'आज की तारीख़ पर शुद्ध रिटर्न (आयकर के बाद)' });
+Object.assign(window.RL.bn,{ xR9:'প্রাপ্ত ডিভিডেন্ড', xR10:'DP-তে শেয়ার যার কেনার লেনদেন নেই (আজকের মূল্য)', xR11:'সুদ ও DP খরচ', xR12:'লেজার ও ট্রেড বুকের অন্য পার্থক্য (যেমন বাদ পড়া লেনদেন)', xR13:'আপনার লাভ (পৃষ্ঠা 1-এর মতো)', xR8:'দেওয়া টাকার উপর নিট রিটার্ন %', xR7:'আজকের তারিখে নিট রিটার্ন (আয়করের পরে)' });

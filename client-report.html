@@ -58,8 +58,8 @@ ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoi
 <div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><span id="phint" style="align-self:center;background:#fff8e6;border:1px solid #E8C96A;border-radius:8px;padding:6px 10px;font:700 11.5px var(--ff);color:#6b4d0e;box-shadow:0 3px 10px rgba(0,0,0,.15)">In the print window: More settings → untick “Headers and footers”</span><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="repClose()" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the report…</div></div>
 <script src="jc-params.js?v=1"></script>
-<script src="pf-core.js?v=40"></script>
-<script src="client-report-i18n.js?v=41"></script>
+<script src="pf-core.js?v=41"></script>
+<script src="client-report-i18n.js?v=42"></script>
 <script>/* close the report tab; if the browser refuses (tab not opened by a script), go back to Portfolio instead */
 function repClose(){ try{ window.close(); }catch(e){} setTimeout(()=>{ if(!window.closed) location.replace('portfolio.html'); },250); }</script>
 <script>
@@ -156,7 +156,9 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
   /* holdings: the DP statement when there is one (what is really in the demat), cost from the trade book */
   const bills={}; L.forEach(e=>{ const m=String(e.n||'').match(/\((\d\d)\/(\d\d)\/(\d\d)\)/); if(e.k==='bill'&&m){ const d='20'+m[3]+'-'+m[2]+'-'+m[1]; bills[d]=(bills[d]||0)+e.dr-e.cr; } });
   const dayNet={}, dayGross={}, dayStat={}; E.parts.forEach(p=>{ dayNet[p.d]=(dayNet[p.d]||0)+(p.side==='S'?-p.net:p.net); dayGross[p.d]=(dayGross[p.d]||0)+(p.side==='S'?-p.v:p.v); dayStat[p.d]=(dayStat[p.d]||0)+p.stt+p.exch+p.sebi+p.stamp+(p.exch+p.sebi)*ST.gst/100; });
-  const adj={}; Object.keys(dayNet).forEach(d=>{ if(bills[d]!=null&&Math.abs(dayNet[d])>1&&Math.sign(bills[d])===Math.sign(dayNet[d])) adj[d]=bills[d]/dayNet[d]; });   /* the bill is what the client really paid */
+  const dayTurn={}; E.parts.forEach(p=>dayTurn[p.d]=(dayTurn[p.d]||0)+p.v);
+  const billOK=d=>{ if(bills[d]==null) return false; const c=bills[d]-dayGross[d]; return c>=-1&&c<=Math.max(50,0.025*dayTurn[d]); };   /* bill charges must look like charges, not missing trades */
+  const adj={}; Object.keys(dayNet).forEach(d=>{ if(billOK(d)&&Math.abs(dayNet[d])>1&&Math.sign(bills[d])===Math.sign(dayNet[d])) adj[d]=bills[d]/dayNet[d]; });   /* the bill is what the client really paid */
   E.hold.forEach(h=>{ if(adj[h.d]) h.cost*=adj[h.d]; });
   const book={}; E.hold.forEach(h=>{ const b=book[h.sym]=book[h.sym]||{q:0,cost:0,first:h.d}; b.q+=h.q; b.cost+=h.q*h.cost; if(h.d<b.first) b.first=h.d; });
   let H=D.length?Object.values(D.reduce((g,x)=>{ const k=PF.dpKey(x), o=g[k]=g[k]||{sym:k,sec:x.sec||'',q:0,rate:x.rate,isin:x.isin}; o.q+=x.q; if(!o.rate&&x.rate) o.rate=x.rate; return g; },{})):Object.keys(book).map(s=>({sym:s,q:book[s].q,rate:null}));   /* every DP holding, one row per share */
@@ -173,7 +175,7 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
   /* the same costs split for the report: brokerage without GST, GST, STT, stamp, exchange, SEBI (contract-note bill where the ledger has it), DP from the ledger */
   const CH={brk:0,gst:0,stt:0,stamp:0,exch:0,sebi:0,dp:0,turn:0}; { const g=ST.gst/100, byD={}; E.parts.forEach(p=>(byD[p.d]=byD[p.d]||[]).push(p));
     Object.keys(byD).forEach(d=>{ const c=PF.chargeSplit(byD[d],ST);
-      if(bills[d]!=null&&adj[d]){ const all=bills[d]-dayGross[d], rem=all-(c.stt+c.stamp+c.exch+c.sebi); if(rem>0){ c.brk=(rem-(c.exch+c.sebi)*g)/(1+g); c.gst=rem-c.brk; } else { c.brk=0; c.gst=0; } }   /* the bill's own brokerage + GST */
+      if(billOK(d)&&adj[d]){ const all=bills[d]-dayGross[d], rem=all-(c.stt+c.stamp+c.exch+c.sebi); if(rem>0){ c.brk=(rem-(c.exch+c.sebi)*g)/(1+g); c.gst=rem-c.brk; } else { c.brk=0; c.gst=0; } }   /* the bill's own brokerage + GST */
       Object.keys(CH).forEach(k=>CH[k]+=c[k]); });
     CH.dp=L.length?Math.max(0,dpChg):CH.dp; }
   const other=PF.caRows(T,{[C]:D}).filter(r=>!r.up&&!/^(div|bonus|split)$/.test(r.a.t));
@@ -296,9 +298,13 @@ const COLS=['#E8B33A','#22a35a','#2f86e8','#b452c9','#ef7d3b','#676300','#0fa3a3
     FY.map(f=>r1(`<tr><td class="l"><b>${f.fy}</b></td><td class="${cl(f.spec)}">${sg(f.spec)}</td><td>${inr(f.specTax)}</td><td class="${cl(f.stNet)}">${sg(f.stNet)}</td><td>${inr(f.stTaxable)}</td><td class="mu">${rp(f.stTaxable&&f.stRate)}</td><td>${inr(f.stTax)}</td><td class="${cl(f.ltNet)}">${sg(f.ltNet)}</td><td>${inr(f.ltExempt)}</td><td>${inr(f.ltTaxable)}</td><td class="mu">${rp(f.ltTaxable&&f.ltRate)}</td><td>${inr(f.ltTax)}</td><td>${inr(f.cess)}</td><td><b>${inr(f.tax)}</b></td><td>${f.specCF+f.stCF+f.ltCF>0.5?inr(f.specCF+f.stCF+f.ltCF):'–'}</td></tr>`)),
     {cls:'gs',empty:R.xNone,tot:FY.length>1?`<tr class="tot"><td class="l">${R.total}</td><td>${sg(sm(FY,'spec'))}</td><td>${inr(sm(FY,'specTax'))}</td><td>${sg(sm(FY,'stNet'))}</td><td>${inr(sm(FY,'stTaxable'))}</td><td></td><td>${inr(sm(FY,'stTax'))}</td><td>${sg(sm(FY,'ltNet'))}</td><td>${inr(sm(FY,'ltExempt'))}</td><td>${inr(sm(FY,'ltTaxable'))}</td><td></td><td>${inr(sm(FY,'ltTax'))}</td><td>${inr(sm(FY,'cess'))}</td><td>${inr(sm(FY,'tax'))}</td><td></td></tr>`:''});
   const lr=(lab,v,b,tax)=>r1(`<tr${b?' class="tot"':''}><td class="l">${b?'<b>'+lab+'</b>':lab}</td><td class="${tax?'dn':cl(v)}">${tax?(v>0.5?'− '+inr(v):'–'):(b?'<b>'+sg(v)+'</b>':sg(v))}</td></tr>`);
+  /* page 1 gain = booked + notional (trade book) + dividends + DP shares with no purchase trades - interest & DP charges + whatever the ledger has that the trade book does not */
+  const bq={}; E.hold.forEach(x=>bq[x.sym]=(bq[x.sym]||0)+x.q);
+  const noBuy=H.reduce((a,h)=>a+Math.max(0,h.q-(bq[h.sym]||0))*(h.p||0),0), ledC=Math.max(0,intr)+Math.max(0,dpChg), othr=gain-(cs.real+cs.notional+divT+noBuy-ledC), netR=gain-cs.rtax-cs.ntax;
   table(8,R.xT+' · '+R.xRet(dlong(today)),`<tr><th class="l">${R.xItem}</th><th style="width:150px">${R.xAmt}</th></tr>`,22,
-    [lr(R.xR1,cs.real),lr(R.xR2,cs.rtax,0,1),lr(R.xR3,cs.realNet,1),lr(R.xR4,cs.notional),lr(R.xR5,cs.ntax,0,1),lr(R.xR6,cs.notNet,1),lr(R.xR7,cs.net,1),
-     r1(`<tr class="tot"><td class="l"><b>${R.xR8}</b></td><td class="${cl(cs.net)}"><b>${cs.inv?pc(cs.net/cs.inv*100,2):'–'}</b></td></tr>`)],{note:R.xNote(ST.slab,ST.cess)});
+    [lr(R.xR1,cs.real),lr(R.xR4,cs.notional),...(divT>0.5?[lr(R.xR9,divT)]:[]),...(noBuy>0.5?[lr(R.xR10,noBuy)]:[]),...(ledC>0.5?[lr(R.xR11,ledC,0,1)]:[]),...(Math.abs(othr)>=1?[lr(R.xR12,othr)]:[]),
+     lr(R.xR13,gain,1),lr(R.xR2,cs.rtax,0,1),lr(R.xR5,cs.ntax,0,1),lr(R.xR7,netR,1),
+     r1(`<tr class="tot"><td class="l"><b>${R.xR8}</b></td><td class="${cl(netR)}"><b>${netIn>0?pc(netR/netIn*100,2):'–'}</b></td></tr>`)],{note:R.xNote(ST.slab,ST.cess)});
   const TP=PF.taxPlan(E,Q,ST), tpRows=[]; let tpSave=0;
   TP.forEach(x=>{ tpSave+=x.save; const row=(act,sym,q,p,pl,save,why,b)=>r1(`<tr><td class="l">${act}</td><td class="l"><b>${esc(sym)}</b></td><td>${num(q)}</td><td>${num(p,2)}</td><td class="${cl(pl)}">${sg(pl)}</td><td class="up">${save!=null?(b?'<b>'+inr(save)+'</b>':inr(save)):''}</td><td class="l w" style="font-size:9.4px">${why}</td></tr>`);
     if(x.kind==='loss') tpRows.push(row(R.tsSell,x.sym,x.q,x.p,x.pl,x.save,R.tsLoss(x.fy),1));
