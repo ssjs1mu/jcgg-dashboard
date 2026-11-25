@@ -528,7 +528,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25c';
+const BUILD='2026-11-25d';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -581,12 +581,36 @@ function autoAlias(trades,dpH){ const A=aliases(); let ch=false;
 function setAlias(from,to,isin,sec){ const A=aliases(); from=String(from).toUpperCase(); if(to) A[from]={to,isin:isin||'',sec:sec||'',by:'linked by you'}; else A[from]={to:'',off:true}; LS.set('jc_pf_alias',A); }
 let CA=null;
 async function corpActs(){ if(CA) return CA; try{ CA=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/corpact.json?x='+Math.floor(Date.now()/36e5),{cache:'no-store'}).then(r=>r.json()); }catch(e){ CA={a:[],err:String(e)}; } return CA; }
+/* ---------- demergers: parent shareholders get child shares; the parent's cost is split as the company's cost-of-acquisition guidance says.
+   r = [child shares, per parent shares]; pct = % of the original cost that goes to the child. Child lots keep the parent's buy dates
+   (holding period carries over); fractional entitlements (paid in cash by the company) are left out. Add new demergers here. */
+const DEMERGERS=[
+  {s:'ITC',ex:'2025-01-06',child:'ITCHOTELS',r:[1,10],pct:13.51,note:'ITC guidance: cost 86.49% ITC / 13.51% ITC Hotels'},
+  {s:'TMPV',ex:'2025-10-14',child:'TMCV',r:[1,1],pct:31.15,note:'Tata Motors guidance: cost 68.85% TMPV / 31.15% TMCV'}];
+const demergers=A=>DEMERGERS.concat((A||[]).filter(a=>a.t==='demerger'&&a.child&&a.r&&a.pct!=null));
+function demergeAdjust(trades,A){ const D=demergers(A); if(!D.length) return trades; let T=trades;
+  D.slice().sort((x,y)=>x.ex.localeCompare(y.ex)).forEach(dm=>{ const out=[], byC={};
+    T.forEach(t=>{ if(t.sym===dm.s&&t.d<dm.ex) (byC[t.c]=byC[t.c]||[]).push(t); });
+    const repl=new Map();
+    Object.entries(byC).forEach(([c,L])=>{ L=L.slice().sort((a,b)=>a.d.localeCompare(b.d)||(a.side==='S'?1:-1)); const lots=[];
+      L.forEach(t=>{ if(t.side!=='S'){ lots.push({t,rem:t.q}); return; } let q=t.q; for(const l of lots){ if(q<=0) break; const m=Math.min(q,l.rem); l.rem-=m; q-=m; } });   /* FIFO up to the ex-date */
+      const held=lots.reduce((a,l)=>a+l.rem,0), entitled=Math.floor(held*dm.r[0]/dm.r[1]+1e-9), k=dm.pct/100; if(held<=0) return;
+      lots.filter(l=>l.rem>0).forEach(l=>{ const t=l.t, sold=t.q-l.rem, pieces=[];
+        if(sold>0) pieces.push(Object.assign({},t,{q:sold,id:t.id+'#s'}));   /* sold before the ex-date: full cost */
+        pieces.push(Object.assign({},t,{q:l.rem,r:t.r*(1-k),id:t.id+'#p',dm:dm.child,dmNote:dm.note}));
+        const cq=entitled*l.rem/held;   /* child shares from this lot (whole-number total) */
+        if(cq>0) pieces.push(Object.assign({},t,{sym:dm.child,q:cq,r:t.r*k*l.rem/cq,id:t.id+'#c',dmFrom:dm.s,dmNote:dm.note}));
+        repl.set(t,pieces); }); });
+    T.forEach(t=>{ if(repl.has(t)) out.push(...repl.get(t)); else out.push(t); }); T=out; });
+  return T; }
 function caFactor(a){ return a.t==='bonus'&&a.r&&a.r[1]?(a.r[0]+a.r[1])/a.r[1]:a.t==='split'&&a.fv&&a.fv[1]?a.fv[0]/a.fv[1]:1; }
-function caAdjust(trades,A){ trades=trades.map(t=>{ const k=canonSym(t.sym); return k===t.sym?t:Object.assign({},t,{sym:k,sym0:t.sym}); }); const S=(A||(CA&&CA.a)||[]).filter(a=>(a.t==='bonus'||a.t==='split')&&caFactor(a)!==1); if(!S.length) return trades;
+function caAdjust(trades,A){ trades=trades.map(t=>{ const k=canonSym(t.sym); return k===t.sym?t:Object.assign({},t,{sym:k,sym0:t.sym}); }); const S=(A||(CA&&CA.a)||[]).filter(a=>(a.t==='bonus'||a.t==='split')&&caFactor(a)!==1); if(!S.length) return demergeAdjust(trades,A||(CA&&CA.a));
   const by={}; S.forEach(a=>(by[a.s]=by[a.s]||[]).push(a));
-  return trades.map(t=>{ const L=by[t.sym]; if(!L) return t; let k=1; L.forEach(a=>{ if(t.d<a.ex) k*=caFactor(a); }); return k===1?t:Object.assign({},t,{q:t.q*k,r:t.r/k,adj:k,q0:t.q,r0:t.r}); }); }
+  return demergeAdjust(trades.map(t=>{ const L=by[t.sym]; if(!L) return t; let k=1; L.forEach(a=>{ if(t.d<a.ex) k*=caFactor(a); }); return k===1?t:Object.assign({},t,{q:t.q*k,r:t.r/k,adj:k,q0:t.q,r0:t.r}); }),A); }
 /* client-wise entitlement rows for every action on a script the client traded or holds in DP */
 function caRows(trades,dpH,A){ A=A||(CA&&CA.a)||[]; const out=[], today=todayS(), bySym={};
+  const DM=demergers(A).map(d=>Object.assign({t:'demerger',sub:'Demerger - '+d.r[0]+' '+d.child+' per '+d.r[1]+' '+d.s+' ('+d.note.replace(/^.*?cost /,'cost ')+')'},d));
+  A=A.filter(a=>!(a.t==='other'&&/demerg/i.test(a.sub||'')&&DM.some(d=>d.s===a.s&&d.ex===a.ex))).concat(DM);
   A.forEach(a=>(bySym[a.s]=bySym[a.s]||[]).push(a));
   const pos={}; trades.forEach(t=>{ const s=canonSym(t.sym); (pos[t.c+'|'+s]=pos[t.c+'|'+s]||[]).push(t); });
   const keys=new Set(Object.keys(pos)); Object.keys(dpH||{}).forEach(c=>(dpH[c]||[]).forEach(x=>keys.add(c+'|'+dpKey(x))));
@@ -596,7 +620,7 @@ function caRows(trades,dpH,A){ A=A||(CA&&CA.a)||[]; const out=[], today=todayS()
       L.filter(b=>b!==a&&(b.t==='bonus'||b.t==='split')&&b.ex<a.ex).forEach(b=>{ if(T.some(t=>t.d<b.ex)) q*=caFactor(b); });
       if(!T.length&&dq>0){ q=dq; basis=a.ex>today?'DP holding':'DP holding now (no trades - check)'; } else if(a.ex>today&&dq>0&&Math.abs(dq-q)>0.0001){ basis='trade book (DP now '+dq+')'; }
       q=Math.round(q*1e4)/1e4; if(q<=0) return;
-      const f=caFactor(a); out.push({c,sym,a,q,basis,up:a.ex>today,div:a.t==='div'&&a.amt?q*a.amt:0,newSh:a.t==='bonus'?q*(f-1):0,newQ:(a.t==='bonus'||a.t==='split')?q*f:null}); }); });
+      const f=caFactor(a); out.push({c,sym,a,q,basis,up:a.ex>today,div:a.t==='div'&&a.amt?q*a.amt:0,newSh:a.t==='bonus'?q*(f-1):a.t==='demerger'?Math.floor(q*a.r[0]/a.r[1]+1e-9):0,child:a.child||'',newQ:(a.t==='bonus'||a.t==='split')?q*f:null}); }); });
   return out.sort((x,y)=>(y.up-x.up)||(x.up?x.a.ex.localeCompare(y.a.ex):y.a.ex.localeCompare(x.a.ex))||x.c.localeCompare(y.c)); }
 /* ---------- ledger bills vs trade book: one bill per trade date (narration '... (dd/mm/yy)'); the gap is brokerage + GST,
    so the client's real brokerage rate comes out of the ledger, and any day that does not agree is flagged ---------- */
