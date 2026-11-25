@@ -14,6 +14,7 @@ const LS={get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v)
 const STAT0={sttD:0.1,sttI:0.025,exch:0.00307,sebi:0.0001,stampD:0.015,stampI:0.003,gst:18,int:18,hurdle:8};
 const stat=()=>Object.assign({},STAT0,LS.get('jc_pf_stat',{}));
 const rates=()=>LS.get('jc_pf_rates',{_def:{bd:0,bi:0,dp:0}});
+const exOfP=p=>{ const e=String(p.ex||'').toUpperCase(); return /BSE|BOM/.test(e)?'BSE':/MCX|NCD|CDS/.test(e)?e:'NSE'; };   /* exchange of a fill (blank = NSE) */
 /* a client's own rate wins; where it has none, the rate worked out from that client's ledger bills (jc_pf_brkled) is used before the default */
 const rateOfFrom=R=>c=>{ const L=(LS.get('jc_pf_brkled',{})||{})[c]||{}, o=Object.assign({},R._def), X=R[c]||{}; ['bd','bi','bmin'].forEach(k=>{ if(L[k]!=null&&!(X[k]>0)) o[k]=L[k]; }); return Object.assign(o,...Object.keys(X).filter(k=>X[k]!=null&&X[k]!=='').map(k=>({[k]:X[k]}))); };
 /* uploaded trade books, client-wise: each upload replaces the trades of the client codes it contains (codes only, never names) */
@@ -89,8 +90,9 @@ function compute(TR,STAT,rateOf){
   parts.sort((a,b)=>a.d.localeCompare(b.d)||(a.side==='B'?-1:1)||a.i-b.i);
   const dpDone={};
   parts.forEach(p=>{ const R=rateOf(p.c); p.v=p.q*p.r; p.brk=p.v*(p.type==='D'?R.bd:R.bi)/100; });
-  /* minimum brokerage per contract note (client + day): when the day's % brokerage is below it, the minimum is charged, spread over that day's trades */
-  { const og={}; parts.forEach(p=>{ (og[p.c+'|'+p.d]=og[p.c+'|'+p.d]||[]).push(p); });
+  /* minimum brokerage per contract note = client + day + EXCHANGE (NSE and BSE each carry their own minimum, e.g. Rs 50):
+     when that exchange's % brokerage for the day is below the minimum, the broker charges the minimum, spread over those trades */
+  { const og={}; parts.forEach(p=>{ const k=p.c+'|'+p.d+'|'+exOfP(p); (og[k]=og[k]||[]).push(p); });
     Object.values(og).forEach(P=>{ const m=+rateOf(P[0].c).bmin||0, b=P.reduce((a,p)=>a+p.brk,0), v=P.reduce((a,p)=>a+p.v,0); if(m>b&&v>0) P.forEach(p=>{ p.brk=m*p.v/v; p.minB=true; }); }); }
   parts.forEach(p=>{ const R=rateOf(p.c), v=p.v, buy=p.side!=='S', D=p.type==='D';
     p.stt=D?v*STAT.sttD/100:(buy?0:v*STAT.sttI/100);
@@ -487,7 +489,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-24a';
+const BUILD='2026-11-25a';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -561,23 +563,26 @@ function caRows(trades,dpH,A){ A=A||(CA&&CA.a)||[]; const out=[], today=todayS()
    so the client's real brokerage rate comes out of the ledger, and any day that does not agree is flagged ---------- */
 function ledgerRecon(c,trades,ST){ ST=ST||stat(); const L=(led().E||{})[c]; const T=trades.filter(t=>t.c===c); if(!L||!L.length||!T.length) return null;
   const E=compute(caAdjust(T),ST,()=>({bd:0,bi:0,dp:0})), g={};
-  E.parts.forEach(p=>{ const x=g[p.d]=g[p.d]||{d:p.d,net:0,stat:0,tD:0,tI:0,n:0,man:0}; x.net+=(p.side==='S'?-1:1)*p.v; x.stat+=p.chg; x[p.type==='I'?'tI':'tD']+=p.v; x.n++; if(p.man||p.edited) x.man++; });
+  E.parts.forEach(p=>{ const x=g[p.d]=g[p.d]||{d:p.d,net:0,stat:0,tD:0,tI:0,n:0,man:0,ex:{}}; x.ex[exOfP(p)]=1; x.net+=(p.side==='S'?-1:1)*p.v; x.stat+=p.chg; x[p.type==='I'?'tI':'tD']+=p.v; x.n++; if(p.man||p.edited) x.man++; });
   const bills={}, other=[]; L.forEach(e=>{ if(e.k!=='bill') return; const m=String(e.n||'').match(/\((\d\d)\/(\d\d)\/(\d\d)\)/); if(!m){ other.push(e); return; } const d='20'+m[3]+'-'+m[2]+'-'+m[1]; bills[d]=(bills[d]||0)+e.dr-e.cr; });
   const gst=1+ST.gst/100, med=a=>{ a=a.filter(x=>isFinite(x)).sort((x,y)=>x-y); return a.length?a[Math.floor(a.length/2)]:null; };
   const days=Object.values(g).filter(x=>bills[x.d]!=null&&!x.man).map(x=>Object.assign(x,{bill:bills[x.d],brk:(bills[x.d]-x.net-x.stat)/gst}));
   let bd=med(days.filter(x=>!x.tI&&x.tD>0).map(x=>x.brk/x.tD*100)); bd=bd==null?null:Math.round(bd*100)/100;
   let bi=med(days.filter(x=>x.tI>0).map(x=>(x.brk-(bd||0)/100*x.tD)/x.tI*100)); bi=bi==null?null:Math.round(Math.max(0,bi)*1000)/1000;
   /* minimum per order: days with a single order whose bill shows more brokerage than the % rate gives */
-  const mins=days.map(x=>({imp:x.brk,rate:((bd||0)*x.tD+(bi||0)*x.tI)/100})).filter(o=>o.imp>=o.rate*1.3+2).map(o=>o.imp);
+  const mins=days.filter(x=>Object.keys(x.ex).length===1).map(x=>({imp:x.brk,rate:((bd||0)*x.tD+(bi||0)*x.tI)/100})).filter(o=>o.imp>=o.rate*1.3+2).map(o=>o.imp);   /* single-exchange days only: one contract note */
   /* the minimum is the value most of those orders agree on (within Rs 2); fewer than 3 agreeing -> no minimum */
   let bmin=0, sup=0; mins.forEach(m=>{ const n=mins.filter(x=>Math.abs(x-m)<=2).length; if(n>sup){ sup=n; bmin=Math.round(med(mins.filter(x=>Math.abs(x-m)<=2))); } }); if(sup<3) bmin=0;
-  const ordBrk=d=>Math.max(E.parts.filter(p=>p.d===d).reduce((a,p)=>a+p.v*(p.type==='D'?(bd||0):(bi||0))/100,0),bmin);   /* per contract note */
+  /* the client's own setting on the Rates screen wins over what the ledger suggests */
+  const RS=rates(), own=Object.assign({},RS._def||{},RS[c]||{}), U={bd:own.bd>0?+own.bd:bd, bi:own.bi>0?+own.bi:bi, bmin:own.bmin>0?+own.bmin:bmin, own:own.bd>0||own.bi>0||own.bmin>0};
+  const ordBrk=d=>{ const by={}; E.parts.filter(p=>p.d===d).forEach(p=>{ const e=exOfP(p); by[e]=(by[e]||0)+p.v*(p.type==='D'?(U.bd||0):(U.bi||0))/100; });
+    return Object.values(by).reduce((a,v)=>a+Math.max(v,U.bmin||0),0); };   /* one contract note per exchange per day, each with the minimum */
   const TF=T.filter(t=>!t.man), T0=(TF.length?TF:T).map(t=>t.d).sort()[0], T1=(TF.length?TF:T).map(t=>t.d).sort().slice(-1)[0];
   const rows=[...new Set([...Object.keys(g),...Object.keys(bills)])].sort().map(d=>{ const x=g[d]||{d,net:0,stat:0,tD:0,tI:0,n:0}, b=bills[d];
     if(!x.n&&(d<T0||d>T1)) return {d,bill:b,net:0,stat:0,brk:0,exp:0,diff:b,n:0,ok:null,out:true,why:'outside the trade files ('+dmy(T0)+' to '+dmy(T1)+')'};
     const bk=x.n?ordBrk(d):0, exp=x.net+x.stat+bk*gst, diff=b==null?null:b-exp, tol=Math.max(5,0.0006*(x.tD+x.tI));
     return {d,bill:b==null?null:b,net:x.net,stat:x.stat,brk:bk*gst,exp,diff,n:x.n,ok:b!=null&&x.n>0&&Math.abs(diff)<=tol,why:b==null?'trades but no bill in the ledger':!x.n?'bill but no trades in the trade book':Math.abs(diff)<=tol?'':'amount differs'}; });
-  const IN=rows.filter(r=>!r.out); return {c,bd,bi,bmin,nMin:bmin?sup:0,rows:IN,outRows:rows.filter(r=>r.out),T0,T1,nDel:days.filter(x=>!x.tI).length,nInt:days.filter(x=>x.tI).length,bad:IN.filter(r=>!r.ok).length}; }
+  const IN=rows.filter(r=>!r.out); return {c,bd,bi,bmin,used:U,nMin:bmin?sup:0,rows:IN,outRows:rows.filter(r=>r.out),T0,T1,nDel:days.filter(x=>!x.tI).length,nInt:days.filter(x=>x.tI).length,bad:IN.filter(r=>!r.ok).length}; }
 function brkFromLedgers(trades){ const cs=Object.keys(led().E||{}), M=LS.get('jc_pf_brkled',{})||{}; let ch=false;
   cs.forEach(c=>{ const r=ledgerRecon(c,trades); if(!r||r.bd==null) return; const o={bd:r.bd,bi:r.bi!=null?r.bi:(M[c]||{}).bi,bmin:r.bmin||0,nMin:r.nMin||0,nDel:r.nDel,nInt:r.nInt}; if(JSON.stringify(M[c])!==JSON.stringify(o)){ M[c]=o; ch=true; } });
   if(ch) LS.set('jc_pf_brkled',M); return M; }
