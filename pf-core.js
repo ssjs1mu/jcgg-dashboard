@@ -20,7 +20,12 @@ const stat=()=>Object.assign({},STAT0,LS.get('jc_pf_stat',{}));
 const rates=()=>LS.get('jc_pf_rates',{_def:{bd:0,bi:0,dp:0}});
 const exOfP=p=>{ const e=String(p.ex||'').toUpperCase(); return /BSE|BOM/.test(e)?'BSE':/MCX|NCD|CDS/.test(e)?e:'NSE'; };   /* exchange of a fill (blank = NSE) */
 /* a client's own rate wins; where it has none, the rate worked out from that client's ledger bills (jc_pf_brkled) is used before the default */
-const rateOfFrom=R=>c=>{ const L=(LS.get('jc_pf_brkled',{})||{})[c]||{}, o=Object.assign({},R._def), X=R[c]||{}; ['bd','bi','bmin'].forEach(k=>{ if(L[k]!=null&&!(X[k]>0)) o[k]=L[k]; }); return Object.assign(o,...Object.keys(X).filter(k=>X[k]!=null&&X[k]!=='').map(k=>({[k]:X[k]}))); };
+/* date-wise rates: RATES[c].hist = [{from:'YYYY-MM-DD', bd, bi, bmin, bdc, bic, bminFrom, dmin, imin, dp, amc, pledge, scheme}, ...];
+   every entry dated on or before the trade date is laid over the client's base rates in date order (an entry may carry only
+   brokerage or only DP fields). No date = today's rates. */
+const rateAt=(X,d)=>{ X=X||{}; if(!X.hist||!X.hist.length) return X; d=d||todayS(); const o=Object.assign({},X); delete o.hist;
+  X.hist.filter(e=>e&&e.from&&e.from<=d).sort((a,b)=>a.from.localeCompare(b.from)).forEach(e=>Object.keys(e).forEach(k=>{ if(k!=='from'&&e[k]!=null&&e[k]!=='') o[k]=e[k]; })); return o; };
+const rateOfFrom=R=>(c,d)=>{ const L=(LS.get('jc_pf_brkled',{})||{})[c]||{}, o=Object.assign({},R._def), X=rateAt(R[c],d); ['bd','bi','bmin'].forEach(k=>{ if(L[k]!=null&&!(X[k]>0)) o[k]=L[k]; }); return Object.assign(o,...Object.keys(X).filter(k=>X[k]!=null&&X[k]!=='').map(k=>({[k]:X[k]}))); };
 /* uploaded trade books, client-wise: each upload replaces the trades of the client codes it contains (codes only, never names) */
 function tb(){ let t=LS.get('jc_pf_tb',null);
   if(!t){ const o=LS.get('jc_pf_trades',null); t={files:[],trades:[]}; if(o&&o.trades&&o.trades.length){ t.trades=o.trades; t.files=[{name:o.name,at:o.at,clients:[...new Set(o.trades.map(x=>x.c))],n:o.trades.length}]; } LS.set('jc_pf_tb',t); try{ localStorage.removeItem('jc_pf_trades'); }catch(e){} }
@@ -125,15 +130,15 @@ function compute(TR,STAT,rateOf){
     ['B','S'].forEach(s=>g[s].forEach(f=>{ const qi=Math.min(f.q,iq[s]); iq[s]-=qi; if(qi>0) parts.push(Object.assign({},f,{q:qi,type:'I'})); if(f.q-qi>0) parts.push(Object.assign({},f,{q:f.q-qi,type:'D'})); })); });
   parts.sort((a,b)=>a.d.localeCompare(b.d)||(a.side==='B'?-1:1)||a.i-b.i);
   const dpDone={};
-  parts.forEach(p=>{ const R=rateOf(p.c); p.v=p.q*p.r; p.brk=p.v*(p.type==='D'?R.bd:R.bi)/100; });
+  parts.forEach(p=>{ const R=rateOf(p.c,p.d); p.v=p.q*p.r; p.brk=p.v*(p.type==='D'?R.bd:R.bi)/100; });
   /* minimum brokerage per contract note = client + day + EXCHANGE (NSE and BSE each carry their own minimum, e.g. Rs 50):
      when that exchange's % brokerage for the day is below the minimum, the broker charges the minimum, spread over those trades */
   { const og={}; parts.forEach(p=>{ const k=p.c+'|'+p.d+'|'+exOfP(p); (og[k]=og[k]||[]).push(p); });
     /* the minimum is tested on brokerage at the card rate (Rate For Minimum, else the charged rate); the shortfall to the minimum is added */
-    Object.values(og).forEach(P=>{ const R=rateOf(P[0].c), m=+R.bmin||0, v=P.reduce((a,p)=>a+p.v,0);
+    Object.values(og).forEach(P=>{ const R=rateOf(P[0].c,P[0].d), m=+R.bmin||0, v=P.reduce((a,p)=>a+p.v,0);
       const card=P.reduce((a,p)=>a+p.v*(p.type==='D'?(+R.bdc>0?+R.bdc:+R.bd||0):(+R.bic>0?+R.bic:+R.bi||0))/100,0);
       if(m>card&&v>0&&!(R.bminFrom&&P[0].d<R.bminFrom)) P.forEach(p=>{ p.brk+=(m-card)*p.v/v; p.minB=true; }); }); }   /* bminFrom: date the minimum started */
-  parts.forEach(p=>{ const R=rateOf(p.c), v=p.v, buy=p.side!=='S', D=p.type==='D';
+  parts.forEach(p=>{ const R=rateOf(p.c,p.d), v=p.v, buy=p.side!=='S', D=p.type==='D';
     p.stt=D?v*STAT.sttD/100:(buy?0:v*STAT.sttI/100);
     p.exch=v*(Math.abs(STAT.exch-STAT0.exch)<1e-9?exchOn(p.d,exOfP(p)):STAT.exch)/100; p.sebi=v*STAT.sebi/100;
     p.stamp=buy?v*(D?STAT.stampD:STAT.stampI)/100:0;
@@ -611,7 +616,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25k';
+const BUILD='2026-11-25l';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -677,7 +682,7 @@ function demergeAdjust(trades,A){ const D=demergers(A); if(!D.length) return tra
     const repl=new Map();
     Object.entries(byC).forEach(([c,L])=>{ L=L.slice().sort((a,b)=>a.d.localeCompare(b.d)||(a.side==='S'?1:-1)); const lots=[];
       L.forEach(t=>{ if(t.side!=='S'){ lots.push({t,rem:t.q}); return; } let q=t.q; for(const l of lots){ if(q<=0) break; const m=Math.min(q,l.rem); l.rem-=m; q-=m; } });   /* FIFO up to the ex-date */
-      const held=lots.reduce((a,l)=>a+l.rem,0), entitled=Math.floor(held*dm.r[0]/dm.r[1]+1e-9), k=dm.pct/100; if(held<=0) return;
+      const held=lots.reduce((a,l)=>a+l.rem,0), entitled=Math.floor(held*dm.r[0]/dm.r[1]+1e-9), k=dm.pct/100; if(held<=0||entitled<1) return;   /* no whole child share (e.g. 2 ITC -> 0.2 ITC Hotels): the cost stays with the parent */
       lots.filter(l=>l.rem>0).forEach(l=>{ const t=l.t, sold=t.q-l.rem, pieces=[];
         if(sold>0) pieces.push(Object.assign({},t,{q:sold,id:t.id+'#s'}));   /* sold before the ex-date: full cost */
         pieces.push(Object.assign({},t,{q:l.rem,r:t.r*(1-k),id:t.id+'#p',dm:dm.child,dmNote:dm.note}));
@@ -707,7 +712,7 @@ function caRows(trades,dpH,A){ A=A||(CA&&CA.a)||[]; const out=[], today=todayS()
   return out.sort((x,y)=>(y.up-x.up)||(x.up?x.a.ex.localeCompare(y.a.ex):y.a.ex.localeCompare(x.a.ex))||x.c.localeCompare(y.c)); }
 /* ---------- ledger bills vs trade book: one bill per trade date (narration '... (dd/mm/yy)'); the gap is brokerage + GST,
    so the client's real brokerage rate comes out of the ledger, and any day that does not agree is flagged ---------- */
-function ledgerRecon(c,trades,ST){ ST=ST||stat(); const L=(led().E||{})[c]; const T=trades.filter(t=>t.c===c); if(!L||!L.length||!T.length) return null;
+function ledgerRecon(c,trades,ST,RX){ ST=ST||stat(); const L=(led().E||{})[c]; const T=trades.filter(t=>t.c===c); if(!L||!L.length||!T.length) return null;
   const E=compute(caAdjust(T),ST,()=>({bd:0,bi:0,dp:0})), g={};
   E.parts.forEach(p=>{ const x=g[p.d]=g[p.d]||{d:p.d,net:0,stat:0,tD:0,tI:0,n:0,man:0,ex:{}}; x.ex[exOfP(p)]=1; x.net+=(p.side==='S'?-1:1)*p.v; x.stat+=p.chg; x[p.type==='I'?'tI':'tD']+=p.v; x.n++; if(p.man||p.edited) x.man++; });
   const bills={}, other=[]; L.forEach(e=>{ if(e.k!=='bill') return; const m=String(e.n||'').match(/\((\d\d)\/(\d\d)\/(\d\d)\)/); if(!m){ other.push(e); return; } const d='20'+m[3]+'-'+m[2]+'-'+m[1]; bills[d]=(bills[d]||0)+e.dr-e.cr; });
@@ -720,8 +725,8 @@ function ledgerRecon(c,trades,ST){ ST=ST||stat(); const L=(led().E||{})[c]; cons
   /* the minimum is the value most of those orders agree on (within Rs 2); fewer than 3 agreeing -> no minimum */
   let bmin=0, sup=0; mins.forEach(m=>{ const n=mins.filter(x=>Math.abs(x-m)<=2).length; if(n>sup){ sup=n; bmin=Math.round(med(mins.filter(x=>Math.abs(x-m)<=2))); } }); if(sup<3) bmin=0;
   /* the client's own setting on the Rates screen wins over what the ledger suggests */
-  const RS=rates(), own=Object.assign({},RS._def||{},RS[c]||{}), U={bd:own.bd>0?+own.bd:bd, bi:own.bi>0?+own.bi:bi, bmin:own.bmin>0?+own.bmin:bmin, bdc:+own.bdc||0, bic:+own.bic||0, bminFrom:own.bminFrom||'', own:own.bd>0||own.bi>0||own.bmin>0};
-  const ordBrk=d=>{ const by={}; E.parts.filter(p=>p.d===d).forEach(p=>{ const e=exOfP(p), o=by[e]=by[e]||{ch:0,card:0}, D=p.type==='D';
+  const RS=RX||rates(), Uat=d=>{ const own=Object.assign({},RS._def||{},rateAt(RS[c],d)); return {bd:own.bd>0?+own.bd:bd, bi:own.bi>0?+own.bi:bi, bmin:own.bmin>0?+own.bmin:bmin, bdc:+own.bdc||0, bic:+own.bic||0, bminFrom:own.bminFrom||'', own:own.bd>0||own.bi>0||own.bmin>0}; }, U=Uat();
+  const ordBrk=d=>{ const U=Uat(d), by={}; E.parts.filter(p=>p.d===d).forEach(p=>{ const e=exOfP(p), o=by[e]=by[e]||{ch:0,card:0}, D=p.type==='D';
       o.ch+=p.v*(D?(U.bd||0):(U.bi||0))/100; o.card+=p.v*(D?(U.bdc||U.bd||0):(U.bic||U.bi||0))/100; });
     const mn=U.bminFrom&&d<U.bminFrom?0:(U.bmin||0); return Object.values(by).reduce((a,o)=>a+o.ch+Math.max(0,mn-o.card),0); };   /* per exchange note: charged % + shortfall of card-rate brokerage below the minimum */   /* one contract note per exchange per day, each with the minimum */
   const TF=T.filter(t=>!t.man), T0=(TF.length?TF:T).map(t=>t.d).sort()[0], T1=(TF.length?TF:T).map(t=>t.d).sort().slice(-1)[0];
@@ -731,6 +736,41 @@ function ledgerRecon(c,trades,ST){ ST=ST||stat(); const L=(led().E||{})[c]; cons
     if(b==null&&x.n&&x.man===x.n) return {d,bill:null,net:x.net,stat:x.stat,brk:0,exp:null,diff:null,n:x.n,ok:true,why:'entered by you (IPO allotment / off-market) - no exchange bill expected'};
     return {d,bill:b==null?null:b,net:x.net,stat:x.stat,brk:bk*gst,exp,diff,n:x.n,ok:b!=null&&x.n>0&&Math.abs(diff)<=tol,why:b==null?'trades but no bill in the ledger':!x.n?'bill but no trades in the trade book':Math.abs(diff)<=tol?'':'amount differs'}; });
   const IN=rows.filter(r=>!r.out); return {c,bd,bi,bmin,used:U,nMin:bmin?sup:0,rows:IN,outRows:rows.filter(r=>r.out),T0,T1,nDel:days.filter(x=>!x.tI).length,nInt:days.filter(x=>x.tI).length,bad:IN.filter(r=>!r.ok).length}; }
+/* ---------- broker's listings (Excel): Brokerage Listing (Cash Segment) and DP Scheme. Only client codes and rates are read - names are skipped.
+   Brokerage: Delivery % (+ min Rs/share), Trading 1st / 2nd side %, T2T; the Rs minimum per exchange per day (bmin, default 50) is added.
+   DP: AMC, transaction charge per sell (ISIN + day) and pledge charge, all without GST (GST is added in compute).
+   from = effective date; 'auto' = fit each client's past contract-note bills: either the listing % is what was charged, or (older
+   accounts) a lower % was charged and the minimum was topped up against the listing % - the better fit is kept, with the listing % as
+   the charged rate from the day after the last bill. */
+async function readListing(file){ await xlsxLib(); const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}), ws=wb.Sheets[wb.SheetNames[0]], A=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
+  const hi=A.findIndex(r=>r.some(x=>/^code$/i.test(String(x).trim()))); if(hi<0) throw new Error('No "Code" header row in '+file.name); const H=A[hi].map(x=>String(x).trim().toLowerCase());
+  const num=x=>{ const v=parseFloat(String(x).replace(/[^\d.\-]/g,'')); return isFinite(v)?v:null; }, code=x=>String(x).replace(/^'/,'').trim().toUpperCase(), out={};
+  if(H.includes('amc')||H.some(h=>/trnx/.test(h))){ const iR=H.findIndex(h=>/inter ref/.test(h)), iA=H.indexOf('amc'), iT=H.findIndex(h=>/trnx/.test(h)), iP=H.indexOf('pledge'), iS=H.indexOf('scheme');
+    A.slice(hi+1).forEach(r=>{ const c=code(r[iR]); if(!/^[A-Z0-9]{4,12}$/.test(c)) return; const o={scheme:String(r[iS]||'').trim()}; const t=num(r[iT]), a=num(r[iA]), g=num(r[iP]); if(t!=null) o.dp=t; if(a!=null) o.amc=a; if(g!=null) o.pledge=g; out[c]=o; });
+    return {kind:'dp',rows:out}; }
+  /* brokerage: two header rows - group names above (Delivery / Trading 1st Side / Trading 2nd Side / T2T), Min / Percent below */
+  const G=(A[hi-1]||[]).map(x=>String(x).trim().toLowerCase()); let grp=''; const col={}; H.forEach((h,i)=>{ if(G[i]) grp=G[i]; if(/^min/.test(h)||/percent|%/.test(h)) col[grp+'|'+(/^min/.test(h)?'min':'pct')]=i; });
+  const gk=re=>Object.keys(col).find(k=>re.test(k.split('|')[0])), pick=(r,re,t)=>{ const k=Object.keys(col).find(x=>re.test(x.split('|')[0])&&x.endsWith('|'+t)); return k?num(r[col[k]]):null; };
+  A.slice(hi+1).forEach(r=>{ const c=code(r[H.indexOf('code')]); if(!/^[A-Z0-9]{4,12}$/.test(c)) return; const bd=pick(r,/deliver/,'pct'); if(bd==null) return;
+    out[c]={bd,dmin:pick(r,/deliver/,'min'),bi:pick(r,/1st/,'pct'),imin:pick(r,/1st/,'min'),bi2:pick(r,/2nd/,'pct'),bt:pick(r,/t2t/,'pct'),scheme:String(r[H.indexOf('scheme')]||'').trim()}; });
+  return {kind:'brk',rows:out}; }
+const dayAfter=d=>{ const x=new Date(d+'T00:00:00Z'); x.setUTCDate(x.getUTCDate()+1); return x.toISOString().slice(0,10); };
+function applyListing(L,from,trades,bmin){ const RS=rates(), rep=[]; bmin=bmin==null?50:+bmin;
+  const put=(c,e)=>{ const X=RS[c]=RS[c]||{}; X.hist=(X.hist||[]).filter(h=>!(h.from===e.from&&h.kind===e.kind)); X.hist.push(e); X.hist.sort((a,b)=>a.from.localeCompare(b.from)); delete X.src; };
+  Object.entries(L.rows).forEach(([c,r])=>{
+    if(L.kind==='dp'){ if(r.dp==null&&r.amc==null) { rep.push({c,note:'DP scheme '+r.scheme+' - no charges listed, left as is'}); return; }
+      put(c,Object.assign({from:from==='auto'?'2000-01-01':from,kind:'dp'},r)); rep.push({c,note:'DP '+r.scheme+': txn ₹'+r.dp+' + GST, AMC ₹'+r.amc+', pledge ₹'+r.pledge}); return; }
+    const base={kind:'brk',bd:r.bd,bi:r.bi,bmin,bdc:0,bic:0,bminFrom:'',dmin:r.dmin,imin:r.imin,scheme:r.scheme};
+    if(from!=='auto'){ put(c,Object.assign({from},base)); rep.push({c,note:'from '+dmy(from)+': '+r.bd+'% / '+r.bi+'%, min ₹'+bmin}); return; }
+    /* auto: fit the client's own bills */
+    const T=(trades||[]).filter(t=>t.c===c), tryR=hist=>{ const X=JSON.parse(JSON.stringify(RS)); X[c]=Object.assign({},RS[c]||{}); X[c].hist=(X[c].hist||[]).filter(h=>h.kind!=='brk').concat(hist); const q=T.length?ledgerRecon(c,trades,null,X):null; return q?{ok:q.rows.length-q.bad,n:q.rows.length,q}:{ok:0,n:0}; };
+    const A0=[Object.assign({from:'2000-01-01'},base)], sA=tryR(A0); let best={h:A0,s:sA,how:'listing % charged'};
+    const q0=sA.q, billDays=q0?q0.rows.filter(x=>x.bill!=null&&x.n).map(x=>x.d):[];
+    if(q0&&q0.bd!=null&&q0.bd<r.bd*0.7&&billDays.length){ const last=billDays[billDays.length-1];
+      for(const mf of ['',...billDays]){ const H=[Object.assign({},base,{from:'2000-01-01',bd:q0.bd,bi:q0.bi!=null?q0.bi:r.bi,bdc:r.bd,bic:r.bi,bminFrom:mf}),Object.assign({from:dayAfter(last)},base)], sB=tryR(H);
+        if(sB.ok>best.s.ok) best={h:H,s:sB,how:'charged '+q0.bd+'% / '+(q0.bi!=null?q0.bi:r.bi)+'% with the ₹'+bmin+' minimum topped up against the listing %'+(mf?' from '+dmy(mf):'')+'; listing % from '+dmy(dayAfter(last))}; } }
+    best.h.forEach(e=>put(c,e)); rep.push({c,note:best.how,fit:best.s.n?best.s.ok+'/'+best.s.n+' bill days match':'no bills to check'}); });
+  LS.set('jc_pf_rates',RS); return rep; }
 function brkFromLedgers(trades){ const cs=Object.keys(led().E||{}), M=LS.get('jc_pf_brkled',{})||{}; let ch=false;
   cs.forEach(c=>{ const r=ledgerRecon(c,trades); if(!r||r.bd==null) return; const o={bd:r.bd,bi:r.bi!=null?r.bi:(M[c]||{}).bi,bmin:r.bmin||0,nMin:r.nMin||0,nDel:r.nDel,nInt:r.nInt}; if(JSON.stringify(M[c])!==JSON.stringify(o)){ M[c]=o; ch=true; } });
   if(ch) LS.set('jc_pf_brkled',M); return M; }
@@ -844,5 +884,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
