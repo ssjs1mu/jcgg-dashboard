@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Charges discrepancy statement</title>
+<style>
+/* Statement for the broker: a client's bills against the agreed rates. Client code only - never names. Prints to A4 / PDF. */
+:root{--dk:#3f3c00;--kh:#A7A15D;--up:#13863a;--dn:#c62828;--mu:#6E6A45;--ink:#2E2C14}
+*{box-sizing:border-box}body{margin:0;background:#e9e6d8;font:11.5px/1.4 Inter,Arial,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sheet{width:210mm;min-height:297mm;margin:10px auto;background:#fff;padding:12mm 12mm 14mm;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+@page{size:A4;margin:10mm}@media print{body{background:#fff}.sheet{margin:0;box-shadow:none;width:auto;min-height:0;padding:0}.noprint{display:none!important}}
+.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid var(--dk);padding-bottom:6px;margin-bottom:8px}
+.hd .b{font:700 22px/1 "Brush Script MT",cursive;color:#7a6a1a}.hd .ap{font:600 10px Inter,Arial;color:var(--mu);margin-top:3px}
+.hd h1{margin:0;font:800 16px Inter,Arial;color:var(--dk);text-align:right}.hd .ri{font-size:10.5px;text-align:right;color:var(--mu)}.hd .ri b{color:var(--ink)}
+h2{font:800 11.5px Inter,Arial;letter-spacing:.06em;text-transform:uppercase;color:var(--dk);margin:12px 0 5px;border-bottom:1px solid var(--kh);padding-bottom:2px}
+table{width:100%;border-collapse:collapse;margin-top:2px}th,td{border:1px solid #cfc7a0;padding:3px 5px;text-align:right;font-size:10.2px;white-space:nowrap}
+th{background:var(--dk);color:#F3E6B5;font-weight:800;font-size:9.4px;white-space:normal;vertical-align:bottom}th.l,td.l{text-align:left}
+thead{display:table-header-group}tr{break-inside:avoid}.tot td{background:#EEEAD5;font-weight:800}.hot td{background:#fdecea}
+.up{color:var(--up);font-weight:700}.dn{color:var(--dn);font-weight:700}.mu{color:var(--mu)}
+.box{border:1px solid #e3dcb8;background:#fffdf3;border-radius:8px;padding:8px 10px;margin-top:8px}
+.big{font:800 14px Inter,Arial}.note{font-size:10px;color:var(--mu);margin-top:4px}
+.noprint{position:fixed;top:10px;right:10px;display:flex;gap:8px;z-index:9}.noprint button{font:800 13px Inter,Arial;padding:9px 14px;border-radius:9px;border:0;background:#3f3c00;color:#fff;cursor:pointer}
+#msg{max-width:700px;margin:40px auto;font:600 14px Inter,Arial;color:var(--dk);text-align:center}
+</style></head><body>
+<div class="noprint"><label style="background:#fff;padding:8px 10px;border-radius:9px;font:700 12px Inter,Arial"><input type="checkbox" id="all"> Show every day</label><button onclick="window.print()">🖨 Save as PDF / Print</button><button onclick="try{window.close()}catch(e){};setTimeout(()=>{ if(!window.closed) location.replace('portfolio.html'); },250)" style="background:#8a8466">✕ Close</button></div>
+<div id="root"><div id="msg">Preparing the statement…</div></div>
+<script src="jc-params.js?v=1"></script>
+<script src="pf-core.js?v=45"></script>
+<script>
+const $=id=>document.getElementById(id), P=new URLSearchParams(location.search), C=(P.get('c')||'').toUpperCase();
+const fx=(v,d=2)=>v==null||!isFinite(v)?'–':Number(v).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const sg=v=>Math.abs(v)<0.005?'–':(v>0?'+':'−')+fx(Math.abs(v)), cl=v=>Math.abs(v)<0.005?'mu':v>0?'dn':'up';
+const dmy=d=>d?d.slice(8,10)+'-'+d.slice(5,7)+'-'+d.slice(0,4):'–', esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function build(){ if(!C){ $('msg').textContent='Open this from Portfolio → Reports → Broker Billing Check.'; return; }
+  await PF.stateSync().catch(()=>0); await PF.corpActs().catch(()=>0);
+  const TR=PF.tb().trades, X=PF.excessReport(TR,C)[C]; if(!X){ $('msg').textContent='No trades with ledger bills for client '+C+'.'; return; }
+  const RS=PF.rates()[C]||{}, H=(RS.hist||[]).filter(h=>h.kind==='brk'), M=(PF.dp().M||{})[C]||{}, SH=PF.sheets(), sh=SH[SH.length-1], all=$('all').checked;
+  const D=all?X.days:X.days.filter(x=>Math.abs(x.xs)>=1), same=X.days.length-X.days.filter(x=>Math.abs(x.xs)>=1).length, now=new Date(Date.now()+19800000).toISOString();
+  const p0=X.days.length?X.days[0].d:'', p1=X.days.length?X.days[X.days.length-1].d:'';
+  const off={sttD:0.1,sttI:0.025,sebi:0.0001,stampD:'0.015 (buy only)',stampI:'0.003 (buy only)',gst:'18 (incl. SEBI fee)'}, offEx={NSE:'0.00307 (from 01-10-2024)',BSE:'0.00375'};
+  const shr=(lab,k)=>`<tr><td class="l">${lab}</td>${['NSE','BSE'].map(e=>`<td>${(sh[e]||{})[k]!=null?sh[e][k]:'–'}</td><td class="mu">${k==='exch'?offEx[e]:off[k]}</td>`).join('')}</tr>`;
+  $('root').innerHTML=`<div class="sheet">
+    <div class="hd"><div><div class="b">Joshi's Corner</div><div class="ap">Associated Person : <b>SSJ Finance &amp; Securities Pvt Ltd</b></div></div>
+      <div><h1>Charges Discrepancy Statement</h1><div class="ri">Client Code : <b>${esc(C)}</b>${M.dpac?' · DP A/c : <b>'+esc(M.dpac)+'</b>':''}<br>Bills checked : <b>${dmy(p0)} to ${dmy(p1)}</b> · Prepared : <b>${dmy(now.slice(0,10))} ${now.slice(11,16)} IST</b></div></div></div>
+    <div class="box"><span class="big">${X.over>=1?`Excess billed: <span class="dn">₹${fx(X.over)}</span> on ${X.nOver} day${X.nOver>1?'s':''}`:'No day billed above the agreed rates'}</span>
+      <div style="margin-top:3px">Charges on ${X.days.length} bills ₹${fx(X.billC)} against ₹${fx(X.sheetC)} as per the agreed brokerage and your charges details · billed below on other days ₹${fx(-X.under)} · <b>net ${X.xs>=0?'excess':'below'} ₹${fx(Math.abs(X.xs))}</b>.</div>
+      ${X.over>=1?'<div style="margin-top:3px">Please check these days against the contract notes and <b>credit the excess</b> to the client account, or explain the difference.</div>':''}</div>
+    <h2>1 · Agreed Brokerage</h2><table><thead><tr><th class="l">From</th><th>Delivery %</th><th>Intraday %</th><th>Minimum ₹ / Exchange / Day</th><th>Minimum Checked At %</th><th class="l">Scheme</th></tr></thead><tbody>
+      ${(H.length?H:[{from:'',bd:RS.bd,bi:RS.bi,bmin:RS.bmin}]).map(h=>`<tr><td class="l">${h.from&&h.from>'2000-01-01'?dmy(h.from):'start'}</td><td>${h.bd!=null?h.bd:'–'}</td><td>${h.bi!=null?h.bi:'–'}</td><td>${h.bmin?fx(h.bmin,0):'–'}</td><td class="mu">${h.bdc?h.bdc+' / '+h.bic:'same'}</td><td class="l mu">${esc(h.scheme||'')}</td></tr>`).join('')}</tbody></table>
+    <h2>2 · Statutory Charges - Your Charges Details vs Official</h2><table><thead><tr><th class="l">Charge (% of turnover)</th><th>NSE - Yours</th><th>NSE - Official</th><th>BSE - Yours</th><th>BSE - Official</th></tr></thead><tbody>
+      ${shr('STT delivery','sttD')}${shr('STT intraday (sell)','sttI')}${shr('Transaction charges','exch')}${shr('SEBI turnover fee','sebi')}${shr('Stamp duty delivery','stampD')}${shr('Stamp duty intraday','stampI')}${shr('GST %','gst')}</tbody></table>
+    <div class="note">Agreed charges below = brokerage at the agreed rates (with the minimum per exchange contract note) + statutory charges as per your charges details. Official = same brokerage at official statutory rates, shown for reference.</div>
+    <h2>3 · Day-Wise ${all?'(every bill)':'(bills differing by ₹1 or more)'}</h2><table><thead><tr><th class="l">Trade Date</th><th>Turnover ₹</th><th>Bill ₹ (Dr + / Cr −)</th><th>Trade Value ₹ (Buy − Sell)</th><th>Charges Billed ₹</th><th>Agreed Charges ₹</th><th>Excess (+) / Less (−) ₹</th><th>Running Excess ₹</th><th>At Official Rates ₹</th></tr></thead><tbody>
+      ${D.map(x=>`<tr${x.xs>=1?' class="hot"':''}><td class="l">${dmy(x.d)}</td><td>${fx(x.turn,0)}</td><td>${fx(x.bill)}</td><td>${fx(x.net)}</td><td>${fx(x.billC)}</td><td>${fx(x.sheetC)}</td><td class="${cl(x.xs)}"><b>${sg(x.xs)}</b></td><td class="${cl(x.cum)}">${sg(x.cum)}</td><td class="mu">${fx(x.lawC)}</td></tr>`).join('')||'<tr><td class="l mu" colspan="9">No bill differs by ₹1 or more.</td></tr>'}
+      <tr class="tot"><td class="l" colspan="4">All ${X.days.length} bills</td><td>${fx(X.billC)}</td><td>${fx(X.sheetC)}</td><td class="${cl(X.xs)}">${sg(X.xs)}</td><td></td><td>${fx(X.lawC)}</td></tr></tbody></table>
+    ${!all&&same?`<div class="note">${same} other bill${same>1?'s':''} agree within ₹1 (contract-note rounding).</div>`:''}
+    ${X.skip.length?`<div class="note">Not compared (trade details for the day incomplete): ${X.skip.map(k=>dmy(k.d)).join(', ')}.</div>`:''}
+    <div class="note" style="margin-top:10px">Prepared from the client's ledger (bills) and trade book. Client identified by code only.</div></div>`;
+  document.title=C+' charges discrepancy statement '+now.slice(0,10); }
+$('all').onchange=build; build().catch(e=>{ $('msg').textContent='Could not build the statement - '+e.message; });
+</script></body></html>
