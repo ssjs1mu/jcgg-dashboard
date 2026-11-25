@@ -204,12 +204,17 @@ function kindOf(n,dr,cr,v){ n=String(n||'').toLowerCase(); v=String(v||'').toUpp
   if(/interest|int\.?\s*(on|chg)|delay(ed)? pay|dpc\b|late pay/.test(n)) return 'int';
   if(/\bdp\b|demat|cdsl|nsdl|depository|dp\s*chg|dp charges|amc/.test(n)||/^G(\/|\d{5})/.test(v)) return 'dp';
   if(/^B(\/|\d{5})/.test(v)||/\b(to|by)\s+bill\b/.test(n)) return 'bill';
+  /* money received / paid wording wins over exchange words: 'being credit received in hdfc nse 6253 vide ref no ...' is funds in */
+  if(/credit received|amount received|received in|recd in|received from|vide ref|ref no|utr\b|neft|rtgs|imps|upi|cheque|chq/.test(n)&&!/\bbill\b/.test(n)) return cr>0?'in':(dr>0?'out':'oth');
   if(/bill|settle|sett\.|stl|contract|trade|purchase|sale\b|sell|buy|nse|bse|cm\b/.test(n)) return 'bill';
   if(/receipt|received|recd|neft|rtgs|imps|upi|cheque|chq|deposit|pay.?in|fund.?in|transfer in|bank/.test(n)) return cr>0?'in':(dr>0?'out':'oth');
   if(/payment|paid|pay.?out|withdraw|fund.?out|transfer out|refund/.test(n)) return dr>0?'out':'in';
   if(/charges?|fee|gst|stamp|penalty/.test(n)) return 'chg';
   return 'oth'; }
-function led(){ return LS.get('jc_pf_led2',null)||{files:[],E:{},bal:{}}; }
+const LEDK=2;   /* bump when kindOf changes: saved PDF-ledger entries are sorted again */
+function led(){ const L=LS.get('jc_pf_led2',null)||{files:[],E:{},bal:{}}; if(L.kv!==LEDK&&L.E){ let ch=false;
+    Object.values(L.E).forEach(A=>(A||[]).forEach(e=>{ if(e.vt||e.k!=='bill'||/^B(\/|\d{5})/i.test(String(e.v||''))) return; const k=kindOf(e.n,e.dr,e.cr,e.v); if(k==='in'||k==='out'){ e.k=k; ch=true; } }));   /* only bills that are really money received / paid (PDF ledgers, non-bill vouchers) */ L.kv=LEDK; try{ LS.set('jc_pf_led2',L); }catch(x){} }
+  return L; }
 /* a ledger upload replaces a client's entries only inside its own period (statement From-To, else first to last entry date);
    statements of other years stay, so two years read as one date-wise ledger. A later year's opening balance is dropped when the
    earlier year is present (it is the same money, carried forward). */
@@ -635,7 +640,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25u';
+const BUILD='2026-11-25v';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
