@@ -35,7 +35,7 @@ h3.sec:after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(-
 table.x{border-collapse:collapse;width:100%;font:600 12px Inter,sans-serif;font-variant-numeric:tabular-nums}
 table.x th{position:sticky;top:0;background:var(--ol);color:#fff;font:800 10.5px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:6px 7px;text-align:right;white-space:nowrap;z-index:1}
 table.x td{padding:4px 7px;border-bottom:1px solid #EFEBD6;text-align:right;white-space:nowrap}
-table.x td.l,table.x th.l{text-align:left}table.x tr:nth-child(even) td{background:#FBFAF3}
+table.x td.l,table.x th.l{text-align:left}table.x tr:nth-child(even) td{background:#FBFAF3}table.x tr.rc td{background:var(--rc)}
 table.x tr.tot td{background:#F1EDD9!important;font-weight:900;border-top:2px solid var(--kh)}
 .up{color:var(--up)}.dn{color:var(--dn)}.mu{color:var(--mu)}.dr{color:var(--dr);font-weight:800}.cr{color:var(--cr);font-weight:800}
 .tabs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 10px;border-bottom:2px solid #A7A15D;padding-bottom:6px}.tabs button{font:800 13px Inter,sans-serif;padding:7px 14px;border:1px solid #A7A15D;border-radius:8px 8px 0 0;background:#FBF8EC;color:#3f3c00;cursor:pointer}.tabs button.on{background:#3f3c00;color:#fff;border-color:#3f3c00}.tabs span{display:inline-flex;gap:6px;align-items:center;margin-left:8px;flex-wrap:wrap}.tabs select,.tabs input{font:600 12px Inter,sans-serif;padding:4px 6px;border:1px solid #c9c39a;border-radius:6px}
@@ -48,7 +48,9 @@ details.pan{background:#fff;border:1px solid var(--line);border-radius:10px;marg
 .chip{display:inline-block;margin-left:5px;padding:1px 7px;border-radius:999px;font:800 10px Inter,sans-serif;vertical-align:1px;white-space:nowrap}
 .chip.bk{background:#FBE3E1;color:#B00000;border:1px solid #E29A93}.chip.en{background:#E3F1DF;color:#1C820D;border:1px solid #8DC487}.chip.pf{background:#FFF1C9;color:#7A5A00;border:1px solid #E7CF8A}.chip.ls{background:#F1EDD9;color:#6E6A45;border:1px solid #DCD6B4}
 @keyframes jcb{0%,100%{opacity:1}50%{opacity:.18}}.b1{animation:jcb 1.8s ease-in-out infinite}.b2{animation:jcb .55s ease-in-out infinite}
-tr.hot td{background:#FFF8E1!important}
+tr.hot:not(.rc) td{background:#FFF8E1!important}tr.hot.rc td:first-child{box-shadow:inset 4px 0 0 #E8B33A}
+.liqT{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}.liqT button{border:0;border-radius:12px;padding:8px 14px;color:#fff;font:800 13px Inter,sans-serif;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.18);text-align:left;line-height:1.25}.liqT button small{display:block;font:700 10.5px Inter,sans-serif;opacity:.92}
+#pfPop{position:fixed;inset:0;z-index:9800;background:rgba(40,38,10,.5);display:flex;align-items:flex-start;justify-content:center;padding:40px 12px;overflow:auto}#pfPop>div{background:#fff;border-radius:14px;max-width:1100px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.35)}#pfPop h4{margin:0;padding:10px 14px;font:900 15px Inter,sans-serif;color:#3f3c00;border-bottom:2px solid #E8C96A;display:flex;justify-content:space-between;align-items:center}#pfPop .pb{padding:10px 12px}tr.sw{cursor:pointer}
 select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.mk.T{background:#FFF1C9;border-color:#E7CF8A}select.mk.I{background:#E6EEF8;border-color:#A9C1E0}
 .ic{border:0;background:none;cursor:pointer;font-size:14px;padding:0 3px;opacity:.8}.ic:hover{opacity:1;transform:scale(1.15)}
 .fl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
@@ -91,7 +93,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=53"></script>
+<script src="pf-core.js?v=54"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -225,7 +227,7 @@ function render(){
     K('P&amp;L After Cost',`<span class="${cls(S.after)}">${sgn(S.after,0)}</span>`,S.inv?pc((S.unr-S.hcOpen)/(S.inv+S.hcOpen)*100)+' on open holdings incl. interest':'')+
     K('Charges Paid',fx(S.chg,0),'brokerage + taxes + DP')+
     K('Loss To Recover',`<span class="${S.bal>0?'dn':''}">${fx(S.bal?-S.bal:0,0)}</span>`,'booked losses '+fx(S.lossB,0)+' · recovered '+fx(S.recd,0));
-  let h=liqHtml(E,clients)+acctHtml(E,clients,inC)+dpNote(E,clients);
+  let h=liqHtml(E,clients)+swHtml(E,inC)+acctHtml(E,clients,inC)+dpNote(E,clients);
   if(CL==='ALL'){ const cs=[...new Set(TR.map(t=>t.c))].sort();
     h+=`<h3 class="sec">Clients <small>click a client to open</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th>Portfolio Size</th><th>Invested</th><th>Ledger</th><th>Net Balance</th><th>Unrealised</th><th>%</th><th>Booked</th><th>Total P&amp;L</th><th>%</th><th>Holding Cost</th><th>After Cost</th></tr></thead><tbody>`+
       cs.map(c=>{ const s=sum(c); return `<tr data-c="${esc(c)}" style="cursor:pointer"><td class="l"><b>${esc(c)}</b></td><td>${fx(s.val,0)}</td><td>${fx(s.inv,0)}</td><td>${drcr(s.led)}</td><td class="${cls(s.net)}">${sgn(s.net,0)}</td><td class="${cls(s.unr)}">${sgn(s.unr,0)}</td><td class="${cls(s.pct)}">${pc(s.pct)}</td><td class="${cls(s.rel+s.ipl)}">${sgn(s.rel+s.ipl,0)}</td><td class="${cls(s.tot)}">${sgn(s.tot,0)}</td><td class="${cls(s.totPct)}">${pc(s.totPct)}</td><td class="dn">${fx(-s.hc,0)}</td><td class="${cls(s.after)}">${sgn(s.after,0)}</td></tr>`; }).join('')+
@@ -248,7 +250,7 @@ function render(){
   else rows.sort((a,b)=>srtBy(SRT.pf,r=>r.g.sym,r=>r.val||0,(x,y)=>(y.plp||0)-(x.plp||0))(a,b)||a.g.c.localeCompare(b.g.c));
   h+=`<h3 class="sec">Holdings <small>${SRT.pf==='def'?'Trading positions in profit on top for booking':esc((SRT_OPT.pf.find(o=>o[0]===SRT.pf)||[])[1]||'')} · alerts beside the symbol · live P&amp;L on net buy and on cost incl. holding interest</small></h3><div class="sx"><table class="x"><thead><tr>${CL==='ALL'?'<th class="l">Client</th>':''}<th class="l">Symbol &amp; Alerts</th><th class="l">Mark</th><th>RSI 14</th><th>Qty</th><th>Net Buy</th><th>CMP</th><th>Day %</th><th>Value</th><th>VAR %</th><th>VAR Margin</th><th>P&amp;L On Net Buy</th><th>%</th><th>Days (T+1)</th><th>vs ${STAT.hurdle}% p.a. benchmark</th><th>Holding Cost</th><th>Cost Incl. Holding</th><th>P&amp;L After Holding</th><th>%</th><th>Balance Loss</th><th>Recovery Price</th><th>After Loss Recovery</th></tr></thead><tbody>`+
     (rows.length?rows.map(r=>{ const g=r.g, rs=RSI[g.sym];
-      return `<tr class="${r.blink?'hot':''}">${CL==='ALL'?'<td class="l">'+esc(g.c)+'</td>':''}<td class="l"><b>${esc(g.sym)}</b>${chips(r.al)}</td><td class="l"><select class="mk ${r.mk}" data-s="${esc(g.sym)}" data-c="${esc(g.c)}"><option value="T"${r.mk==='T'?' selected':''}>Trading</option><option value="I"${r.mk==='I'?' selected':''}>Investment</option></select></td><td class="${rs==null?'mu':rs>=70?'dn':rs<=30?'up':''}">${rs==null?'–':rs.toFixed(1)}</td><td>${fx(g.q,0)}</td><td>${fx(g.cost/g.q)}</td><td>${r.q?fx(r.q.p):'–'}</td><td class="${cls(r.dp)}">${pc(r.dp)}</td><td>${r.val!=null?fx(r.val,0):'–'}</td><td class="mu" title="${r.vr?'VAR % from the trade file of '+dmy(r.vr.d):'no VAR % in the trade files yet'}">${r.vr?r.vr.p.toFixed(2):'–'}</td><td>${r.vm!=null?fx(r.vm,0):'–'}</td><td class="${cls(r.pl)}">${sgn(r.pl,0)}</td><td class="${cls(r.pl)}">${pc(r.plp)}</td><td>${g.days}</td><td class="${r.plp==null?'mu':r.plp>=r.hd?'up':'dn'}" title="return on net buy vs ${STAT.hurdle}% p.a. for ${g.days} days = ${r.hd.toFixed(2)}%">${r.plp==null?'–':(r.plp>=r.hd?'✓ ':'⚠ ')+pc(r.plp)+' vs '+r.hd.toFixed(2)+'%'}</td><td class="${g.hc?'dn':'mu'}">${r.own?'<span title="ledger in credit - own funds, no holding interest">own funds</span>':fx(-g.hc,0)+(g.fund!=null&&g.fund<1?' <span class="mu" title="only the debit-funded share">('+Math.round(g.fund*100)+'%)</span>':'')}</td><td>${fx(r.cih/g.q)}</td><td class="${cls(r.aft)}">${r.aft!=null?sgn(r.aft,0):'–'}</td><td class="${cls(r.aft)}">${pc(r.aftp)}</td><td class="${r.bal?'dn':'mu'}">${r.bal?fx(-r.bal,0):'–'}</td><td>${r.bal?'<b>'+fx(r.rp)+'</b>':'–'}</td><td class="${cls(r.arv)}">${r.bal&&r.arv!=null?sgn(r.arv,0):'–'}</td></tr>`; }).join(''):`<tr><td class="l mu" colspan="22">No holdings match.</td></tr>`)+`</tbody></table></div>`;
+      return `<tr class="${r.blink?'hot':''}${r.plp!=null?' rc':''}" style="${r.plp!=null?'--rc:'+shade(r.plp,r.pl>0):''}">${CL==='ALL'?'<td class="l">'+esc(g.c)+'</td>':''}<td class="l"><b>${esc(g.sym)}</b>${chips(r.al)}</td><td class="l"><select class="mk ${r.mk}" data-s="${esc(g.sym)}" data-c="${esc(g.c)}"><option value="T"${r.mk==='T'?' selected':''}>Trading</option><option value="I"${r.mk==='I'?' selected':''}>Investment</option></select></td><td class="${rs==null?'mu':rs>=70?'dn':rs<=30?'up':''}">${rs==null?'–':rs.toFixed(1)}</td><td>${fx(g.q,0)}</td><td>${fx(g.cost/g.q)}</td><td>${r.q?fx(r.q.p):'–'}</td><td class="${cls(r.dp)}">${pc(r.dp)}</td><td>${r.val!=null?fx(r.val,0):'–'}</td><td class="mu" title="${r.vr?'VAR % from the trade file of '+dmy(r.vr.d):'no VAR % in the trade files yet'}">${r.vr?r.vr.p.toFixed(2):'–'}</td><td>${r.vm!=null?fx(r.vm,0):'–'}</td><td class="${cls(r.pl)}">${sgn(r.pl,0)}</td><td class="${cls(r.pl)}">${pc(r.plp)}</td><td>${g.days}</td><td class="${r.plp==null?'mu':r.plp>=r.hd?'up':'dn'}" title="return on net buy vs ${STAT.hurdle}% p.a. for ${g.days} days = ${r.hd.toFixed(2)}%">${r.plp==null?'–':(r.plp>=r.hd?'✓ ':'⚠ ')+pc(r.plp)+' vs '+r.hd.toFixed(2)+'%'}</td><td class="${g.hc?'dn':'mu'}">${r.own?'<span title="ledger in credit - own funds, no holding interest">own funds</span>':fx(-g.hc,0)+(g.fund!=null&&g.fund<1?' <span class="mu" title="only the debit-funded share">('+Math.round(g.fund*100)+'%)</span>':'')}</td><td>${fx(r.cih/g.q)}</td><td class="${cls(r.aft)}">${r.aft!=null?sgn(r.aft,0):'–'}</td><td class="${cls(r.aft)}">${pc(r.aftp)}</td><td class="${r.bal?'dn':'mu'}">${r.bal?fx(-r.bal,0):'–'}</td><td>${r.bal?'<b>'+fx(r.rp)+'</b>':'–'}</td><td class="${cls(r.arv)}">${r.bal&&r.arv!=null?sgn(r.arv,0):'–'}</td></tr>`; }).join(''):`<tr><td class="l mu" colspan="22">No holdings match.</td></tr>`)+`</tbody></table></div>`;
   if(RL.length) h+=`<h3 class="sec">Booked Delivery Trades <small>FIFO · no holding interest once a position is closed</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th class="l">Symbol</th><th>Bought</th><th>Sold</th><th>Qty</th><th>Net Buy</th><th>Net Sell</th><th>P&amp;L</th><th>%</th><th>Days Held</th></tr></thead><tbody>`+
     RL.map(x=>`<tr><td class="l">${esc(x.c)}</td><td class="l"><b>${esc(x.sym)}</b></td><td>${dmy(x.bd)}</td><td>${dmy(x.sd)}</td><td>${fx(x.q,0)}</td><td>${fx(x.buy)}</td><td>${fx(x.sell)}</td><td class="${cls(x.pl)}">${sgn(x.pl,0)}</td><td class="${cls(x.pl)}">${pc(x.pl/x.cost*100)}</td><td>${x.days}</td></tr>`).join('')+`</tbody></table></div>`;
   const LRs=Object.values(E.lr).filter(x=>inC(x)&&x.loss>0).sort((a,b)=>b.bal-a.bal||a.c.localeCompare(b.c));
@@ -267,6 +269,9 @@ function render(){
       return r('Buy Total',B,'up')+r('Sell Total',S,'dn')+`<tr class="tot"><td class="l" colspan="8">Net (Buy − Sell)${one?'':' <span class="mu" style="font-weight:600">· choose one symbol for a meaningful quantity</span>'}</td><td class="${nq<0?'dn':''}">${fx(nq,0)}</td><td title="net cost per share still held = (net buy − net sell) ÷ net quantity">${nq>0?fx((B.net-S.net)/nq):'–'}</td><td>${fx(B.v-S.v)}</td><td colspan="7"></td><td></td><td></td><td>${fx(B.net-S.net)}</td></tr>`; })()+
     `<tr class="tot"><td class="l" colspan="10">Total Charges</td><td>${fx(tt.v)}</td><td>${fx(tt.brk)}</td><td>${fx(tt.stt)}</td><td>${fx(tt.exch)}</td><td>${fx(tt.sebi)}</td><td>${fx(tt.stamp)}</td><td>${fx(tt.dp)}</td><td>${fx(tt.gst)}</td><td>${fx(tt.chg)}</td><td></td><td></td></tr></tbody></table></div>`;
   $('body').innerHTML=h;
+  document.querySelectorAll('[data-liq]').forEach(b=>b.onclick=()=>popBox('⚠ Debit ageing - '+esc(b.dataset.liq),(window.LIQD||{})[b.dataset.liq]||''));
+  if($('swSort')) $('swSort').onchange=()=>{ SWS=$('swSort').value; LS.set('jc_pf_swsort',SWS); render(); };
+  document.querySelectorAll('tr[data-sw]').forEach(tr=>tr.onclick=()=>{ swPop(E,inC,tr.dataset.sw); document.querySelectorAll('#pfPop [data-popc]').forEach(t=>t.onclick=()=>{ CL=t.dataset.popc; LS.set('jc_pf_client',CL); document.getElementById('pfPop').remove(); render(); scrollTo(0,0); }); });
   const reload=async()=>{ await loadTrades(); recon(); prices(); history(); };
   if($('addT')) $('addT').onclick=()=>PF.editor(CL!=='ALL'?{c:CL}:null,reload);
   document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{ const t=PF.tb().trades.find(x=>x.id===b.dataset.ed); if(t) PF.editor(t,reload); });
@@ -284,14 +289,47 @@ function render(){
   ratesPanel(clients);
 }
 
+/* ---------- holdings script-wise: one row per script across the clients shown, shaded by return (split when some clients gain and some lose) ---------- */
+let SWS=LS.get('jc_pf_swsort','pl');
+function swData(E,inC){ const G={}; E.hold.filter(inC).forEach(h=>{ const g=G[h.sym]=G[h.sym]||{sym:h.sym,cl:{}}; const k=g.cl[h.c]=g.cl[h.c]||{c:h.c,q:0,cost:0,first:h.d}; k.q+=h.q; k.cost+=h.q*h.cost; if(h.d<k.first) k.first=h.d; });
+  return Object.values(G).map(g=>{ const q=Q[g.sym], C=Object.values(g.cl).map(k=>{ const val=q?k.q*q.p:null, pl=val!=null?val-k.cost:null; return Object.assign(k,{val,pl,plp:pl!=null?pl/k.cost*100:null}); }).sort((a,b)=>a.c.localeCompare(b.c));
+    const cost=C.reduce((a,k)=>a+k.cost,0), qty=C.reduce((a,k)=>a+k.q,0), val=q?C.reduce((a,k)=>a+k.val,0):null, pl=val!=null?val-cost:null, up=C.filter(k=>k.pl>0), dn=C.filter(k=>k.pl<0);
+    const gc=up.reduce((a,k)=>a+k.cost,0), rc=dn.reduce((a,k)=>a+k.cost,0);
+    return {sym:g.sym,C,qty,cost,avg:qty?cost/qty:null,p:q?q.p:null,dp:q&&q.pc?(q.p/q.pc-1)*100:null,val,pl,plp:pl!=null&&cost?pl/cost*100:null,nUp:up.length,nDn:dn.length,
+      gFrac:gc+rc?gc/(gc+rc):(pl>0?1:0),gPct:gc?up.reduce((a,k)=>a+k.pl,0)/gc*100:0,rPct:rc?dn.reduce((a,k)=>a+k.pl,0)/rc*100:0}; }); }
+function swHtml(E,inC){ const L=swData(E,inC); if(!L.length) return '';
+  const SO=[['pl','P&L % High → Low'],['plr','P&L ₹ High → Low'],['val','Value High → Low'],['az','Symbol A → Z'],['za','Symbol Z → A'],['cl','Most Clients']];
+  const f={pl:(a,b)=>(b.plp??-1e9)-(a.plp??-1e9),plr:(a,b)=>(b.pl??-1e12)-(a.pl??-1e12),val:(a,b)=>(b.val||0)-(a.val||0),az:(a,b)=>a.sym.localeCompare(b.sym),za:(a,b)=>b.sym.localeCompare(a.sym),cl:(a,b)=>b.C.length-a.C.length||a.sym.localeCompare(b.sym)}[SWS]||((a,b)=>0); L.sort(f);
+  const N=12, T=k=>L.reduce((a,x)=>a+(x[k]||0),0), tpl=T('pl'), tco=L.filter(x=>x.pl!=null).reduce((a,x)=>a+x.cost,0);
+  return `<h3 class="sec">Holdings - Script-Wise <small>${L.length} scripts · tap a script for the clients holding it · green = profit, red = loss, deeper = bigger return · split row = some clients in profit, some in loss</small>
+    <select id="swSort" style="margin-left:6px">${SO.map(o=>`<option value="${o[0]}"${o[0]===SWS?' selected':''}>Sort: ${o[1]}</option>`).join('')}</select></h3>
+    <div class="sx" style="max-height:420px"><table class="x"><thead><tr><th class="l">Script</th><th>Clients</th><th>In Profit / Loss</th><th>Qty</th><th>Avg Cost</th><th>CMP</th><th>Day %</th><th>Cost</th><th>Value</th><th>P&amp;L ₹</th><th>P&amp;L %</th><th>Profit Side %</th></tr></thead><tbody>`+
+    L.map(x=>{ const bg=x.pl==null?Array(N).fill(''):x.nUp&&x.nDn?rowShade(N,x.gFrac,x.gPct,x.rPct):rowShade(N,x.pl>0?1:0,x.plp,x.plp), td=(i,v,c)=>`<td class="${c||''}" style="${bg[i]?'background:'+bg[i]:''}">${v}</td>`;
+      return `<tr class="sw" data-sw="${esc(x.sym)}" title="${x.nUp&&x.nDn?Math.round(x.gFrac*100)+'% of the cost is in profit (+'+x.gPct.toFixed(1)+'%), the rest in loss ('+x.rPct.toFixed(1)+'%)':''}">`+td(0,'<b>'+esc(x.sym)+'</b>','l')+td(1,x.C.length)+td(2,`<span class="up">${x.nUp}</span> / <span class="dn">${x.nDn}</span>`)+td(3,fx(x.qty,0))+td(4,fx(x.avg))+td(5,x.p?fx(x.p):'–')+td(6,pc(x.dp),cls(x.dp))+td(7,fx(x.cost,0))+td(8,x.val!=null?fx(x.val,0):'–')+td(9,sgn(x.pl,0),cls(x.pl))+td(10,pc(x.plp),cls(x.plp))+td(11,x.nUp&&x.nDn?Math.round(x.gFrac*100)+'%':x.pl>0?'100%':x.pl<0?'0%':'–')+'</tr>'; }).join('')+
+    `<tr class="tot"><td class="l">Total</td><td></td><td></td><td></td><td></td><td></td><td></td><td>${fx(T('cost'),0)}</td><td>${fx(T('val'),0)}</td><td class="${cls(tpl)}">${sgn(tpl,0)}</td><td class="${cls(tpl)}">${tco?pc(tpl/tco*100):'–'}</td><td></td></tr></tbody></table></div>`; }
+function swPop(E,inC,sym){ const x=swData(E,inC).find(y=>y.sym===sym); if(!x) return;
+  popBox(`${esc(sym)} - clients holding it <small class="mu" style="font-weight:600">CMP ${x.p?fx(x.p):'–'} ${x.dp!=null?'('+pc(x.dp)+' today)':''}</small>`,
+    `<div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th class="l">Held Since</th><th>Qty</th><th>Avg Cost</th><th>Cost</th><th>Value</th><th>P&amp;L ₹</th><th>P&amp;L %</th></tr></thead><tbody>`+
+    x.C.sort((a,b)=>(b.plp??-1e9)-(a.plp??-1e9)).map(k=>{ const bg=k.pl!=null?shade(k.plp,k.pl>0):''; return `<tr class="clk" data-popc="${esc(k.c)}">`+[['l','<b>'+esc(k.c)+'</b>'],['l',dmy(k.first)],['',fx(k.q,0)],['',fx(k.cost/k.q)],['',fx(k.cost,0)],['',k.val!=null?fx(k.val,0):'–'],[cls(k.pl),sgn(k.pl,0)],[cls(k.plp),pc(k.plp)]].map(([c,v])=>`<td class="${c}" style="${bg?'background:'+bg:''}">${v}</td>`).join('')+'</tr>'; }).join('')+
+    `<tr class="tot"><td class="l" colspan="2">Total · ${x.C.length} client${x.C.length>1?'s':''}</td><td>${fx(x.qty,0)}</td><td>${fx(x.avg)}</td><td>${fx(x.cost,0)}</td><td>${x.val!=null?fx(x.val,0):'–'}</td><td class="${cls(x.pl)}">${sgn(x.pl,0)}</td><td class="${cls(x.plp)}">${pc(x.plp)}</td></tr></tbody></table></div><div class="note">Tap a client to open its portfolio.</div>`); }
+/* ---------- pop-up ---------- */
+function popBox(title,html){ const o=document.getElementById('pfPop'); if(o) o.remove(); const m=document.createElement('div'); m.id='pfPop';
+  m.innerHTML=`<div><h4><span>${title}</span><button class="btn" id="popX">✕ Close</button></h4><div class="pb">${html}</div></div>`; document.body.appendChild(m);
+  const close=()=>m.remove(); m.onclick=e=>{ if(e.target===m) close(); }; m.querySelector('#popX').onclick=close; document.addEventListener('keydown',function k(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',k); } }); return m; }
+/* return shading: green for profit, red for loss, deeper as the return grows */
+const shade=(pct,up)=>`rgba(${up?'19,134,58':'198,40,40'},${Math.min(.46,.07+Math.abs(pct||0)/70).toFixed(3)})`;
+/* n cells: the first gFrac of the row in green (profit part), the rest in red (loss part) */
+const rowShade=(n,gFrac,gPct,rPct)=>Array.from({length:n},(_,i)=>((i+.5)/n)<gFrac?shade(gPct,true):shade(rPct,false));
 /* ---------- debit ageing -> liquidation alert (T+4 and older), sell suggestion for overdue debit + 2% ---------- */
 function liqHtml(E,clients){ const out=[];
   clients.filter(c=>CL==='ALL'||c===CL).forEach(c=>{ const a=PF.ageing(c); if(!a||a.debit<=0.5) return;
     if(a.over4>0){ const need=a.over4*1.02, L=PF.liquidate(c,E.hold,Q,MARK,need,STAT,rateOf); out.push({c,a,need,L,lvl:2}); }
     else if(a.maxT>=3) out.push({c,a,lvl:1}); });
   if(!out.length) return '';
-  return '<h3 class="sec" style="color:#B00000">⚠ Debit ageing <small>unpaid debit cleared oldest-first by receipts · T+4 and older = liquidation · sell suggestion covers the overdue debit + 2%, Trading stocks with the highest profit first</small></h3>'+
-   out.sort((x,y)=>y.lvl-x.lvl||y.a.maxT-x.a.maxT).map(o=>{ const a=o.a;
+  const PAL=['#C62828','#AD1457','#6A1B9A','#283593','#00695C','#EF6C00','#4E342E','#1565C0','#2E7D32','#9E9D24','#D84315','#5D4037'], col=c=>PAL[[...c].reduce((a,ch)=>(a*31+ch.charCodeAt(0))>>>0,7)%PAL.length];
+  window.LIQD={};
+  const tiles='<div class="liqT">'+out.sort((x,y)=>y.lvl-x.lvl||y.a.maxT-x.a.maxT).map(o=>`<button class="${o.lvl>1?'b2':'b1'}" data-liq="${esc(o.c)}" style="background:${col(o.c)}" title="Click for the debit ageing and the sell suggestion">⚠ ${esc(o.c)}<small>${o.lvl>1?'LIQUIDATE · T+'+o.a.maxT+' · overdue '+fx(o.a.over4,0):'Due · T+'+o.a.maxT+' · debit '+fx(o.a.debit,0)}</small></button>`).join('')+'</div>';
+  out.forEach(o=>{ const a=o.a;
     const head=`<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:8px 12px;font-weight:800"><span style="font:900 16px Inter,sans-serif">${esc(o.c)}</span>
       <span class="chip ${o.lvl>1?'bk b2':'pf'}" style="font-size:11px">${o.lvl>1?'LIQUIDATE · T+'+a.maxT:'Due · T+'+a.maxT+' (liquidation from T+4)'}</span>
       <span>Debit ${drcr(a.debit)}</span><span>since ${dmy(a.oldest)}</span>${o.lvl>1?`<span>Overdue (T+4+): <b class="dn">${fx(a.over4,0)}</b></span><span>To raise (+2%): <b>${fx(o.need,0)}</b></span>`:''}</div>`;
@@ -300,7 +338,8 @@ function liqHtml(E,clients){ const out=[];
     const sug=o.L?('<div class="sx" style="max-height:none;margin:0 12px 10px"><table class="x"><thead><tr><th class="l">Sell</th><th class="l">Mark</th><th>Qty</th><th>Of Held</th><th>CMP</th><th>Sale Value (Net Of Charges)</th><th>Profit On Qty Sold</th><th>%</th></tr></thead><tbody>'+
       (o.L.pick.length?o.L.pick.map(x=>`<tr><td class="l"><b>${esc(x.sym)}</b></td><td class="l">${x.mk==='T'?'Trading':x.mk==='I'?'Investment':'not marked'}</td><td><b>${fx(x.q,0)}</b></td><td>${fx(x.of,0)}</td><td>${fx(x.p)}</td><td>${fx(x.net,0)}</td><td class="${cls(x.pl)}">${sgn(x.pl,0)}</td><td class="${cls(x.plp)}">${pc(x.plp)}</td></tr>`).join(''):'<tr><td class="l mu" colspan="8">No priced holdings to sell.</td></tr>')+
       `<tr class="tot"><td class="l" colspan="5">Raised ${o.L.short>0?'- short by '+fx(o.L.short,0):''}</td><td>${fx(o.L.got,0)}</td><td colspan="2"></td></tr></tbody></table></div>`):'';
-    return `<div style="background:#fff;border:2px solid ${o.lvl>1?'#E29A93':'#E7CF8A'};border-radius:12px;margin-bottom:8px">${head}${unp}${sug}</div>`; }).join(''); }
+    window.LIQD[o.c]=`<div style="background:#fff;border:2px solid ${o.lvl>1?'#E29A93':'#E7CF8A'};border-radius:12px">${head}${unp}${sug}</div><div class="note" style="margin-top:6px">Unpaid debit cleared oldest-first by receipts · T+4 and older = liquidation · the sell suggestion covers the overdue debit + 2%, Trading stocks with the highest profit first.</div>`; });
+  return tiles; }
 
 /* ---------- DP holdings vs trade book ---------- */
 
