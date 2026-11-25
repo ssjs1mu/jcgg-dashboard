@@ -635,7 +635,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25r';
+const BUILD='2026-11-25s';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -687,7 +687,28 @@ function autoAlias(trades,dpH){ const A=aliases(); let ch=false;
   if(ch) LS.set('jc_pf_alias',A); return A; }
 function setAlias(from,to,isin,sec){ const A=aliases(); from=String(from).toUpperCase(); if(to) A[from]={to,isin:isin||'',sec:sec||'',by:'linked by you'}; else A[from]={to:'',off:true}; LS.set('jc_pf_alias',A); }
 let CA=null;
-async function corpActs(){ if(CA) return CA; try{ CA=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/corpact.json?x='+Math.floor(Date.now()/36e5),{cache:'no-store'}).then(r=>r.json()); }catch(e){ CA={a:[],err:String(e)}; } return CA; }
+/* corporate actions: the daily NSE file + actions fetched for BSE-only shares (Yahoo, .BO) kept in jc_pf_ca_x = {SYM:{tk,at,a:[...]}} */
+const caExtra=()=>LS.get('jc_pf_ca_x',{})||{};
+async function corpActs(force){ if(CA&&!force) return CA; try{ CA=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/corpact.json?x='+(force?Date.now():Math.floor(Date.now()/36e5)),{cache:'no-store'}).then(r=>r.json()); }catch(e){ CA={a:[],err:String(e)}; }
+  const X=caExtra(), have=new Set(CA.a.map(a=>a.s)); Object.entries(X).forEach(([sym,x])=>{ if(!have.has(sym)) CA.a=CA.a.concat(x.a||[]); }); CA.nX=Object.keys(X).length; return CA; }
+/* Yahoo chart events for one ticker: splits (a bonus shows as a split, e.g. bonus 9:5 = 14:5) and dividends */
+async function caYahoo(sym,tk){ const u='https://query2.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(tk)+'?period1=1262304000&period2='+Math.floor(Date.now()/1000)+'&interval=1mo&events=split%7Cdiv';
+  const j=await fetch(BE+'?action=fetch&url='+encodeURIComponent(u)).then(r=>r.json()), x=j&&j.chart&&j.chart.result&&j.chart.result[0]; if(!x) return null; const ev=x.events||{}, out=[], d=t=>new Date((t+19800)*1000).toISOString().slice(0,10);
+  Object.values(ev.splits||{}).forEach(e=>{ const n=+e.numerator, m=+e.denominator; if(!(n>0&&m>0)||n===m) return; const bon=Number.isInteger(n-m)&&n>m&&(n-m)%1===0;
+    out.push({s:sym,ex:d(e.date),t:'split',f:n/m,sub:'Bonus / split '+n+':'+m+' (BSE'+(n>m?' - e.g. bonus '+(n-m)+':'+m:'')+')',src:'yahoo'}); });
+  Object.values(ev.dividends||{}).forEach(e=>{ if(+e.amount>0) out.push({s:sym,ex:d(e.date),t:'div',amt:+e.amount,sub:'Dividend ₹'+(+e.amount)+' / share (BSE)',src:'yahoo'}); });
+  return out.sort((a,b)=>a.ex.localeCompare(b.ex)); }
+async function yTicker(q){ try{ const j=await fetch(BE+'?action=fetch&url='+encodeURIComponent('https://query1.finance.yahoo.com/v1/finance/search?q='+encodeURIComponent(q)+'&quotesCount=6&newsCount=0')).then(r=>r.json()); return ((j.quotes||[]).find(x=>/\.BO$/.test(x.symbol))||{}).symbol||null; }catch(e){ return null; } }
+/* run: shares held in the DP or traded that the NSE file does not cover (BSE-only) get their actions from Yahoo */
+async function caRun(trades,onStep){ await corpActs(true); const nse=new Set((CA.a||[]).filter(a=>!a.src).map(a=>a.s)), H=dp().H||{}, want={};
+  Object.values(H).flat().forEach(x=>{ const k=dpKey(x); if(x.nse===false||!nse.has(k)) want[k]=want[k]||{bse:x.bse,sec:x.sec}; });
+  (trades||[]).forEach(t=>{ if(/BSE|BOM/i.test(t.ex||'')&&!nse.has(t.sym)) want[t.sym]=want[t.sym]||{}; });
+  const X=caExtra(), rep=[]; let i=0;
+  for(const [sym,w] of Object.entries(want)){ i++; onStep&&onStep(i,Object.keys(want).length,sym); if(/^IN[A-Z0-9]{10}$/.test(sym)) continue;
+    let tk=X[sym]&&X[sym].tk, a=null; for(const t of [tk,sym+'.BO',w.bse?w.bse+'.BO':null].filter(Boolean)){ a=await caYahoo(sym,t).catch(()=>null); if(a){ tk=t; break; } }
+    if(!a){ tk=await yTicker(sym)||(w.bse?await yTicker(w.bse):null); if(tk) a=await caYahoo(sym,tk).catch(()=>null); }
+    if(a){ X[sym]={tk,at:Date.now(),a}; rep.push({sym,tk,n:a.length,list:a.filter(x=>x.t!=='div').map(x=>dmy(x.ex)+' '+x.sub)}); } else rep.push({sym,tk:null,n:0,list:[],miss:true}); }
+  LS.set('jc_pf_ca_x',X); CA=null; await corpActs(); return {nse:(CA.a||[]).filter(a=>!a.src).length,asOf:CA.asOf||'',rep}; }
 /* ---------- demergers: parent shareholders get child shares; the parent's cost is split as the company's cost-of-acquisition guidance says.
    r = [child shares, per parent shares]; pct = % of the original cost that goes to the child. Child lots keep the parent's buy dates
    (holding period carries over); fractional entitlements (paid in cash by the company) are left out. Add new demergers here. */
@@ -710,7 +731,7 @@ function demergeAdjust(trades,A){ const D=demergers(A); if(!D.length) return tra
         repl.set(t,pieces); }); });
     T.forEach(t=>{ if(repl.has(t)) out.push(...repl.get(t)); else out.push(t); }); T=out; });
   return T; }
-function caFactor(a){ return a.t==='bonus'&&a.r&&a.r[1]?(a.r[0]+a.r[1])/a.r[1]:a.t==='split'&&a.fv&&a.fv[1]?a.fv[0]/a.fv[1]:1; }
+function caFactor(a){ if(a.f&&a.f>0) return a.f; return a.t==='bonus'&&a.r&&a.r[1]?(a.r[0]+a.r[1])/a.r[1]:a.t==='split'&&a.fv&&a.fv[1]?a.fv[0]/a.fv[1]:1; }
 function caAdjust(trades,A){ trades=trades.map(t=>{ const k=canonSym(t.sym); return k===t.sym?t:Object.assign({},t,{sym:k,sym0:t.sym}); }); const S=(A||(CA&&CA.a)||[]).filter(a=>(a.t==='bonus'||a.t==='split')&&caFactor(a)!==1); if(!S.length) return demergeAdjust(trades,A||(CA&&CA.a));
   const by={}; S.forEach(a=>(by[a.s]=by[a.s]||[]).push(a));
   return demergeAdjust(trades.map(t=>{ const L=by[t.sym]; if(!L) return t; let k=1; L.forEach(a=>{ if(t.d<a.ex) k*=caFactor(a); }); return k===1?t:Object.assign({},t,{q:t.q*k,r:t.r/k,adj:k,q0:t.q,r0:t.r}); }),A); }
@@ -725,7 +746,7 @@ function caRows(trades,dpH,A){ A=A||(CA&&CA.a)||[]; const out=[], today=todayS()
     L.forEach(a=>{ let q=0, basis='trade book'; T.forEach(t=>{ if(t.d<a.ex) q+=(t.side==='S'?-1:1)*t.q; });
       /* bonus / split before this action restate the quantity */
       L.filter(b=>b!==a&&(b.t==='bonus'||b.t==='split')&&b.ex<a.ex).forEach(b=>{ if(T.some(t=>t.d<b.ex)) q*=caFactor(b); });
-      if(!T.length&&dq>0){ q=dq; basis=a.ex>today?'DP holding':'DP holding now (no trades - check)'; } else if(a.ex>today&&dq>0&&Math.abs(dq-q)>0.0001){ basis='trade book (DP now '+dq+')'; }
+      if(!T.length&&dq>0){ q=dq; if(a.ex<=today) L.filter(b=>(b.t==='bonus'||b.t==='split')&&b.ex>=a.ex&&b.ex<=today).forEach(b=>{ q/=caFactor(b); }); basis=a.ex>today?'DP holding':'DP holding (worked back, no trades)'; if(Math.abs(q-Math.round(q))>1e-6) return; }   /* a fraction = the shares came after this action */ else if(a.ex>today&&dq>0&&Math.abs(dq-q)>0.0001){ basis='trade book (DP now '+dq+')'; }
       q=Math.round(q*1e4)/1e4; if(q<=0) return;
       const f=caFactor(a); out.push({c,sym,a,q,basis,up:a.ex>today,div:a.t==='div'&&a.amt?q*a.amt:0,newSh:a.t==='bonus'?q*(f-1):a.t==='demerger'?Math.floor(q*a.r[0]/a.r[1]+1e-9):0,child:a.child||'',newQ:(a.t==='bonus'||a.t==='split')?q*f:null}); }); });
   return out.sort((x,y)=>(y.up-x.up)||(x.up?x.a.ex.localeCompare(y.a.ex):y.a.ex.localeCompare(x.a.ex))||x.c.localeCompare(y.c)); }
@@ -967,5 +988,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
