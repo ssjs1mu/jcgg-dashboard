@@ -256,3 +256,6 @@ Object.assign(window.RL.bn,{ cExSe:'স্টক এক্সচেঞ্জ + S
 Object.assign(window.RL.en,{ wG:'Gross profit before all costs (booked + on shares held + dividends)' });
 Object.assign(window.RL.hi,{ wG:'सभी ख़र्चों से पहले कुल मुनाफ़ा (बुक + रखे शेयरों पर + डिविडेंड)' });
 Object.assign(window.RL.bn,{ wG:'সব খরচের আগে মোট মুনাফা (বুক + রাখা শেয়ারে + ডিভিডেন্ড)' });
+Object.assign(window.RL.en,{ wNote:'Brokerage is shown without GST; GST is counted under government.' });
+Object.assign(window.RL.hi,{ wNote:'ब्रोकरेज GST के बिना दिखाया गया है; GST सरकार में गिना गया है।' });
+Object.assign(window.RL.bn,{ wNote:'ব্রোকারেজ GST ছাড়া দেখানো; GST সরকারের মধ্যে ধরা হয়েছে।' });
