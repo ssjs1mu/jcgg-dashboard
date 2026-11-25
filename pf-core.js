@@ -12,6 +12,10 @@ const LS={get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v)
 /* statutory: STT delivery 0.1% buy+sell, intraday 0.025% sell; NSE transaction 0.00307%; SEBI Rs 10/crore;
    stamp duty delivery 0.015% buy, intraday 0.003% buy; GST 18% on brokerage + transaction + SEBI + DP (as of Nov 2026) */
 const STAT0={sttD:0.1,sttI:0.025,exch:0.00307,sebi:0.0001,stampD:0.015,stampI:0.003,gst:18,int:18,hurdle:8};
+/* exchange transaction charges by date (official circulars; NSE includes the IPFT Rs 10/crore from Apr-2023). Used while the Rates screen
+   shows the official rate; a rate you type there is used for every date instead. */
+const EXCH_HIST={NSE:[['2000-01-01',0.00325],['2021-01-01',0.00345],['2023-04-01',0.00335],['2024-04-01',0.00332],['2024-10-01',0.00307]],BSE:[['2000-01-01',0.00375]]};
+const exchOn=(d,ex)=>{ const H=EXCH_HIST[ex]||EXCH_HIST.NSE; let r=H[0][1]; H.forEach(([f,v])=>{ if(d>=f) r=v; }); return r; };
 const stat=()=>Object.assign({},STAT0,LS.get('jc_pf_stat',{}));
 const rates=()=>LS.get('jc_pf_rates',{_def:{bd:0,bi:0,dp:0}});
 const exOfP=p=>{ const e=String(p.ex||'').toUpperCase(); return /BSE|BOM/.test(e)?'BSE':/MCX|NCD|CDS/.test(e)?e:'NSE'; };   /* exchange of a fill (blank = NSE) */
@@ -93,10 +97,13 @@ function compute(TR,STAT,rateOf){
   /* minimum brokerage per contract note = client + day + EXCHANGE (NSE and BSE each carry their own minimum, e.g. Rs 50):
      when that exchange's % brokerage for the day is below the minimum, the broker charges the minimum, spread over those trades */
   { const og={}; parts.forEach(p=>{ const k=p.c+'|'+p.d+'|'+exOfP(p); (og[k]=og[k]||[]).push(p); });
-    Object.values(og).forEach(P=>{ const m=+rateOf(P[0].c).bmin||0, b=P.reduce((a,p)=>a+p.brk,0), v=P.reduce((a,p)=>a+p.v,0); if(m>b&&v>0) P.forEach(p=>{ p.brk=m*p.v/v; p.minB=true; }); }); }
+    /* the minimum is tested on brokerage at the card rate (Rate For Minimum, else the charged rate); the shortfall to the minimum is added */
+    Object.values(og).forEach(P=>{ const R=rateOf(P[0].c), m=+R.bmin||0, v=P.reduce((a,p)=>a+p.v,0);
+      const card=P.reduce((a,p)=>a+p.v*(p.type==='D'?(+R.bdc>0?+R.bdc:+R.bd||0):(+R.bic>0?+R.bic:+R.bi||0))/100,0);
+      if(m>card&&v>0&&!(R.bminFrom&&P[0].d<R.bminFrom)) P.forEach(p=>{ p.brk+=(m-card)*p.v/v; p.minB=true; }); }); }   /* bminFrom: date the minimum started */
   parts.forEach(p=>{ const R=rateOf(p.c), v=p.v, buy=p.side!=='S', D=p.type==='D';
     p.stt=D?v*STAT.sttD/100:(buy?0:v*STAT.sttI/100);
-    p.exch=v*STAT.exch/100; p.sebi=v*STAT.sebi/100;
+    p.exch=v*(Math.abs(STAT.exch-STAT0.exch)<1e-9?exchOn(p.d,exOfP(p)):STAT.exch)/100; p.sebi=v*STAT.sebi/100;
     p.stamp=buy?v*(D?STAT.stampD:STAT.stampI)/100:0;
     p.dp=0; if(D&&!buy){ const k=p.c+'|'+p.sym+'|'+p.d; if(!dpDone[k]){ dpDone[k]=1; p.dp=+R.dp||0; } }
     p.gst=(p.brk+p.exch+p.sebi+p.dp)*STAT.gst/100;
@@ -489,7 +496,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-25a';
+const BUILD='2026-11-25b';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -574,13 +581,15 @@ function ledgerRecon(c,trades,ST){ ST=ST||stat(); const L=(led().E||{})[c]; cons
   /* the minimum is the value most of those orders agree on (within Rs 2); fewer than 3 agreeing -> no minimum */
   let bmin=0, sup=0; mins.forEach(m=>{ const n=mins.filter(x=>Math.abs(x-m)<=2).length; if(n>sup){ sup=n; bmin=Math.round(med(mins.filter(x=>Math.abs(x-m)<=2))); } }); if(sup<3) bmin=0;
   /* the client's own setting on the Rates screen wins over what the ledger suggests */
-  const RS=rates(), own=Object.assign({},RS._def||{},RS[c]||{}), U={bd:own.bd>0?+own.bd:bd, bi:own.bi>0?+own.bi:bi, bmin:own.bmin>0?+own.bmin:bmin, own:own.bd>0||own.bi>0||own.bmin>0};
-  const ordBrk=d=>{ const by={}; E.parts.filter(p=>p.d===d).forEach(p=>{ const e=exOfP(p); by[e]=(by[e]||0)+p.v*(p.type==='D'?(U.bd||0):(U.bi||0))/100; });
-    return Object.values(by).reduce((a,v)=>a+Math.max(v,U.bmin||0),0); };   /* one contract note per exchange per day, each with the minimum */
+  const RS=rates(), own=Object.assign({},RS._def||{},RS[c]||{}), U={bd:own.bd>0?+own.bd:bd, bi:own.bi>0?+own.bi:bi, bmin:own.bmin>0?+own.bmin:bmin, bdc:+own.bdc||0, bic:+own.bic||0, bminFrom:own.bminFrom||'', own:own.bd>0||own.bi>0||own.bmin>0};
+  const ordBrk=d=>{ const by={}; E.parts.filter(p=>p.d===d).forEach(p=>{ const e=exOfP(p), o=by[e]=by[e]||{ch:0,card:0}, D=p.type==='D';
+      o.ch+=p.v*(D?(U.bd||0):(U.bi||0))/100; o.card+=p.v*(D?(U.bdc||U.bd||0):(U.bic||U.bi||0))/100; });
+    const mn=U.bminFrom&&d<U.bminFrom?0:(U.bmin||0); return Object.values(by).reduce((a,o)=>a+o.ch+Math.max(0,mn-o.card),0); };   /* per exchange note: charged % + shortfall of card-rate brokerage below the minimum */   /* one contract note per exchange per day, each with the minimum */
   const TF=T.filter(t=>!t.man), T0=(TF.length?TF:T).map(t=>t.d).sort()[0], T1=(TF.length?TF:T).map(t=>t.d).sort().slice(-1)[0];
   const rows=[...new Set([...Object.keys(g),...Object.keys(bills)])].sort().map(d=>{ const x=g[d]||{d,net:0,stat:0,tD:0,tI:0,n:0}, b=bills[d];
     if(!x.n&&(d<T0||d>T1)) return {d,bill:b,net:0,stat:0,brk:0,exp:0,diff:b,n:0,ok:null,out:true,why:'outside the trade files ('+dmy(T0)+' to '+dmy(T1)+')'};
     const bk=x.n?ordBrk(d):0, exp=x.net+x.stat+bk*gst, diff=b==null?null:b-exp, tol=Math.max(5,0.0006*(x.tD+x.tI));
+    if(b==null&&x.n&&x.man===x.n) return {d,bill:null,net:x.net,stat:x.stat,brk:0,exp:null,diff:null,n:x.n,ok:true,why:'entered by you (IPO allotment / off-market) - no exchange bill expected'};
     return {d,bill:b==null?null:b,net:x.net,stat:x.stat,brk:bk*gst,exp,diff,n:x.n,ok:b!=null&&x.n>0&&Math.abs(diff)<=tol,why:b==null?'trades but no bill in the ledger':!x.n?'bill but no trades in the trade book':Math.abs(diff)<=tol?'':'amount differs'}; });
   const IN=rows.filter(r=>!r.out); return {c,bd,bi,bmin,used:U,nMin:bmin?sup:0,rows:IN,outRows:rows.filter(r=>r.out),T0,T1,nDel:days.filter(x=>!x.tI).length,nInt:days.filter(x=>x.tI).length,bad:IN.filter(r=>!r.ok).length}; }
 function brkFromLedgers(trades){ const cs=Object.keys(led().E||{}), M=LS.get('jc_pf_brkled',{})||{}; let ch=false;
