@@ -418,7 +418,7 @@ const CB=(function(){ let day='', M={};
     return `<div style="white-space:nowrap"><span class="call ${c.side}">${c.side}</span> E <b>${fx(c.en)}</b> · SL <b class="dn">${slHtml(c)}</b></div><div style="white-space:nowrap;font-size:11px">${c.t.map((v,i)=>'T'+(i+1)+' '+tHtml(c,i,fc)).join(' · ')}</div><div style="font-size:10.5px;white-space:nowrap">${stHtml(c,p)}</div>`; }
   return {get,track,find,prog,tHtml,slHtml,stHtml,cell,all:()=>{ load(); return Object.values(M); }}; })();
 const cbLv=(e,sl,t1,t2,t3)=>({en:tick(e),sl:tick(sl),t1:t1!=null?tick(t1):null,t2:t2!=null?tick(t2):null,t3:t3!=null?tick(t3):null});
-window.CB=CB; window.ltpOf=sym=>ltpOf(sym);
+window.CB=CB;   /* ltpOf below is a global function, so signals.js reaches it as window.ltpOf */
 function ltpOf(sym){ const r=(OLH.rows||[]).find(x=>x.s===sym); if(r&&r.p>0) return r.p; const w=W.find(x=>x.s===sym), a=w&&R[key(w)]; return a&&a.ltp>0?a.ltp:null; }
 function rowHtml(w,r,i){ const k=key(w), ex=w.x==='BO'?'BSE':'NSE', del=`<button class="x" data-del="${esc(k)}" title="Remove ${esc(w.s)}">✕</button>`;
   const Bq=BARS[k]&&BARS[k].q; if(!r&&Bq&&Bq[0]>0){ const ch=Bq[1]>0?(Bq[0]/Bq[1]-1)*100:null; return `<tr data-k="${esc(k)}" class="avoid"><td class="mu">${i}</td><td><span class="sym">${esc(w.s)}</span><span class="ex">${ex}</span></td><td data-f="ltp">${fx(Bq[0])}</td><td class="${ch>=0?'up':'dn'}">${ch==null?'–':(ch>=0?'+':'')+ch.toFixed(2)+'%'}</td><td colspan="11" class="c mu">working out the call…</td><td class="c">${del}</td></tr>`; }
@@ -1271,7 +1271,7 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   window.addEventListener('beforeunload',e=>{ if(popped()){ e.preventDefault(); e.returnValue=''; } });
 })();
 </script>
-<script src="pf-core.js?v=57"></script>
+<script src="pf-core.js?v=58"></script>
 <script>
 /* ===== Profit-booking pop-up: client holdings (Portfolio page data, same browser) checked against the Watchlist parameters =====
    Holding in profit after holding interest AND
