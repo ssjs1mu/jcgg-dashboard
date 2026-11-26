@@ -16,12 +16,16 @@ CAT=[('NIFTY 50','ind_nifty50list','^NSEI'),('NIFTY NEXT 50','ind_niftynext50lis
 ('NIFTY INDIA DIGITAL','ind_niftyindiadigitallist','NIFTY_IND_DIGITAL.NS'),('NIFTY INDIA DEFENCE','ind_niftyindiadefencelist',''),('NIFTY INDIA MANUFACTURING','ind_niftyindiamanufacturinglist',''),('NIFTY CAPITAL MARKETS','ind_niftycapitalmarketslist',''),
 ('NIFTY ALPHA 50','ind_niftyalpha50list',''),('NIFTY LOW VOLATILITY 50','ind_niftylowvolatility50list',''),('NIFTY HIGH BETA 50','ind_niftyhighbeta50list','')]
 SENSEX='RELIANCE HDFCBANK ICICIBANK INFY BHARTIARTL ITC LT TCS SBIN AXISBANK KOTAKBANK M&M HINDUNILVR BAJFINANCE MARUTI SUNPHARMA NTPC TMPV TITAN ULTRACEMCO POWERGRID ASIANPAINT HCLTECH BAJAJFINSV TATASTEEL ADANIPORTS TECHM NESTLEIND INDUSINDBK JSWSTEEL'.split()
+IND={}     # NSE industry per symbol (from the CSVs)
 def csv(f):
     for base in ('https://nsearchives.nseindia.com/content/indices/','https://www.niftyindices.com/IndexConstituent/'):
         try:
             r=requests.get(base+f+'.csv',headers=UA,timeout=20)
             if r.status_code==200 and 'Symbol' in r.text:
-                L=r.text.strip().splitlines(); h=[x.strip() for x in L[0].split(',')]; i=h.index('Symbol'); n=h.index('Company Name')
+                L=r.text.strip().splitlines(); h=[x.strip() for x in L[0].split(',')]; i=h.index('Symbol'); n=h.index('Company Name'); d=h.index('Industry') if 'Industry' in h else None
+                for l in L[1:]:
+                    c=l.split(',')
+                    if l.strip() and d is not None and len(c)>d and c[d].strip(): IND[c[i].strip()]=c[d].strip()
                 return [[l.split(',')[i].strip(),l.split(',')[n].strip()] for l in L[1:] if l.strip()]
         except Exception as e: pass
     return None
@@ -31,24 +35,29 @@ for name,f,y in CAT:
     if r: out['indices'][name]={'y':y,'rows':r}
 out['indices']['SENSEX']={'y':'^BSESN','rows':[[x,x] for x in SENSEX]}
 need=sorted({r[0] for v in out['indices'].values() for r in v['rows']})
-old={}
+old={}; oldyi={}
 try:
-    old=requests.get('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json',timeout=20).json().get('floats',{})
+    _o=requests.get('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json',timeout=20).json(); old=_o.get('floats',{}); oldyi=_o.get('yi',{})
 except Exception as e: print('no previous',str(e)[:60])
 monday=time.gmtime().tm_wday==0
 def one(x):
-    u='https://query2.finance.yahoo.com/v10/finance/quoteSummary/'+requests.utils.quote(x+'.NS',safe='')+'?modules=defaultKeyStatistics'
+    u='https://query2.finance.yahoo.com/v10/finance/quoteSummary/'+requests.utils.quote(x+'.NS',safe='')+'?modules=defaultKeyStatistics,assetProfile'
     for t in range(3):
         try:
-            j=requests.get(BACKEND,params={'action':'fetch','url':u},timeout=40).json(); d=j['quoteSummary']['result'][0]['defaultKeyStatistics']
+            j=requests.get(BACKEND,params={'action':'fetch','url':u},timeout=40).json(); R0=j['quoteSummary']['result'][0]; d=R0.get('defaultKeyStatistics') or {}
             f=(d.get('floatShares') or {}).get('raw') or (d.get('sharesOutstanding') or {}).get('raw')
+            YI[x]=(R0.get('assetProfile') or {}).get('industry') or ''
             if f: return x,float(f)
         except Exception as e: pass
         time.sleep(2)
     return x,None
-todo=[x for x in need if monday or x not in old]; print('symbols',len(need),'to fetch',len(todo))
+YI={}
+todo=[x for x in need if monday or x not in old or x not in oldyi]; print('symbols',len(need),'to fetch',len(todo))
 t0=time.time()
 with ThreadPoolExecutor(8) as ex: got=dict(ex.map(one,todo)) if todo else {}
 out['floats']={x:(got.get(x) or old.get(x)) for x in need if (got.get(x) or old.get(x))}
 print('floats',len(out['floats']),'of',len(need),'in',int(time.time()-t0),'s; missing',[x for x in need if x not in out['floats']][:40])
+out['ind']={x:IND[x] for x in need if x in IND}                                  # NSE industry
+out['yi']={x:(YI.get(x) or oldyi.get(x)) for x in need if (YI.get(x) or oldyi.get(x))}   # Yahoo industry (finer: defence, hotels ...)
+print('industries: NSE',len(out['ind']),'Yahoo',len(out['yi']))
 json.dump(out,open(os.environ.get('OUT','/tmp/idx.json'),'w'))

@@ -22,7 +22,7 @@ select,.btn{background:#10263d;color:#fff;border:1px solid #2fd0ff;border-radius
 .tile small{display:block;font:700 10px "Segoe UI";letter-spacing:.08em;opacity:.8;text-transform:uppercase}
 .tile.up{background:linear-gradient(135deg,#0b3a31,#0f6a52);color:#4dffbe}.tile.dn{background:linear-gradient(135deg,#40102c,#85204b);color:#ff86b0}
 .sec{padding:2px 8px;font:800 10.5px "Segoe UI";letter-spacing:.12em;text-transform:uppercase;background:#0c1829;color:var(--mu)}
-.fx{height:calc(26px*10 + 26px);overflow:auto}
+.fx{height:calc(26px*10 + 26px);overflow:auto}.fx.fxs{height:auto;max-height:70vh}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;table-layout:fixed}
 th{background:#243a58;color:#fff;font:800 10.5px "Segoe UI";letter-spacing:.04em;text-transform:uppercase;padding:4px 4px;text-align:right;position:sticky;top:0;z-index:2}
 th:first-child,td:first-child{text-align:left;width:25%;padding-left:6px}th:nth-child(2){width:21%}th:nth-child(3){width:16%}th:nth-child(4){width:12%}th:nth-child(5){width:12%}
@@ -105,8 +105,25 @@ async function pull(){
   }catch(e){ $('st').textContent='feed retrying…'; }
   paint();
 }
+/* ---------- 🏷 sector watchlists: every Nifty 500 stock grouped by its sector (Yahoo industry, finer - defence, hotels, railways ...;
+   else the NSE industry). Shown in each panel dropdown under "Sector watchlists"; same panel: top 5 gainers / decliners, tile, all stocks ---------- */
+const SFIX={ITC:'FMCG',RELIANCE:'Oil & Gas',IRCTC:'Travel & Tourism',LT:'Infrastructure & Construction',ADANIENT:'Conglomerate',COALINDIA:'Mining',ONGC:'Oil & Gas',IRFC:'Railways',RVNL:'Railways',IRCON:'Railways',RAILTEL:'Railways',TITAGARH:'Railways',JWL:'Railways',BEML:'Defence',COCHINSHIP:'Defence',MAZDOCK:'Defence',GRSE:'Defence',HAL:'Defence',BEL:'Defence',BDL:'Defence',ITCHOTELS:'Hotels & Tourism'};
+const SRX=[[/aerospace|defen/i,'Defence'],[/auto parts/i,'Auto Ancillary'],[/auto|truck/i,'Auto'],[/resort|casino|lodging/i,'Hotels & Tourism'],[/travel/i,'Travel & Tourism'],[/airline/i,'Aviation'],
+  [/^banks/i,'Banking'],[/insurance/i,'Insurance'],[/credit services|mortgage|financial conglomerate/i,'NBFC / Finance'],[/asset management|capital markets|financial data|exchange/i,'Capital Markets'],
+  [/information technology|software/i,'IT'],[/drug|biotech|pharma/i,'Pharma'],[/medical care|diagnostic|health information/i,'Healthcare Services'],[/medical (device|instrument)/i,'Medical Equipment'],
+  [/tobacco|packaged food|household & personal|beverages|confection|food distribution|farm products/i,'FMCG'],[/steel/i,'Metals - Steel'],[/alumin|copper|industrial metals|gold|silver|precious/i,'Metals & Mining'],[/coal|mining/i,'Mining'],
+  [/utilities|power|renewable|solar/i,'Power'],[/oil|gas/i,'Oil & Gas'],[/agricultural inputs/i,'Agro Chemicals & Fertilisers'],[/chemical/i,'Chemicals'],[/building materials/i,'Cement & Building Materials'],
+  [/engineering & construction|infrastructure/i,'Infrastructure & Construction'],[/real estate/i,'Realty'],[/telecom/i,'Telecom'],[/electrical equipment|machinery|tools & accessories|industrial distribution|pollution/i,'Capital Goods'],
+  [/marine shipping|railroad|trucking|freight|logistics|airport/i,'Logistics & Transport'],[/apparel|textile|footwear/i,'Textiles & Apparel'],[/restaurant/i,'QSR / Restaurants'],[/luxury/i,'Jewellery & Luxury'],
+  [/department|specialty retail|internet retail|grocery|discount/i,'Retail'],[/entertainment|broadcast|publishing|advertising|internet content/i,'Media & Entertainment'],[/semiconductor|electronic|computer hardware|communication equipment/i,'Electronics'],
+  [/furnishing|appliance|fixtures|recreational|leisure/i,'Consumer Durables'],[/packaging/i,'Packaging'],[/paper|lumber/i,'Paper'],[/conglomerate/i,'Conglomerate'],[/education/i,'Education'],[/rental|staffing|consulting|business services|security/i,'Services']];
+const NSEMAP={'Financial Services':'Financial Services','Information Technology':'IT','Fast Moving Consumer Goods':'FMCG','Automobile and Auto Components':'Auto','Oil Gas & Consumable Fuels':'Oil & Gas','Metals & Mining':'Metals & Mining','Construction Materials':'Cement & Building Materials','Construction':'Infrastructure & Construction','Telecommunication':'Telecom','Media Entertainment & Publication':'Media & Entertainment','Textiles':'Textiles & Apparel'};
+let SECT={}; const SP='🏷 ';
+function buildSect(){ SECT={}; const Y=CONS.yi||{}, N=CONS.ind||{}, U=(CONS.indices['NIFTY 500']||{rows:[]}).rows;
+  U.forEach(([sy,nm])=>{ const y=Y[sy], sec=SFIX[sy]||(y&&(SRX.find(([r])=>r.test(y))||[])[1])||(N[sy]&&(NSEMAP[N[sy]]||N[sy]))||''; if(!sec) return; (SECT[SP+sec]=SECT[SP+sec]||{y:'',rows:[]}).rows.push([sy,nm]); });
+  Object.keys(SECT).forEach(k=>{ if(SECT[k].rows.length<3) delete SECT[k]; }); }
 function calc(name){
-  const I=CONS.indices[name], rows=[]; let sp=0, sc=0;
+  const I=CONS.indices[name]||SECT[name], rows=[]; let sp=0, sc=0;
   I.rows.forEach(r=>{ const q=PX[r[0]], fs=CONS.floats[r[0]]; if(q&&fs) rows.push({s:r[0],p:q.p,pc:q.pc,fs,rv:q.av?q.v/(q.av*frac()):null}); });
   rows.forEach(r=>{ sp+=r.fs*r.p; sc+=r.fs*r.pc; });
   const apx=sc?(sp/sc-1)*100:0, y=I.y, lp=y&&LV[y]?LV[y].p:null, lc=y&&PCX[y]?PCX[y]:null, real=lp&&lc;
@@ -130,18 +147,20 @@ function build(){
 function paint(){
   if(!CONS) return; build();
   const all=Object.keys(CONS.indices); AP={}; all.forEach(n=>AP[n]=calc(n)); if(AUTO) autoPick();
+  if(!Object.keys(SECT).length) buildSect(); const APS={}; Object.keys(SECT).forEach(n=>APS[n]=calc(n)); const sord=Object.keys(SECT).sort((a,b)=>APS[b].pct-APS[a].pct);
   const ord=all.slice().sort((a,b)=>SO==='n'?a.localeCompare(b):SO==='w'?AP[a].pct-AP[b].pct:AP[b].pct-AP[a].pct);
   Array.from($('gr').children).forEach((el,i)=>{
-    const sel=el.querySelector('select'), nm=PAN[i]&&CONS.indices[PAN[i]]?PAN[i]:ord[i]; PAN[i]=nm;
-    if(document.activeElement!==sel){ sel.innerHTML=ord.map(n=>'<option value="'+n+'">'+n+'  '+(AP[n].pct>=0?'▲ ':'▼ ')+sg(AP[n].pct)+'%'+(AP[n].real?'':' ≈')+'</option>').join(''); sel.value=nm; }
-    const D=AP[nm], s=D.rows.slice().sort((a,b)=>b.pct-a.pct), key=i+nm, up=D.pct>=0;
+    const sel=el.querySelector('select'), nm=PAN[i]&&(CONS.indices[PAN[i]]||SECT[PAN[i]])?PAN[i]:ord[i]; PAN[i]=nm;
+    if(document.activeElement!==sel){ sel.innerHTML='<optgroup label="Indices">'+ord.map(n=>'<option value="'+n+'">'+n+'  '+(AP[n].pct>=0?'▲ ':'▼ ')+sg(AP[n].pct)+'%'+(AP[n].real?'':' ≈')+'</option>').join('')+'</optgroup>'
+      +(sord.length?'<optgroup label="Sector watchlists (Nifty 500 stocks by sector)">'+sord.map(n=>'<option value="'+n+'">'+n+' ('+APS[n].n+')  '+(APS[n].pct>=0?'▲ ':'▼ ')+sg(APS[n].pct)+'% ≈</option>').join('')+'</optgroup>':''); sel.value=nm; }
+    const isS=!!SECT[nm], D=isS?APS[nm]:AP[nm], s=D.rows.slice().sort((a,b)=>b.pct-a.pct), key=i+nm, up=D.pct>=0;
     el.querySelector('.pb').innerHTML='<div class="sec">▲ Top 5 gainers</div><table>'+HEAD+s.slice(0,5).map(r=>rowH(r,0,key+'g')).join('')+'</table><div class="sec">▼ Top 5 decliners</div><table>'+HEAD+s.slice(-5).reverse().map(r=>rowH(r,0,key+'d')).join('')+'</table>'
       +'<div class="tile '+(up?'up':'dn')+'"><div>'+(D.lp?f2(D.lp):'≈ calc')+'<small>'+(D.real?'index':'weighted')+'</small></div><div>'+(D.move!=null?sg(D.move):'–')+'<small>points</small></div><div>'+sg(D.pct)+'%<small>'+D.rows.filter(r=>r.pct>0).length+'▲ '+D.rows.filter(r=>r.pct<0).length+'▼</small></div></div>'
-      +'<div class="fx"><table>'+HEAD+D.rows.slice().sort((a,b)=>b.w-a.w).map(r=>rowH(r,0,key+'c')).join('')+'</table></div>';
+      +(isS?'<div class="sec">All '+D.rows.length+' stocks in '+nm.replace(SP,'')+' · best first</div>':'')+'<div class="fx'+(isS?' fxs':'')+'"><table>'+HEAD+D.rows.slice().sort(isS?((a,b)=>b.pct-a.pct):((a,b)=>b.w-a.w)).map(r=>rowH(r,0,key+'c')).join('')+'</table></div>';
   });
   const top=ord.slice().sort((a,b)=>AP[b].pct-AP[a].pct); $('info').textContent='Best today: '+top[0]+' '+sg(AP[top[0]].pct)+'% · Weakest: '+top[top.length-1]+' '+sg(AP[top[top.length-1]].pct)+'%';
   try{ wzPaint(); }catch(e){ console.error(e); }
-  $('nt').innerHTML='Open any panel dropdown to switch index (list shows each index day move; ≈ = computed from its stocks, otherwise the live index). Rows: gainers and decliners (top 5 each), index tile, then all stocks by weight in a 10-row window (scroll). Wt % = free-float shares x live price. Pts = stock weight x % move scaled to the index move. RVOL = volume vs 20-day average at this time of day (green above 1, red below). Sensex weights are estimated; Nifty 500, 200 and 100 are shown as listed by NSE.';
+  $('nt').innerHTML='Open any panel dropdown to switch index or pick a 🏷 sector watchlist at the bottom of the list (Nifty 500 stocks grouped by sector: gainers, decliners, sector tile and all its stocks best first; sector move ≈ free-float weighted). The list shows each index day move; ≈ = computed from its stocks, otherwise the live index). Rows: gainers and decliners (top 5 each), index tile, then all stocks by weight in a 10-row window (scroll). Wt % = free-float shares x live price. Pts = stock weight x % move scaled to the index move. RVOL = volume vs 20-day average at this time of day (green above 1, red below). Sensex weights are estimated; Nifty 500, 200 and 100 are shown as listed by NSE.';
 }
 /* ---------- 💰 Wealth ideas from today's index movers (rule-based reading of the data on this page; not personal advice) ---------- */
 const BROAD=['NIFTY 50','NIFTY NEXT 50','NIFTY 100','NIFTY 200','NIFTY 500','NIFTY MIDCAP 50','NIFTY MIDCAP 100','NIFTY MIDCAP 150','NIFTY SMALLCAP 50','NIFTY SMALLCAP 100','NIFTY SMALLCAP 250','SENSEX'];
