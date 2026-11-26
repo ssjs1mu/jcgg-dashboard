@@ -97,7 +97,7 @@
   }
 
   /* ---------- page styles (own <style> blocks only; mobile.css / fonts are left alone) ---------- */
-  var KEEP = /(^|[\s,>+~])h1\b|\.tvv|\.tvph|#tvBox|video|\.chw\b|jcThemeB|\.top\b|#pbM|#pbPill|#lrM|#lrPill|#lqM|#lqPill/;  // brand script, TV, header band handled below
+  var KEEP = /\.bm[fsil]\b|(^|[\s,>+~])h1\b|\.tvv|\.tvph|#tvBox|video|\.chw\b|jcThemeB|\.top\b|#pbM|#pbPill|#lrM|#lrPill|#lqM|#lqPill/;  // brand script, TV, header band handled below
   function doRules(rules) {
     for (var i = 0; i < rules.length; i++) {
       var r = rules[i];
@@ -178,7 +178,12 @@
     'html.ssj .top a.sw.on{background:transparent!important;color:#F3EFD6!important;border:1px solid #F3EFD6!important}' +
     'html.ssj th{background:#676300!important;color:#FFFFFF!important}' +
     'html.ssj ::-webkit-scrollbar-thumb{background:#B9B37A}' +
-    'html.ssj #jcThemeB{display:none!important}';
+    'html.ssj #jcThemeB{display:none!important}' +
+    /* Fear & Greed tile + mood line sit on the olive header: keep them dark-on-olive with bright, readable text */
+    'html.ssj .top .bmf{border-color:rgba(255,241,168,.45)!important}' +
+    'html.ssj .top .bmf .bms small{color:#FFFFFF!important;opacity:.95}html.ssj .top .bmf .bml small{color:#F3EFD6!important;opacity:1}' +
+    'html.ssj .top .bmf .bms b,html.ssj .top .bmf .bml em{color:var(--nc)!important;text-shadow:0 1px 3px rgba(0,0,0,.6)}' +
+    'html.ssj .top .mood{color:#FFF1A8!important;background:rgba(0,0,0,.28)!important;border-color:rgba(255,241,168,.55)!important}';
   document.head.appendChild(base);
 
   function run() { doSheets(); doTree(document.body || R); hookCharts(); }
