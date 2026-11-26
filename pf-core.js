@@ -48,10 +48,10 @@ async function loadTrades(base){ stateSync().catch(()=>0); /* Drive sync runs in
   if(up.trades.length){ const cs=[...new Set(up.trades.map(x=>x.c))]; return {trades:up.trades,src:'uploaded trade books - '+cs.length+' client'+(cs.length>1?'s':'')+', '+up.trades.length+' fills',up:true}; }
   return {trades:[],src:'no trades yet - upload a trade book or add trades',up:false}; }
 /* single trades: add, edit, delete (manual entries are listed as source 'entered') */
-function clean(x){ const o={d:String(x.d).slice(0,10),c:String(x.c).trim().toUpperCase(),sym:String(x.sym).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side:x.side==='S'?'S':'B',q:Math.abs(+x.q),r:+x.r}; if(x.ex) o.ex=String(x.ex).toUpperCase(); if(x.prod) o.prod=String(x.prod).trim();
+function clean(x){ const o={d:String(x.d).slice(0,10),c:String(x.c).trim().toUpperCase(),sym:String(x.sym).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side:x.side==='S'?'S':'B',q:Math.abs(+x.q),r:+x.r}; if(x.ex) o.ex=String(x.ex).toUpperCase(); if(x.prod) o.prod=String(x.prod).trim(); if(x.tag==='IPO'&&x.side!=='S') o.tag='IPO';
   if(!/^\d{4}-\d\d-\d\d$/.test(o.d)||!o.c||!o.sym||!(o.q>0)||!(o.r>0)) throw new Error('date, client code, symbol, quantity and rate are all needed'); return o; }
 function saveTrade(x){ const t=tb(), o=clean(x);
-  if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; t.trades[i]=Object.assign({},t.trades[i],o,{edited:true}); }
+  if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; const nt=Object.assign({},t.trades[i],o,{edited:true}); if(!o.tag) delete nt.tag; t.trades[i]=nt; }
   else { o.id=nid(); o.man=true; t.trades.push(o); }
   if(!t.files.some(f=>f.clients.includes(o.c))) t.files.push({name:'entered',at:dmy(todayS()),clients:[o.c],n:1});
   LS.set('jc_pf_tb',t); return o; }
@@ -74,11 +74,13 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
   const exV=String(x.ex||'').toUpperCase().indexOf('BSE')>=0?'BSE':'NSE';
   m.innerHTML='<div style="background:#F7F4E6;border-radius:16px;width:100%;max-width:'+(one?'480':'640')+'px;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.35);font:600 13px Inter,sans-serif;color:#2E2C14">'+
     '<div style="background:linear-gradient(180deg,#5f5b00,#3f3c00);color:#F3EFD6;padding:11px 14px;font:900 15px Inter,sans-serif">'+(one?'✎ Edit Trade':'＋ Add Trades <span style="font:600 12px Inter,sans-serif;opacity:.8">- one day, one client, many rows</span>')+'</div><div style="padding:6px 16px 14px;overflow:auto">'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr 100px 120px;gap:0 10px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 90px 110px 130px;gap:0 10px">'+
     '<div><label style="'+lab+'">Trade Date</label><input id="edD" type="date" style="'+inp+'" value="'+q(x.d)+'"></div>'+
     '<div><label style="'+lab+'">Client Code</label><input id="edC" list="edCl" style="'+inp+';text-transform:uppercase" value="'+q(x.c)+'" placeholder="code, not name"><datalist id="edCl">'+codes.map(c=>'<option value="'+c+'">').join('')+'</datalist></div>'+
     '<div><label style="'+lab+'">Exchange</label><select id="edE" style="'+inp+'"><option'+(exV==='NSE'?' selected':'')+'>NSE</option><option'+(exV==='BSE'?' selected':'')+'>BSE</option></select></div>'+
-    '<div><label style="'+lab+'">Product</label><select id="edP" style="'+inp+'">'+['Delivery','Margin','Intraday'].map(v=>'<option'+((x.prod||'Delivery')===v?' selected':'')+'>'+v+'</option>').join('')+'</select></div></div>'+
+    '<div><label style="'+lab+'">Product</label><select id="edP" style="'+inp+'">'+['Delivery','Margin','Intraday'].map(v=>'<option'+((x.prod||'Delivery')===v?' selected':'')+'>'+v+'</option>').join('')+'</select></div>'+
+    '<div><label style="'+lab+'">Tag</label><select id="edG" style="'+inp+'"><option value="">Normal trade</option><option value="IPO"'+(x.tag==='IPO'?' selected':'')+'>🆕 IPO allotment</option></select></div></div>'+
+    '<div id="edGh" style="display:none;margin-top:6px;padding:6px 9px;border-radius:8px;background:#E3F1DF;color:#1C5C0D;font:700 11.5px Inter,sans-serif">IPO allotment: Trade Date = allotment date, Rate = issue price, Buy only, no brokerage / charges. Listing day details are fetched and kept on record (Corporate Actions → IPO Allotments & Listing).</div>'+
     '<datalist id="edSl">'+syms.map(c=>'<option value="'+c+'">').join('')+'</datalist>'+
     '<table style="width:100%;border-collapse:collapse;margin-top:10px"><thead><tr><th style="'+th+'">#</th><th style="'+th+'">Symbol (NSE)</th><th style="'+th+'">Buy / Sell</th><th style="'+th+'">Quantity</th><th style="'+th+'">Rate (₹)</th><th style="'+th+';text-align:right">Value (₹)</th>'+(one?'':'<th></th>')+'</tr></thead><tbody id="edRows"></tbody></table>'+
     (one?'':'<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="edAdd" style="border:1px dashed #676300;background:#fff;color:#3f3c00;border-radius:8px;padding:5px 10px;font:800 12px Inter,sans-serif;cursor:pointer">＋ Add Row</button><span style="font:600 11.5px Inter,sans-serif;color:#6E6A45">Enter on the last rate adds a row · paste several lines into a Symbol box</span></div>')+
@@ -112,9 +114,11 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
     if(focus) setTimeout(()=>tr.querySelector('.s').focus(),20); tot(); return tr; };
   addRow(one||x.sym||x.q?x:{});   /* a pre-filled suggestion (e.g. a missing buy) lands in the first row */
   if(!x.d) g('edD').value=todayS();
+  const ipoH=()=>{ const on=g('edG').value==='IPO'; g('edGh').style.display=on?'block':'none'; if(on){ g('edP').value='Delivery'; body.querySelectorAll('.b').forEach(b=>b.value='B'); } }; g('edG').onchange=ipoH; ipoH();
   m.onclick=e=>{ if(e.target===m) close(); }; g('edX').onclick=close; if(g('edAdd')) g('edAdd').onclick=()=>addRow({},true);
   g('edOk').onclick=()=>{ try{ if(/[a-z]{2,}\s+[a-z]{2,}/i.test(g('edC').value)) throw new Error('enter the client code, not the name');
-      const head={d:g('edD').value,c:g('edC').value,ex:g('edE').value,prod:g('edP').value}, rows=[];
+      const head={d:g('edD').value,c:g('edC').value,ex:g('edE').value,prod:g('edP').value,tag:g('edG').value}, rows=[];
+      if(head.tag==='IPO'&&[...body.querySelectorAll('.b')].some(b=>b.value==='S')) throw new Error('an IPO allotment is a buy - set every row to Buy');
       body.querySelectorAll('tr').forEach((tr,k)=>{ const o={sym:tr.querySelector('.s').value,side:tr.querySelector('.b').value,q:tr.querySelector('.q').value,r:tr.querySelector('.r').value};
         if(!one&&!o.sym.trim()&&!o.q&&!o.r) return;   /* blank row - skipped */
         try{ clean(Object.assign({},head,o)); }catch(e){ throw new Error('Row '+(k+1)+': '+e.message); } rows.push(o); });
@@ -142,7 +146,7 @@ function compute(TR,STAT,rateOf){
   parts.forEach(p=>{ const R=rateOf(p.c,p.d); p.v=p.q*p.r; p.brk=p.v*(p.type==='D'?R.bd:R.bi)/100; });
   /* minimum brokerage per contract note = client + day + EXCHANGE (NSE and BSE each carry their own minimum, e.g. Rs 50):
      when that exchange's % brokerage for the day is below the minimum, the broker charges the minimum, spread over those trades */
-  { const og={}; parts.forEach(p=>{ const k=p.c+'|'+p.d+'|'+exOfP(p); (og[k]=og[k]||[]).push(p); });
+  { const og={}; parts.forEach(p=>{ if(p.tag==='IPO') return; const k=p.c+'|'+p.d+'|'+exOfP(p); (og[k]=og[k]||[]).push(p); });
     /* the minimum is tested on brokerage at the card rate (Rate For Minimum, else the charged rate); the shortfall to the minimum is added */
     Object.values(og).forEach(P=>{ const R=rateOf(P[0].c,P[0].d), m=+R.bmin||0, v=P.reduce((a,p)=>a+p.v,0);
       const card=P.reduce((a,p)=>a+p.v*(p.type==='D'?(+R.bdc>0?+R.bdc:+R.bd||0):(+R.bic>0?+R.bic:+R.bi||0))/100,0);
@@ -157,6 +161,7 @@ function compute(TR,STAT,rateOf){
     if(SH){ p.stt=D?v*SH.sttD/100:(buy?0:v*SH.sttI/100); p.exch=v*SH.exch/100; p.sebi=v*SH.sebi/100; p.stamp=(SH.stampBuyOnly&&!buy)?0:v*(D?SH.stampD:SH.stampI)/100;
       p.gst=(p.brk+p.exch+p.dp+(SH.gstSebi?p.sebi:0))*(SH.gst!=null?SH.gst:STAT.gst)/100; }
     else { p.stt=oStt; p.exch=oEx; p.sebi=oSe; p.stamp=oSd; p.gst=p.off.gst; }
+    if(p.tag==='IPO'&&buy){ p.brk=p.stt=p.exch=p.sebi=p.stamp=p.dp=p.gst=0; p.off={stt:0,exch:0,sebi:0,stamp:0,gst:0}; p.chgOff=0; }   /* IPO allotment: no exchange trade, no charges */
     p.chg=p.brk+p.stt+p.exch+p.sebi+p.stamp+p.dp+p.gst;
     p.net=buy?v+p.chg:v-p.chg; p.nr=p.net/p.q; });
   /* delivery: FIFO lots per client + symbol, realised P&L and holding cost (interest from T+1) */
@@ -640,7 +645,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-26g';
+const BUILD='2026-11-26h';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -720,7 +725,7 @@ async function caRun(trades,onStep){ await corpActs(true); const nse=new Set((CA
 const DEMERGERS=[
   {s:'ITC',ex:'2025-01-06',child:'ITCHOTELS',r:[1,10],pct:13.51,note:'ITC guidance: cost 86.49% ITC / 13.51% ITC Hotels'},
   {s:'TMPV',ex:'2025-10-14',child:'TMCV',r:[1,1],pct:31.15,note:'Tata Motors guidance: cost 68.85% TMPV / 31.15% TMCV'}];
-const demergers=A=>DEMERGERS.concat((A||[]).filter(a=>a.t==='demerger'&&a.child&&a.r&&a.pct!=null));
+const demergers=A=>{ const seen={}; return DEMERGERS.concat(userDm()).concat((A||[]).filter(a=>a.t==='demerger'&&a.child&&a.r&&a.pct!=null)).filter(d=>{ const k=d.s+'>'+d.child; if(seen[k]) return false; seen[k]=1; return true; }); };   /* one entry per parent > child */
 function demergeAdjust(trades,A){ const D=demergers(A); if(!D.length) return trades; let T=trades;
   D.slice().sort((x,y)=>x.ex.localeCompare(y.ex)).forEach(dm=>{ const out=[], byC={};
     T.forEach(t=>{ if(t.sym===dm.s&&t.d<dm.ex) (byC[t.c]=byC[t.c]||[]).push(t); });
@@ -736,6 +741,33 @@ function demergeAdjust(trades,A){ const D=demergers(A); if(!D.length) return tra
         repl.set(t,pieces); }); });
     T.forEach(t=>{ if(repl.has(t)) out.push(...repl.get(t)); else out.push(t); }); T=out; });
   return T; }
+/* ---------- 🆕 listing record (IPO allotments and demerged companies): the first trading day on NSE (else BSE) from Yahoo,
+   kept for good in jc_pf_list = {SYM:{ld,o,h,l,c,tk,at,after:[{d,c}...]}} (saved with the portfolio on Drive) ---------- */
+const listings=()=>LS.get('jc_pf_list',{})||{};
+async function listInfo(sym,from,force){ const L=listings(); if(L[sym]&&!force) return L[sym]; const f=Math.floor(Date.parse((from||'2000-01-01')+'T00:00:00Z')/1000)-7*86400;
+  for(const tk of [sym+'.NS',sym+'.BO']){ try{ const u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(tk)+'?period1='+Math.max(0,f)+'&period2='+(f+75*86400)+'&interval=1d';
+      const j=await fetch(BE+'?action=fetch&url='+encodeURIComponent(u)).then(r=>r.json()), x=j&&j.chart&&j.chart.result&&j.chart.result[0], q=x&&x.indicators&&x.indicators.quote&&x.indicators.quote[0]; if(!x||!q||!x.timestamp) continue;
+      const D=x.timestamp.map((t,i)=>({d:new Date((t+19800)*1000).toISOString().slice(0,10),o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],v:q.volume[i]})).filter(b=>b.o>0&&b.c>0&&(!from||b.d>=from));
+      if(!D.length) continue; const b=D[0], r=v=>Math.round(v*100)/100;
+      L[sym]={ld:b.d,o:r(b.o),h:r(b.h),l:r(b.l),c:r(b.c),v:b.v||0,tk,at:Date.now(),w1:D[4]?r(D[4].c):null,m1:D[20]?r(D[20].c):null}; LS.set('jc_pf_list',L); return L[sym]; }catch(e){} }
+  return null; }
+/* IPO allotments in the trade book, client-wise, with the listing record */
+function ipoRows(trades){ const L=listings(); return (trades||tb().trades).filter(t=>t.tag==='IPO').map(t=>{ const sold=(trades||tb().trades).filter(y=>y.c===t.c&&y.sym===t.sym&&y.side==='S'&&y.d>=t.d).sort((a,b)=>a.d.localeCompare(b.d));
+  return {t,li:L[t.sym]||null,sold}; }).sort((a,b)=>b.t.d.localeCompare(a.t.d)); }
+/* demergers you record (future ones) are kept in jc_pf_dm and work exactly like the built-in ones */
+const userDm=()=>LS.get('jc_pf_dm',[])||[];
+function addDemerger(o){ const L=userDm().filter(x=>!(x.s===o.s&&x.child===o.child)); if(!o.del) L.push({s:String(o.s).toUpperCase(),child:String(o.child).toUpperCase(),ex:o.ex,r:[+o.r[0],+o.r[1]],pct:+o.pct,note:o.note||'',rec:o.rec||'',user:true}); LS.set('jc_pf_dm',L); return L; }
+/* full record of every demerger: built-in + yours + the NSE file; per client: parent held on the ex-date, child shares received, cost
+   carried over, every later trade in the child, shares still held */
+function dmRecords(trades,A){ const all=DEMERGERS.concat(userDm()).concat((A||(CA&&CA.a)||[]).filter(a=>a.t==='demerger'&&a.child&&a.r&&a.pct!=null)), seen={}, out=[];
+  const T=trades||tb().trades, adj=demergeAdjust(T.map(t=>Object.assign({},t,{sym:canonSym(t.sym)})),A), L=listings();
+  all.forEach(dm=>{ const k=dm.s+'>'+dm.child; if(seen[k]) return; seen[k]=1; const cl={};
+    adj.filter(p=>p.dmFrom===dm.s&&p.sym===dm.child).forEach(p=>{ const c=cl[p.c]=cl[p.c]||{c:p.c,got:0,cost:0,par:0,parCost:0,later:[]}; c.got+=p.q; c.cost+=p.q*p.r; });
+    adj.filter(p=>p.dm===dm.child&&p.sym===dm.s).forEach(p=>{ const c=cl[p.c]=cl[p.c]||{c:p.c,got:0,cost:0,par:0,parCost:0,later:[]}; c.par+=p.q; c.parCost+=p.q*p.r; });
+    T.filter(t=>canonSym(t.sym)===dm.child&&t.d>=dm.ex).forEach(t=>{ const c=cl[t.c]=cl[t.c]||{c:t.c,got:0,cost:0,par:0,parCost:0,later:[]}; c.later.push(t); });
+    Object.values(cl).forEach(c=>{ c.later.sort((a,b)=>a.d.localeCompare(b.d)); c.bought=c.later.filter(t=>t.side!=='S').reduce((a,t)=>a+t.q,0); c.sold=c.later.filter(t=>t.side==='S').reduce((a,t)=>a+t.q,0); c.now=Math.round((c.got+c.bought-c.sold)*1e4)/1e4; });
+    out.push({dm,li:L[dm.child]||null,clients:Object.values(cl).sort((a,b)=>a.c.localeCompare(b.c))}); });
+  return out.sort((a,b)=>b.dm.ex.localeCompare(a.dm.ex)); }
 function caFactor(a){ if(a.f&&a.f>0) return a.f; return a.t==='bonus'&&a.r&&a.r[1]?(a.r[0]+a.r[1])/a.r[1]:a.t==='split'&&a.fv&&a.fv[1]?a.fv[0]/a.fv[1]:1; }
 function caAdjust(trades,A){ trades=trades.map(t=>{ const k=canonSym(t.sym); return k===t.sym?t:Object.assign({},t,{sym:k,sym0:t.sym}); }); const S=(A||(CA&&CA.a)||[]).filter(a=>(a.t==='bonus'||a.t==='split')&&caFactor(a)!==1); if(!S.length) return demergeAdjust(trades,A||(CA&&CA.a));
   const by={}; S.forEach(a=>(by[a.s]=by[a.s]||[]).push(a));
@@ -1005,5 +1037,5 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
