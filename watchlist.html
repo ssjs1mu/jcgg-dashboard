@@ -106,7 +106,7 @@ table.rbt{min-width:1100px}table.rbt td{white-space:normal;text-align:left;verti
 .pnl.multi #p_rp table th:nth-child(1),.pnl.multi #p_rp table td:nth-child(1),.pnl.multi #p_rp table th:nth-child(4),.pnl.multi #p_rp table td:nth-child(4),.pnl.multi #p_rp table td[colspan]{display:table-cell}
 .pnl.multi #p_ru table th,.pnl.multi #p_ru table td{display:none}
 .pnl.multi #p_ru table th:nth-child(1),.pnl.multi #p_ru table td:nth-child(1),.pnl.multi #p_ru table th:nth-child(2),.pnl.multi #p_ru table td:nth-child(2),.pnl.multi #p_ru table th:nth-child(6),.pnl.multi #p_ru table td:nth-child(6),.pnl.multi #p_ru table td[colspan]{display:table-cell}
-.pop{position:fixed;inset:0;z-index:9000;background:rgba(3,8,16,.72);display:none;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}.pop.on{display:flex}.pph,.chh,.lqtop,.lrtop,.pbtop{cursor:move;touch-action:none;user-select:none}.pph button,.chh button,.chh label,.chh input{cursor:pointer}table .sym{cursor:pointer;text-decoration:underline dotted #5b6f8c;text-underline-offset:3px}.cbst{color:var(--mu,#9aa)}.tg2{font:800 9.5px Inter,sans-serif;background:#0d7a3e;color:#fff;border-radius:6px;padding:0 4px}
+.pop{position:fixed;inset:0;z-index:9000;background:rgba(3,8,16,.72);display:none;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}.pop.on{display:flex}.pph,.chh,.lqtop,.lrtop,.pbtop{cursor:move;touch-action:none;user-select:none}.pph button,.chh button,.chh label,.chh input{cursor:pointer}table .sym{cursor:pointer;text-decoration:underline dotted #5b6f8c;text-underline-offset:3px}.cbst{color:var(--mu,#9aa)}.cbst .cblp{color:#fff;font-size:1.05em}.tg2{font:800 9.5px Inter,sans-serif;background:#0d7a3e;color:#fff;border-radius:6px;padding:0 4px}
 .ppc,.rpc{position:relative;background:#101c2e;border:1px solid #2fd0ff;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.6);width:min(1500px,96vw);padding:12px 14px;animation:pin .25s ease-out}.rpc{width:min(560px,94vw)}
 .pph{font:800 15px Inter,Arial,sans-serif;color:var(--gold);margin:0 30px 8px 0}.ppx{position:absolute;right:10px;top:8px;background:#1d3a5c;border:1px solid #2f5a85;color:#fff;border-radius:50%;width:30px;height:30px;cursor:pointer;font:700 14px Arial}
 .pn.inpop{display:block!important;max-height:none!important;border:0!important;padding:0!important}
@@ -413,7 +413,7 @@ const CB=(function(){ let day='', M={};
   function tHtml(c,i,cc){ const v=c.t[i]; if(v==null) return '–'; const h=c.hit[i]; return `<span class="${cc}">${fx(v)}</span>${h?' <b class="up" title="hit at '+h+'">✓</b>':''}`; }
   function slHtml(c){ return `${fx(c.sl)}${c.sl!==c.sl0?` <span class="tg2" title="first stop ${fx(c.sl0)} - trailed after T${c.hit.length}">trail</span>`:''}`; }
   function stHtml(c,p){ const g=prog(c,p); if(!g) return ''; const S={OPEN:'',TARGET:'<b class="up">🎯 T5 done</b>',TRAIL:'<b class="up">✓ trail exit</b>',STOP:'<b class="dn">✕ stop hit</b>'}[c.status];
-    return `<span class="cbst" title="call frozen at ${c.time} IST · levels never change; the stop only trails">🔒 ${c.time} · ${S?S+' '+fx(c.exit)+' · ':''}<b class="${g.ret>=0?'up':'dn'}">${g.ret==null?'–':(g.ret>=0?'+':'')+g.ret.toFixed(2)+'%'}</b>${c.status==='OPEN'&&g.nx?` · T${g.nxN} in <b>${fx(Math.abs(g.toT))}</b> (${Math.abs(g.toTp).toFixed(2)}%) · SL ${fx(Math.abs(g.toS))} away`:''}</span>`; }
+    return `<span class="cbst" title="call frozen at ${c.time} IST · levels never change; the stop only trails">🔒 ${c.time} · LTP <b class="cblp">${fx(p)}</b> · ${S?S+' '+fx(c.exit)+' · ':''}<b class="${g.ret>=0?'up':'dn'}">${g.ret==null?'–':(g.ret>=0?'+':'')+g.ret.toFixed(2)+'%'}</b>${c.status==='OPEN'&&g.nx?` · T${g.nxN} in <b>${fx(Math.abs(g.toT))}</b> (${Math.abs(g.toTp).toFixed(2)}%) · SL ${fx(Math.abs(g.toS))} away`:''}</span>`; }
   function cell(c,p){ if(!c) return '–'; const fc=c.d>0?'up':'dn';
     return `<div style="white-space:nowrap"><span class="call ${c.side}">${c.side}</span> E <b>${fx(c.en)}</b> · SL <b class="dn">${slHtml(c)}</b></div><div style="white-space:nowrap;font-size:11px">${c.t.map((v,i)=>'T'+(i+1)+' '+tHtml(c,i,fc)).join(' · ')}</div><div style="font-size:10.5px;white-space:nowrap">${stHtml(c,p)}</div>`; }
   return {get,track,find,prog,tHtml,slHtml,stHtml,cell,all:()=>{ load(); return Object.values(M); }}; })();
@@ -1274,7 +1274,7 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   window.addEventListener('beforeunload',e=>{ if(popped()){ e.preventDefault(); e.returnValue=''; } });
 })();
 </script>
-<script src="pf-core.js?v=61"></script>
+<script src="pf-core.js?v=62"></script>
 <script>
 /* ===== Profit-booking pop-up: client holdings (Portfolio page data, same browser) checked against the Watchlist parameters =====
    Holding in profit after holding interest AND
@@ -1451,5 +1451,6 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden) check(); });
 })();
 </script>
-<script src="signals.js?v=9"></script>
+<script src="signals.js?v=10"></script>
+<script src="appbar.js?v=1"></script>
 </body></html>

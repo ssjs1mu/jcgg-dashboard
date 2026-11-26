@@ -841,5 +841,6 @@ clock(); setInterval(()=>{clock();ageTick()},1000); paint(); load(); heatLoad();
 (function hs(){ setTimeout(async()=>{ if(!document.hidden) await heatLoad(); hs(); }, indiaOpen()?45000:180000); })();
 (function sched(){ setTimeout(async()=>{ if(!document.hidden) await load(); sched(); }, indiaOpen()?20000:120000); })();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
-</script><script src="signals.js?v=9"></script>
+</script><script src="signals.js?v=10"></script>
+<script src="appbar.js?v=1"></script>
 </body></html>

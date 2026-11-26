@@ -87,6 +87,10 @@
 
   /* ---------- the popups ---------- */
   const css=document.createElement('style'); css.textContent=`
+  .lp{font-weight:900;transition:color .3s}.lp.lup{color:#0b9e5f;animation:lpU 1s}.lp.ldn{color:#d0143c;animation:lpD 1s}@keyframes lpU{0%{background:#35f0a8}}@keyframes lpD{0%{background:#ff6b9d}}
+  .lpg{color:#0b9e5f;font-weight:800}.lpr{color:#d0143c;font-weight:800}.lpw{color:#9fb0c6}
+  .jcs .lpbox{margin-top:5px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.7);font:800 13px ui-monospace,Consolas,monospace;color:#1b2333}.jcs .lpbox .lp{font-size:15px}
+  .jt .lpg{color:#35f0a8}.jt .lpr{color:#ff6b9d}.jt .lp.lup{color:#35f0a8}.jt .lp.ldn{color:#ff6b9d}
   #jcTiles{position:fixed;right:12px;bottom:60px;z-index:2147480990;width:208px;display:flex;flex-direction:column;gap:5px;font-family:Inter,"Segoe UI",Arial,sans-serif}
   #jcTiles:empty{display:none}#jcTiles *{box-sizing:border-box}#jcTiles .jcth button,.jt .jx{all:unset;cursor:pointer;color:#9fb0c6;font-size:12px;line-height:1}#jcTiles .jcth{height:auto;white-space:nowrap;display:flex;align-items:center;gap:6px;background:#1a1408;border:1px solid #e0cd96;color:#e0cd96;border-radius:9px;padding:3px 8px;font:900 11px Inter,Arial;cursor:move;touch-action:none;user-select:none}
   #jcTiles .jcth span{color:#9fb0c6;font-weight:700}#jcTiles .jcth button{margin-left:auto}
@@ -133,10 +137,11 @@
   const tm=t=>new Date(t+19800000).toISOString().slice(11,16);
   const chartHref=s=>IS_WL?'#':'watchlist.html#chart='+encodeURIComponent(s);
   const KC={'Sector leader':['LEADER','🟢 SECTOR LEADER'],'Sector laggard':['LAGGARD','🔴 SECTOR LAGGARD'],'Index heavyweight':['HEAVY','🏋 INDEX HEAVYWEIGHT'],'Quality bounce':['BOUNCE','💜 QUALITY BOUNCE']};
-  function card(x){ const el=document.createElement('div'), ks=(x.src||[]).map(k=>KC[k]).filter(Boolean), cls=ks.length>1?'MIX':ks.length?ks[0][0]:'MIX'; el.className='jcs k '+cls+' '+(x.side==='BUY'?'b':'s');
+  function card(x){ setTimeout(lpPoll,300); const el=document.createElement('div'), ks=(x.src||[]).map(k=>KC[k]).filter(Boolean), cls=ks.length>1?'MIX':ks.length?ks[0][0]:'MIX'; el.className='jcs k '+cls+' '+(x.side==='BUY'?'b':'s'); el.dataset.k=x.k; el.dataset.s=x.s;
     el.innerHTML=`<button class="x" title="Dismiss">✕</button><div class="h"><span class="tagk">${ks.length?ks.map(k=>k[1]).join(" + "):"⚡ DAY-TRADE CALL"}</span><i>${tm(x.t)} IST</i></div>
      <div class="n"><b>${esc(x.s)}</b><em>${x.side}</em><span>${x.ch>=0?'+':''}${x.ch}% today · vol ${x.pace}x</span></div><div class="w">${x.src.map(esc).join(' · ')}</div>
      <table><tr><th>ENTRY</th><th>EXIT / SL</th><th>T1</th><th>T2</th></tr><tr><td class="en">${fx(x.en)}</td><td class="sl">${fx(x.sl)}</td><td class="tg">${fx(x.t1)}</td><td class="tg">${fx(x.t2)}</td></tr></table>
+     <div class="lpbox">LIVE <span class="lpx">${lpHtml(x)}</span></div>
      <div class="m">Risk ${x.risk}% · reward ${x.room}% · R:R ${x.rr} : 1 · 🔒 levels frozen · T1 hit → SL trails to entry, T2 → SL to T1 + T3…T5 added · exit by 15:15 · rule-based, not advice</div><div class="m lvx"></div>
      <div class="a"><a class="c" href="${chartHref(x.s)}" data-ch="${esc(x.s)}">📈 Live chart</a><button type="button" class="ok">Got it</button></div>`;
     const kill=()=>{ el.style.transition='opacity .4s,transform .4s'; el.style.opacity=0; el.style.transform='translateX(30px)'; setTimeout(()=>el.remove(),420); };
@@ -147,6 +152,21 @@
     let hover=false; el.onmouseenter=()=>hover=true; el.onmouseleave=()=>hover=false; setTimeout(function t(){ if(hover) setTimeout(t,5000); else kill(); },90000);
     return el; }
   function beep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=988; g.gain.value=.07; o.connect(g); g.connect(c.destination); o.start(); o.frequency.setValueAtTime(1318,c.currentTime+.12); o.stop(c.currentTime+.28); }catch(e){} }
+  /* ---------- live prices for the calls on screen (cards + tiles), every 10 s ---------- */
+  const LP={}, LPprev={};
+  function onScreen(){ const S=new Set(); document.querySelectorAll('#jcSig .jcs[data-s],#jcTiles .jt[data-s]').forEach(e=>S.add(e.dataset.s)); return [...S]; }
+  async function lpPoll(){ if(document.hidden) return; const L=onScreen(); if(!L.length) return;
+    if(typeof window.ltpOf==='function'){ L.forEach(s=>{ const v=window.ltpOf(s); if(v) LP[s]=v; }); }
+    const miss=L.filter(s=>typeof window.ltpOf!=='function'||!window.ltpOf(s));
+    if(miss.length){ try{ const j=await (await fetch(BACKEND+'?action=liveq&symbols='+encodeURIComponent(miss.map(s=>s+'.NS').join(',')))).json(); if(j&&j.q) miss.forEach(s=>{ const q=j.q[s+'.NS']; if(q&&q[0]) LP[s]=q[0]; }); }catch(e){} }
+    lpPaint(); }
+  function lpHtml(x){ const p=LP[x.s]; if(!p) return '<span class="lpw">…</span>'; const d=x.side==='BUY'?1:-1, r=d*(p/x.en-1)*100, o=LPprev[x.s], fl=o&&o!==p?(p>o?' lup':' ldn'):'';
+    const st=d*(p-x.sl)<=0?' · SL hit':d*(p-x.t2)>=0?' · T2 hit':d*(p-x.t1)>=0?' · T1 hit':'';
+    return `<b class="lp${fl}">${fx(p)}</b> <span class="${r>=0?'lpg':'lpr'}">${(r>=0?'+':'')+r.toFixed(2)}%${st}</span>`; }
+  function lpPaint(){ const S=ld(SK(),{list:[]}); document.querySelectorAll('#jcSig .jcs[data-k] .lpx,#jcTiles .jt[data-k] .lpx').forEach(el=>{ const k=el.closest('[data-k]').dataset.k, x=S.list.find(y=>y.k===k); if(x) el.innerHTML=lpHtml(x); });
+    Object.keys(LP).forEach(s=>LPprev[s]=LP[s]); }
+  setInterval(lpPoll,10000);
+
   /* small tiles: whichever page is opened shows today's calls of the last 60 minutes as small flashing tiles (each page keeps its own
      "seen" list, so a call already shown in another tab still flashes here); a tile opens the full card; ✕ hides it on this page */
   /* flashed = this page load only (every page you open flashes them again); hidden with ✕ = remembered for this page in this tab */
@@ -156,10 +176,10 @@
   function tileLive(x){ const C=window.CB&&window.CB.find(x.s).find(c=>c.src==='IM'&&c.side===x.side), L=C&&typeof window.ltpOf==='function'?window.ltpOf(x.s):null; if(!C||!L) return '';
     window.CB.track(C,L); const g=window.CB.prog(C,L); return `<u class="${g.ret>=0?'p':'m'}">${(g.ret>=0?'+':'')+g.ret.toFixed(2)}%${C.hit.length?' T'+C.hit.length+'✓':''}${C.status!=='OPEN'?' '+C.status:''}</u>`; }
   function paintTiles(S){ S=S||ld(SK(),{list:[]}); const now=Date.now(), L=S.list.filter(x=>now-x.t<60*60000&&!(PS[x.k]&&PS[x.k].x)), V=L.slice(0,6);
-    tray.innerHTML=V.length?`<div class="jcth">⚡ Calls <span>${L.length}${L.length>V.length?' · +'+(L.length-V.length)+' more':''}</span><button type="button" title="Hide all on this page">✕</button></div>`+V.map(x=>`<div class="jt ${x.side==='BUY'?'b':'s'}${PS[x.k]&&PS[x.k].s?'':' fl'}" data-k="${esc(x.k)}" title="Click for the full call">
+    tray.innerHTML=V.length?`<div class="jcth">⚡ Calls <span>${L.length}${L.length>V.length?' · +'+(L.length-V.length)+' more':''}</span><button type="button" title="Hide all on this page">✕</button></div>`+V.map(x=>`<div class="jt ${x.side==='BUY'?'b':'s'}${PS[x.k]&&PS[x.k].s?'':' fl'}" data-k="${esc(x.k)}" data-s="${esc(x.s)}" title="Click for the full call">
       <b>${esc(x.s)}</b><em>${x.side}</em><i>${tm(x.t)}</i><button type="button" class="jx" title="Hide">✕</button>
-      <div>E ${fx(x.en)} · SL ${fx(x.sl)}</div><div>T1 ${fx(x.t1)} · T2 ${fx(x.t2)} ${tileLive(x)}</div></div>`).join(''):'';
-    V.forEach(x=>{ PS[x.k]=Object.assign(PS[x.k]||{},{s:1}); }); psv(); }
+      <div>E ${fx(x.en)} · SL ${fx(x.sl)}</div><div>T1 ${fx(x.t1)} · T2 ${fx(x.t2)} ${tileLive(x)}</div><div>LTP <span class="lpx">${lpHtml(x)}</span></div></div>`).join(''):'';
+    V.forEach(x=>{ PS[x.k]=Object.assign(PS[x.k]||{},{s:1}); }); psv(); setTimeout(lpPoll,300); }
   tray.addEventListener('click',e=>{ const S=ld(SK(),{list:[]});
     if(e.target.closest('.jcth button')){ S.list.forEach(x=>PS[x.k]=Object.assign(PS[x.k]||{},{x:1})); psv(); paintTiles(S); return; }
     const t=e.target.closest('.jt'); if(!t) return; const x=S.list.find(y=>y.k===t.dataset.k); if(!x) return;
