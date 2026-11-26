@@ -93,7 +93,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=65"></script>
+<script src="pf-core.js?v=66"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -470,17 +470,17 @@ function ipoDmHtml(){ const cf=x=>CL==='ALL'||x===CL, L=PF.listings(), I=PF.ipoR
   const need=D.map(r=>[r.dm.child,r.dm.ex]).filter(([y])=>!L[y]&&!LIQ[y]);
   const pct=(a,b)=>a&&b?((a/b-1)*100):null, pc=v=>v==null?'<span class="mu">–</span>':`<b class="${v>=0?'up':'dn'}">${(v>=0?'+':'')+v.toFixed(2)}%</b>`;
   const liCells=(li,base,sym0)=>li?`<td class="l">${dmy(li.ld)}</td><td>${fx(li.o)}</td><td>${fx(li.h)} / ${fx(li.l)}</td><td>${fx(li.c)}</td><td>${pc(pct(li.o,base))}</td><td>${pc(pct(li.c,base))}</td>`:`<td class="l mu" colspan="6">${LIQ[sym0]===2?'listing day not found yet (not listed, or a new symbol) - ⟳ to try again':'fetching the listing day…'}</td>`;
-  if(!PF.__ipoL){ PF.__ipoL=1; PF.ipoData().then(()=>{ if(TAB==='ca') render(); }); }
+  if(!PF.__ipoL){ PF.__ipoL=1; PF.ipoData().then(()=>{ PF.__ipoOk=1; if(TAB==='ca') render(); }); }
   const S=PF.ipoScripts(TR,PF.dp().H).map(o=>Object.assign(o,{clients:o.clients.filter(c=>cf(c.c))})).filter(o=>o.clients.length);
-  I.forEach(({t})=>{ if(S.some(o=>o.s===t.sym)) return; S.push({s:t.sym,ipo:{s:t.sym,n:'',ip:t.r,band:'issue price from your IPO entry',ld:(L[t.sym]||{}).ld||''},clients:[{c:t.c,how:'IPO allotment',first:t,bq:t.q,sq:0,held:t.q,avg:t.r,dp:0}]}); });
-  S.forEach(o=>{ if(!L[o.s]&&!LIQ[o.s]) need.push([o.s,o.ipo.ld||o.ipo.cl||'']); }); 
+  I.forEach(({t})=>{ if(S.some(o=>o.s===t.sym)) return; S.push({s:t.sym,ipo:{s:t.sym,n:'',ip:t.r,band:'issue price from your IPO entry',ld:(L[t.sym]||{}).ld||'',from:t.d},clients:[{c:t.c,how:'IPO allotment',first:t,bq:t.q,sq:0,held:t.q,avg:t.r,dp:0}]}); });
+  if(PF.__ipoOk) S.forEach(o=>{ if(!L[o.s]&&!LIQ[o.s]) need.push([o.s,o.ipo.ld||o.ipo.cl||o.ipo.from||'']); });   /* only once the NSE list is in: it gives the listing date to look from */
   if(need.length){ const nn=need.filter(([y])=>!LIQ[y]); nn.forEach(([y])=>LIQ[y]=1); if(nn.length) (async()=>{ for(const [y,d] of nn){ const r=await PF.listInfo(y,d); LIQ[y]=r?1:2; } if(TAB==='ca') render(); })(); }
   const D0=PF.ipoData&&PF.__ipoL&&PF.ipoScripts?1:0, ipAsOf=(window.PF&&PF.__ipoAsOf)||'';
   let h=`<h3 class="sec">🆕 IPO Details - Scripts Held Or Traded <small>every script of ${CL==='ALL'?'your clients':esc(CL)} that came by an IPO (NSE past issues since 2010, refreshed daily) + IPO-tagged entries · issue price, issue dates, listing day, gains · per client: allotment or market buy, qty, held · ${S.length} script${S.length===1?'':'s'}</small></h3>`;
   h+=S.length?`<div class="sx"><table class="x"><thead><tr><th class="l">Script</th><th class="l">Company</th><th>Issue Price</th><th class="l">Issue Open - Close</th><th class="l">Listing Date</th><th>Listing Open</th><th>Day High / Low</th><th>Listing Close</th><th>Listing Gain Open / Close</th><th>After 1 Week</th><th>After 1 Month</th><th>LTP</th><th>Now vs Issue</th><th class="l">Clients - How Got · Qty · Held · Avg Cost · Gain</th><th></th></tr></thead><tbody>`+
     S.map(o=>{ const ip=o.ipo.ip, li=L[o.s], p=lp(o.s);
       return `<tr><td class="l"><b>${esc(o.s)}</b>${o.ipo.was?' <span class="mu">(IPO as '+esc(o.ipo.was)+')</span>':''}${o.ipo.sme?' <span class="chip pf">SME</span>':''}</td><td class="l">${esc(o.ipo.n||'')}</td><td>${ip?fx(ip):'–'}${o.ipo.band&&!/^[\d.,\s]+$/.test(o.ipo.band)?'<div class="mu" style="font-size:10.5px">'+esc(o.ipo.band)+'</div>':''}</td><td class="l">${o.ipo.op?dmy(o.ipo.op)+' - '+dmy(o.ipo.cl):'–'}</td>
-        ${li?`<td class="l">${dmy(li.ld)}</td><td>${fx(li.o)}</td><td>${fx(li.h)} / ${fx(li.l)}</td><td>${fx(li.c)}</td><td>${pc(pct(li.o,ip))} / ${pc(pct(li.c,ip))}</td><td>${li.w1?fx(li.w1)+' '+pc(pct(li.w1,ip)):'–'}</td><td>${li.m1?fx(li.m1)+' '+pc(pct(li.m1,ip)):'–'}</td>`:`<td class="l">${o.ipo.ld?dmy(o.ipo.ld):'–'}</td><td class="l mu" colspan="6">${LIQ[o.s]===2?'listing day not found - ⟳':'fetching the listing day…'}</td>`}
+        ${li?`<td class="l">${dmy(li.ld)}</td><td>${fx(li.o)}</td><td>${fx(li.h)} / ${fx(li.l)}</td><td>${fx(li.c)}</td><td>${pc(pct(li.o,ip))} / ${pc(pct(li.c,ip))}</td><td>${li.w1?fx(li.w1)+' '+pc(pct(li.w1,ip)):'–'}</td><td>${li.m1?fx(li.m1)+' '+pc(pct(li.m1,ip)):'–'}</td>`:`<td class="l">${o.ipo.ld?dmy(o.ipo.ld):'–'}</td><td class="l mu" colspan="6">${LIQ[o.s]===2?'listing day not found - ⟳':PF.__ipoOk?'fetching the listing day…':'loading the NSE IPO list…'}</td>`}
         <td>${p?fx(p):'–'}</td><td>${pc(pct(p,ip))}</td>
         <td class="l" style="font-size:11.5px;white-space:nowrap">${o.clients.map(c=>`<b>${esc(c.c)}</b> · <span class="${c.how==='IPO allotment'?'up':'mu'}">${c.how}</span>${c.first?' '+dmy(c.first.d)+' '+fx(c.bq,0)+' @ '+fx(c.avg):''}${c.sq?' · sold '+fx(c.sq,0):''} · held <b>${fx(c.dp||c.held,0)}</b>${c.avg&&p?' · '+pc(pct(p,c.avg)):''}`).join('<br>')}</td>
         <td><button class="ic" data-lif="${esc(o.s)}|${o.ipo.ld||''}" title="Fetch the listing day again">⟳</button></td></tr>`; }).join('')+'</tbody></table></div>'

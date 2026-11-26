@@ -645,7 +645,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-26j';
+const BUILD='2026-11-26k';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -744,7 +744,7 @@ function demergeAdjust(trades,A){ const D=demergers(A); if(!D.length) return tra
 /* ---------- 🆕 listing record (IPO allotments and demerged companies): the first trading day on NSE (else BSE) from Yahoo,
    kept for good in jc_pf_list = {SYM:{ld,o,h,l,c,tk,at,after:[{d,c}...]}} (saved with the portfolio on Drive) ---------- */
 const listings=()=>LS.get('jc_pf_list',{})||{};
-async function listInfo(sym,from,force){ const L=listings(); if(L[sym]&&!force) return L[sym]; const f=Math.floor(Date.parse((from||'2000-01-01')+'T00:00:00Z')/1000)-7*86400;
+async function listInfo(sym,from,force){ const L=listings(); if(L[sym]&&!force) return L[sym]; if(!from) return null;   /* needs a date to look from */ const f=Math.floor(Date.parse((from||'2000-01-01')+'T00:00:00Z')/1000)-7*86400;
   for(let att=0;att<3;att++){ if(att) await new Promise(r=>setTimeout(r,2500*att));   /* the backend is busy while live prices load: retry */
   for(const tk of [sym+'.NS',sym+'.BO']){ try{ const u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(tk)+'?period1='+Math.max(0,f)+'&period2='+(f+75*86400)+'&interval=1d';
       const j=await fetch(BE+'?action=fetch&url='+encodeURIComponent(u)).then(r=>r.json()), x=j&&j.chart&&j.chart.result&&j.chart.result[0], q=x&&x.indicators&&x.indicators.quote&&x.indicators.quote[0]; if(!x||!q||!x.timestamp) continue;
