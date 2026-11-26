@@ -640,7 +640,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-26d';
+const BUILD='2026-11-26e';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -919,20 +919,28 @@ const hurdleOf=(days,ST)=>((ST||stat()).hurdle||0)*Math.max(days,1)/365;   /* be
    Everything the Portfolio keeps in this browser (trades incl. hand entries, ledgers, DP, rates, marks, links, settings - never the
    passcode) is saved to Drive as one copy a few seconds after any change, and loaded back when a page opens on any device or after the
    browser data was cleared. Drive keeps the newest copy and 40 earlier ones. */
-const SKIP=new Set(['jc_pf_drive','jc_pf_dstat','jc_pf_seen','jc_pf_sync','jc_pf_state_t','jc_pf_state_h','jc_pf_dirty']);
+const SKIP=new Set(['jc_pf_drive','jc_pf_dstat','jc_pf_seen','jc_pf_sync','jc_pf_state_t','jc_pf_state_h','jc_pf_dirty','jc_pf_state_n']);
 const stKeys=()=>{ const k=[]; try{ for(let i=0;i<localStorage.length;i++){ const x=localStorage.key(i); if(/^jc_pf_/.test(x)&&!SKIP.has(x)) k.push(x); } }catch(e){} return k.sort(); };
 const stRaw=()=>stKeys().map(k=>k+'\u0001'+localStorage.getItem(k)).join('\u0002');
 const hsh=s=>{ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36)+'.'+s.length; };
 const lsRaw=(k,v)=>{ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} };
-let ST_BUSY=false, ST_TIMER=null, ST_STARTED=false;
+let ST_BUSY=false, ST_TIMER=null, ST_STARTED=false, ST_READY=false, ST_SHRINK_OK=false;
+/* safety (2026-11-26): nothing is saved before this page has finished loading the Drive copy, and a copy less than half the size of
+   the last Drive copy is never saved without a yes - a fresh / cleared browser once saved its empty defaults over the real data */
 async function stPost(o){ const k=akey(); if(!k) throw new Error('passcode'); const ac=new AbortController(); setTimeout(()=>ac.abort(),60000);
   const j=await fetch(BE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({key:k},o)),signal:ac.signal}).then(r=>r.json());
   if(j.error){ if(/bad passcode/.test(j.error)) try{ localStorage.removeItem('jc_admin_key'); }catch(e){} throw new Error(j.error); } return j; }
-async function statePush(){ if(ST_BUSY) return; const raw=stRaw(), h=hsh(raw); if(h===localStorage.getItem('jc_pf_state_h')){ lsRaw('jc_pf_dirty',null); return; }
+const stSize=st=>{ const D=(st&&st.data)||{}; return Object.keys(D).filter(k=>/^jc_pf_/.test(k)&&!SKIP.has(k)).reduce((a,k)=>a+k.length+String(D[k]).length+2,0); };
+async function statePush(force){ if(ST_BUSY) return; const raw=stRaw(), h=hsh(raw); if(h===localStorage.getItem('jc_pf_state_h')){ lsRaw('jc_pf_dirty',null); return; }
+  if(!ST_READY&&!force){ if(!akey()){ lsRaw('jc_pf_dirty','1'); driveStat({ok:false,why:'passcode',dirty:true}); } return; }
+  const n0=+localStorage.getItem('jc_pf_state_n')||0;
+  if(!force&&!ST_SHRINK_OK&&n0>20000&&raw.length<n0*0.5){ lsRaw('jc_pf_dirty','1');
+    if(document.hidden||!confirm('Drive backup check\n\nThe data in this browser is much smaller than the last Drive copy ('+Math.round(raw.length/1024)+' KB vs '+Math.round(n0/1024)+' KB).\nSaving now would replace the fuller copy on every device.\n\nOK = save this smaller copy (only if you deleted data on purpose)\nCancel = do not save (reload the page to bring the Drive copy back)')){ driveStat({ok:false,why:'not saved - much smaller than the Drive copy',dirty:true}); return; }
+    ST_SHRINK_OK=true; }
   if(!akey()){ lsRaw('jc_pf_dirty','1'); driveStat({ok:false,why:'passcode',dirty:true}); return; }
   ST_BUSY=true; driveStat({busy:true,saving:true});
   try{ const data={}; stKeys().forEach(k=>data[k]=localStorage.getItem(k)); const j=await stPost({action:'pf_state_save',state:JSON.stringify({v:1,t:Date.now(),data})});
-    lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',h); lsRaw('jc_pf_dirty',null); driveStat({ok:true,saved:j.t,mode:'state'}); }
+    lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',h); lsRaw('jc_pf_state_n',String(raw.length)); lsRaw('jc_pf_dirty',null); driveStat({ok:true,saved:j.t,mode:'state'}); }
   catch(e){ lsRaw('jc_pf_dirty','1'); driveStat({ok:false,why:e.name==='AbortError'?'timeout':e.message,dirty:true}); }
   finally{ ST_BUSY=false; } }
 function stateApply(st){ const D=(st&&st.data)||{}; stKeys().forEach(k=>{ if(!(k in D)) lsRaw(k,null); }); Object.keys(D).forEach(k=>{ if(/^jc_pf_/.test(k)&&!SKIP.has(k)) lsRaw(k,D[k]); }); }
@@ -940,22 +948,26 @@ function stateApply(st){ const D=(st&&st.data)||{}; stKeys().forEach(k=>{ if(!(k
 let ST_LAST='';
 async function stateSync(){ if(!ST_STARTED){ ST_STARTED=true;
     /* every 2 s: if the data changed since the last save, save once it has been still for 2 s (a burst of changes = one save) */
-    setInterval(()=>{ const h=hsh(stRaw()); if(h===localStorage.getItem('jc_pf_state_h')){ ST_LAST=h; return; } if(h!==ST_LAST){ ST_LAST=h; return; } if(!ST_BUSY) statePush(); },2000);
+    setInterval(()=>{ if(!ST_READY) return; const h=hsh(stRaw()); if(h===localStorage.getItem('jc_pf_state_h')){ ST_LAST=h; return; } if(h!==ST_LAST){ ST_LAST=h; return; } if(!ST_BUSY) statePush(); },2000);
     document.addEventListener('visibilitychange',()=>{ if(!document.hidden) stateSync().catch(()=>0); }); window.addEventListener('beforeunload',()=>{ if(hsh(stRaw())!==localStorage.getItem('jc_pf_state_h')) lsRaw('jc_pf_dirty','1'); }); }
   if(!akey()){ driveStat({ok:false,why:'passcode'}); return {n:0}; }
   const sh=localStorage.getItem('jc_pf_state_h'), dirty=localStorage.getItem('jc_pf_dirty')==='1'||(!!sh&&hsh(stRaw())!==sh);
   driveStat({busy:true});
   try{ const j=await stPost({action:'pf_state_load'}), mine=+localStorage.getItem('jc_pf_state_t')||0;
-    if(j.none){ if(stKeys().length) await statePush(); else { driveStat({ok:true,none:true}); await driveLoad().catch(()=>0); } return {n:0}; }
+    if(j.none){ ST_READY=true; if(stKeys().length) await statePush(); else { driveStat({ok:true,none:true}); await driveLoad().catch(()=>0); } return {n:0}; }
     const st=JSON.parse(j.state);
     if(st.cleared&&j.t>mine){ /* everything was deleted on another device - deletion wins over unsaved changes here */ }
-    else if(dirty&&mine){ await statePush(); return {n:0}; }
+    ST_READY=true; if(!localStorage.getItem('jc_pf_state_n')||j.t>mine) lsRaw('jc_pf_state_n',String(stSize(st)));
+    if(!(st.cleared&&j.t>mine)&&dirty&&mine){
+      /* this browser has unsaved changes. If Drive also got a newer copy from another device meanwhile, ask which one wins instead of
+         silently overwriting the newer Drive copy */
+      if(!(j.t>mine)||document.hidden||!confirm('Drive has a newer Portfolio copy (saved '+new Date(j.t).toLocaleString('en-IN')+') than this browser, and this browser also has unsaved changes.\n\nOK = load the Drive copy (recommended - this browser\'s unsaved changes are dropped)\nCancel = keep this browser\'s data and save it over Drive')){ await statePush(); return {n:0}; } }
     if(j.t>mine){ stateApply(st); const h=hsh(stRaw()); lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',h); lsRaw('jc_pf_dirty',null);
       driveStat({ok:true,loaded:1,restored:j.t,cleared:!!st.cleared,mode:'state'}); return {n:1}; }
     driveStat({ok:true,saved:mine,mode:'state'}); return {n:0}; }
   catch(e){ driveStat({ok:false,why:e.name==='AbortError'?'timeout':e.message}); return {n:0}; } }
 /* delete everything: this browser, every device (empty state) and the Drive uploads (to Drive trash, 30 days) */
-async function clearAll(){ const j=await stPost({action:'pf_clear'}); stKeys().forEach(k=>lsRaw(k,null)); lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',hsh(stRaw())); lsRaw('jc_pf_dirty',null); lsRaw('jc_pf_seen',null);
+async function clearAll(){ const j=await stPost({action:'pf_clear'}); lsRaw('jc_pf_state_n',null); stKeys().forEach(k=>lsRaw(k,null)); lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',hsh(stRaw())); lsRaw('jc_pf_dirty',null); lsRaw('jc_pf_seen',null);
   driveStat({ok:true,saved:j.t,mode:'state'}); return j; }
 let LOADING=false, LOADED=null;
 /* 'rm|type|client' = when this device removed that client's data: Drive files older than that are not loaded back */
