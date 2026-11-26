@@ -18,11 +18,12 @@ def main():
     try: old = {r['s']: r for r in json.load(open(OUT)).get('a', [])}
     except Exception: pass
     op = opener(); today = dt.date.today(); got = 0; sample = None
-    for y in range(2010, today.year + 1):
-        f = dt.date(y, 1, 1); t = min(dt.date(y, 12, 31), today)
+    months = [(y, m) for y in range(2012, today.year + 1) for m in range(1, 13) if dt.date(y, m, 1) <= today]
+    for y, m in months:       # month by month: the API returns a capped list per call
+        f = dt.date(y, m, 1); t = min((dt.date(y + (m == 12), m % 12 + 1, 1) - dt.timedelta(days=1)), today)
         url = 'https://www.nseindia.com/api/public-past-issues?from_date=%s&to_date=%s&security_type=all' % (f.strftime('%d-%m-%Y'), t.strftime('%d-%m-%Y'))
         try: j = get(op, url)
-        except Exception as e: print('year', y, 'failed', str(e)[:120]); continue
+        except Exception as e: print('month', y, m, 'failed', str(e)[:120]); continue
         L = j if isinstance(j, list) else (j.get('data') or j.get('rows') or [])
         if L and sample is None: sample = L[0]
         for r in L:
@@ -31,10 +32,10 @@ def main():
             if not s: continue
             st = str(g('securityType', 'series', 'security_type') or '')
             rec = {'s': s, 'n': str(g('companyName', 'company', 'name') or '').strip(), 'band': str(g('priceRange', 'issuePrice', 'price') or '').strip(),
-                   'ip': price(g('issuePrice', 'finalPrice', 'priceRange', 'price')), 'op': d2(g('issueStartDate', 'startDate') or ''), 'cl': d2(g('issueEndDate', 'endDate') or ''),
+                   'ip': price(g('issuePrice', 'finalPrice', 'priceRange', 'price')), 'op': d2(g('ipoStartDate', 'issueStartDate', 'startDate') or ''), 'cl': d2(g('ipoEndDate', 'issueEndDate', 'endDate') or ''),
                    'ld': d2(g('listingDate', 'listing_date') or ''), 'sec': st, 'sme': 'SME' in st.upper() or 'SME' in str(g('series') or '').upper()}
             if rec['ld'] or rec['cl']: old[s] = {**old.get(s, {}), **{k: v for k, v in rec.items() if v not in (None, '')}}; got += 1
-        time.sleep(1.2)
+        time.sleep(0.7)
     print('records this run', got, 'total', len(old))
     if not old: print('nothing fetched; sample', sample); sys.exit(1)
     A = sorted(old.values(), key=lambda r: r.get('ld') or r.get('cl') or '', reverse=True)
