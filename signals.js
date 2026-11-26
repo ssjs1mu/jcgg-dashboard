@@ -127,11 +127,13 @@
     el.innerHTML=`<button class="x" title="Dismiss">✕</button><div class="h"><span class="tagk">${ks.length?ks.map(k=>k[1]).join(" + "):"⚡ DAY-TRADE CALL"}</span><i>${tm(x.t)} IST</i></div>
      <div class="n"><b>${esc(x.s)}</b><em>${x.side}</em><span>${x.ch>=0?'+':''}${x.ch}% today · vol ${x.pace}x</span></div><div class="w">${x.src.map(esc).join(' · ')}</div>
      <table><tr><th>ENTRY</th><th>EXIT / SL</th><th>T1</th><th>T2</th></tr><tr><td class="en">${fx(x.en)}</td><td class="sl">${fx(x.sl)}</td><td class="tg">${fx(x.t1)}</td><td class="tg">${fx(x.t2)}</td></tr></table>
-     <div class="m">Risk ${x.risk}% · reward ${x.room}% · R:R ${x.rr} : 1 · exit by 15:15 if neither is hit · rule-based, not advice</div>
+     <div class="m">Risk ${x.risk}% · reward ${x.room}% · R:R ${x.rr} : 1 · 🔒 levels frozen · T1 hit → SL trails to entry, T2 → SL to T1 + T3…T5 added · exit by 15:15 · rule-based, not advice</div><div class="m lvx"></div>
      <div class="a"><a class="c" href="${chartHref(x.s)}" data-ch="${esc(x.s)}">📈 Live chart</a><button type="button" class="ok">Got it</button></div>`;
     const kill=()=>{ el.style.transition='opacity .4s,transform .4s'; el.style.opacity=0; el.style.transform='translateX(30px)'; setTimeout(()=>el.remove(),420); };
     el.querySelector('.x').onclick=kill; el.querySelector('.ok').onclick=kill;
     el.querySelector('[data-ch]').onclick=e=>{ if(IS_WL&&typeof window.chOpen==='function'){ e.preventDefault(); chOpen(x.s+'.NS',x.s); kill(); } };
+    const upd=()=>{ const c=window.CB&&window.CB.find(x.s).find(c=>c.src==='IM'&&c.side===x.side), v=el.querySelector('.lvx'); if(c&&v&&typeof window.ltpOf==='function'){ v.innerHTML=window.CB.stHtml(window.CB.track(c,window.ltpOf(x.s)),window.ltpOf(x.s)); } };
+    upd(); const iv=setInterval(()=>{ if(!el.isConnected) clearInterval(iv); else upd(); },10000);
     let hover=false; el.onmouseenter=()=>hover=true; el.onmouseleave=()=>hover=false; setTimeout(function t(){ if(hover) setTimeout(t,5000); else kill(); },90000);
     return el; }
   function beep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=988; g.gain.value=.07; o.connect(g); g.connect(c.destination); o.start(); o.frequency.setValueAtTime(1318,c.currentTime+.12); o.stop(c.currentTime+.28); }catch(e){} }
@@ -139,10 +141,17 @@
     S.list.slice().reverse().forEach(x=>{ if(shown.has(x.k)) return; shown.add(x.k); if(Date.now()-x.t<20*60000){ box.appendChild(card(x)); n++; } });
     sv('jc_sig_shown_'+day(),[...shown]); while(box.children.length>3) box.firstChild.remove();
     if(n){ beep(); bell.classList.remove('nw'); void bell.offsetWidth; bell.classList.add('nw'); } paintBell(S); }
-  function paintBell(S){ S=S||ld(SK(),{list:[]}); const k=S.list.length; bell.classList.toggle('on',k>0); bell.textContent='⚡ Missed a popup? '+k+' call'+(k===1?'':'s')+' today';
+  function paintBell(S){ S=S||ld(SK(),{list:[]});
+    if(window.CB) S.list.forEach(x=>{ try{ window.CB.get('IM',x.s,x.side,{en:x.en,sl:x.sl,t1:x.t1,t2:x.t2}); }catch(e){} });   /* index-mover calls join the frozen call book */ const k=S.list.length; bell.classList.toggle('on',k>0); bell.textContent='⚡ Missed a popup? '+k+' call'+(k===1?'':'s')+' today';
     L.innerHTML=`<div class="hd">⚡ Today's day-trade signals <button type="button" title="Close">✕</button></div><table><tr><th>#</th><th>Time</th><th>Trigger</th><th>Stock</th><th>Side</th><th>Entry</th><th>Exit / SL</th><th>T1</th><th>T2</th><th>R:R</th></tr>${S.list.map((x,j)=>`<tr><td>${S.list.length-j}</td><td>${tm(x.t)}</td><td style="font-family:Inter,Arial">${(x.src||[]).map(k=>(KC[k]||[0,k])[1]).join(' + ')}</td><td><b>${esc(x.s)}</b></td><td class="${x.side[0]}">${x.side}</td><td>${fx(x.en)}</td><td>${fx(x.sl)}</td><td>${fx(x.t1)}</td><td>${fx(x.t2)}</td><td>${x.rr}</td></tr>`).join('')}</table><div style="color:#9fb0c6;margin-top:6px">Calls from the Index movers readings 1–4 (sector money flow → leaders / laggards, heavyweights driving the Nifty, quality bounce) as they appear, 09:25–14:45 IST. All are tracked in the 📒 HNT tracker on the Watchlist page. Rule-based ideas, not personal advice; exit day trades by 15:15.</div>`;
     L.querySelector('button').onclick=()=>L.classList.remove('on'); }
   bell.onclick=()=>{ paintBell(); L.classList.toggle('on'); };
+  // every signal window (call cards and the day's list) can be dragged by its title bar
+  (function(){ let D=null; const st=document.createElement('style'); st.textContent='.jcs .h,#jcSigL .hd{cursor:move;touch-action:none;user-select:none}'; document.head.appendChild(st);
+    document.addEventListener('pointerdown',e=>{ const h=e.target.closest('.jcs .h,#jcSigL .hd'); if(!h||e.target.closest('button,a')||e.button>0) return; const el=h.closest('.jcs,#jcSigL');
+      D={el,x:e.clientX,y:e.clientY,ox:+(el.dataset.dx||0),oy:+(el.dataset.dy||0)}; e.preventDefault(); });
+    document.addEventListener('pointermove',e=>{ if(!D) return; const dx=D.ox+e.clientX-D.x, dy=D.oy+e.clientY-D.y; D.el.dataset.dx=dx; D.el.dataset.dy=dy; D.el.style.translate=dx+'px '+dy+'px'; });
+    document.addEventListener('pointerup',()=>D=null); })();
   // a new day starts clean
   try{ Object.keys(localStorage).forEach(k=>{ if(/^jc_sig_(shown_)?\d{4}-/.test(k)&&k.indexOf(day())<0) localStorage.removeItem(k); }); }catch(e){}
   setTimeout(()=>{ const S=ld(SK(),{list:[]}); S.list.forEach(x=>{ if(Date.now()-x.t>=20*60000) shown.add(x.k); }); showNew(S); paintBell(S); },1500);
