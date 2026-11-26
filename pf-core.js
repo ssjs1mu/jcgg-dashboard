@@ -44,24 +44,29 @@ function addTrades(name,at,rows){ const t=tb(), cs=[...new Set(rows.map(x=>x.c))
   t.trades=t.trades.filter(x=>!(rg[x.c]&&(!x.man||snap[x.c])&&x.d>=rg[x.c][0]&&x.d<=rg[x.c][1]&&sameEx(x))).concat(rows).sort((a,b)=>a.c.localeCompare(b.c)||a.d.localeCompare(b.d));
   t.files=t.files.filter(f=>!(f.name===name&&f.clients.join()===cs.join())).concat([{name,at,clients:cs,n:rows.length,from:Object.values(rg).map(g=>g[0]).sort()[0],to:Object.values(rg).map(g=>g[1]).sort().slice(-1)[0]}]); LS.set('jc_pf_tb',t); return cs; }
 function removeTrades(c){ const t=tb(); syncMark('trade',c==null?[...new Set(t.trades.map(x=>x.c))]:[c]); if(c==null){ t.trades=[]; t.files=[]; } else { t.trades=t.trades.filter(x=>x.c!==c); t.files=t.files.map(f=>Object.assign({},f,{clients:f.clients.filter(x=>x!==c)})).filter(f=>f.clients.length); } LS.set('jc_pf_tb',t); }
-async function loadTrades(base){ stateSync().catch(()=>0); /* Drive sync runs in the background - pages refresh on the 'pf-drive' event */ const up=tb(); try{ await isinMap(); }catch(e){}
-  const all=withOpening(up.trades), no=all.length-up.trades.length, nc=[...new Set(all.filter(x=>x.tag==='DPO').map(x=>x.c))].length, dpn=nc?' + '+nc+' DP-only client'+(nc>1?'s':'')+' (start position from the DP statement)':'';
-  if(up.trades.length){ const cs=[...new Set(up.trades.map(x=>x.c))]; return {trades:all,src:'uploaded trade books - '+cs.length+' client'+(cs.length>1?'s':'')+', '+up.trades.length+' fills'+dpn,up:true}; }
-  if(no) return {trades:all,src:'no trades uploaded'+dpn,up:false};
-  return {trades:[],src:'no trades yet - upload a trade book or add trades',up:false}; }
-/* DP-only clients: a client with a DP statement but no trades at all gets one start position per scrip so the Portfolio, daily prices and the
-   report can track it. Start = the DP statement (its date and rate) unless the real cost / date is entered (jc_pf_dpcost), then that is used.
-   Tag DPO: a buy with no brokerage or charges, no id (cannot be edited as a trade - the cost is entered in the DP-only panel). */
+async function loadTrades(base){ stateSync().catch(()=>0); /* Drive sync runs in the background - pages refresh on the 'pf-drive' event */ const up=tb(); try{ await isinMap(); }catch(e){} try{ await corpActs(); }catch(e){}
+  const op=dpOpenRows(up.trades).map(openTrade), nc=[...new Set(op.map(x=>x.c))].length, dpn=op.length?' + '+op.length+' DP holding'+(op.length>1?'s':'')+' not in the trade book ('+nc+' client'+(nc>1?'s':'')+', start position from the DP statement)':'';
+  if(up.trades.length){ const cs=[...new Set(up.trades.map(x=>x.c))]; return {trades:up.trades,open:op,src:'uploaded trade books - '+cs.length+' client'+(cs.length>1?'s':'')+', '+up.trades.length+' fills'+dpn,up:true}; }
+  if(op.length) return {trades:[],open:op,src:'no trades uploaded'+dpn,up:false};
+  return {trades:[],open:[],src:'no trades yet - upload a trade book or add trades',up:false}; }
+/* DP holdings not in the trade book (client with no trades, a scrip bought elsewhere / before the trade files, a suspended stock): the part
+   of the DP quantity the trade book does not explain gets one start position per scrip so the Portfolio, daily prices and the report can
+   track it. Start = the DP statement (its date and rate) unless the real cost / date is entered (jc_pf_dpcost), then that is used.
+   Tag DPO: a buy with no brokerage or charges and no holding interest, no id (cannot be edited as a trade - the cost is entered in the
+   DP panel). Kept out of the trade book, tally and reconciliations; they are added only to the holdings and totals. */
 const dpCost=()=>LS.get('jc_pf_dpcost',{})||{};
 function setDpCost(c,sym,o){ const D=dpCost(); D[c]=D[c]||{}; if(!o||(!(+o.r>0)&&!o.d)) delete D[c][sym]; else D[c][sym]={r:+o.r>0?+o.r:null,d:o.d||null}; if(!Object.keys(D[c]).length) delete D[c]; LS.set('jc_pf_dpcost',D); }
-function dpOnly(trades){ const D=dp(), have=new Set((trades||[]).map(t=>t.c)); return Object.keys(D.H||{}).filter(c=>!have.has(c)).sort(); }
-function dpOpenRows(trades){ const D=dp(), CO=dpCost(), out=[];
-  dpOnly(trades).forEach(c=>{ const M=(D.M||{})[c]||{}, g={};
-    (D.H[c]||[]).forEach(x=>{ const k=dpKey(x)||x.isin||''; if(!k||!(+x.q>0)) return; const o=g[k]=g[k]||{sym:k,q:0,rate:0}; o.q+=+x.q; if(!o.rate&&+x.rate>0) o.rate=+x.rate; });
-    Object.values(g).forEach(o=>{ const e=(CO[c]||{})[o.sym]||{}, d=e.d||M.asOf||M.rateDate||todayS(), r=e.r||o.rate; if(!(r>0)) return;
-      out.push({c,sym:o.sym,q:o.q,d,r,own:!!(e.r||e.d),dpRate:o.rate,dpDate:M.asOf||M.rateDate||'',tag:'DPO',src:'dp'}); }); });
+function dpOpenRows(trades){ const D=dp(), CO=dpCost(), out=[]; if(!Object.keys(D.H||{}).length) return out;
+  let hold=[]; try{ hold=compute(caAdjust(trades||[]),stat(),rateOfFrom(rates())).hold; }catch(e){}
+  const bk={}; hold.forEach(h=>{ const k=h.c+'|'+canonSym(h.sym); bk[k]=(bk[k]||0)+h.q; });
+  Object.keys(D.H).sort().forEach(c=>{ const M=(D.M||{})[c]||{}, g={};
+    (D.H[c]||[]).forEach(x=>{ const k=canonSym(dpKey(x)||x.isin||''); if(!k||!(+x.q>0)) return; const o=g[k]=g[k]||{sym:k,q:0,rate:0}; o.q+=+x.q; if(!o.rate&&+x.rate>0) o.rate=+x.rate; });
+    Object.values(g).forEach(o=>{ const have=bk[c+'|'+o.sym]||0, gap=Math.round((o.q-have)*1e4)/1e4; if(!(gap>0.0001)) return;
+      const e=(CO[c]||{})[o.sym]||{}, d=e.d||M.asOf||M.rateDate||todayS(), r=e.r||o.rate; if(!(r>0)) return;
+      out.push({c,sym:o.sym,q:gap,dpQ:o.q,have,d,r,own:!!(e.r||e.d),dpRate:o.rate,dpDate:M.asOf||M.rateDate||''}); }); });
   return out; }
-const withOpening=trades=>(trades||[]).concat(dpOpenRows(trades).map(x=>({d:x.d,c:x.c,sym:x.sym,side:'B',q:x.q,r:x.r,tag:'DPO',src:'dp'})));
+const openTrade=x=>({d:x.d,c:x.c,sym:x.sym,side:'B',q:x.q,r:x.r,tag:'DPO',src:'dp'});
+const withOpening=trades=>(trades||[]).concat(dpOpenRows(trades).map(openTrade));
 /* family / referral label per client (jc_pf_grp {CODE:{fam,ref}}) - saved with the portfolio to Drive like every jc_pf_ key */
 const grp=()=>LS.get('jc_pf_grp',{})||{};
 function setGrp(c,fam,ref){ const G=grp(); fam=String(fam||'').trim(); ref=String(ref||'').trim(); if(!fam&&!ref) delete G[c]; else G[c]={fam,ref}; LS.set('jc_pf_grp',G); }
@@ -683,7 +688,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-26o';
+const BUILD='2026-11-26p';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -992,7 +997,7 @@ function gapHints(gap,rc,rate,ST){ ST=ST||stat(); if(!rc) return []; const H=HIS
    ledger in debit (Dr) -> funded share = min(1, debit / cost of open holdings); ledger in credit or nil -> own money, no holding
    interest (the holding is judged against the return benchmark instead, STAT.hurdle % p.a.); no ledger uploaded -> assumed funded. */
 function fundAdj(E){ const by={}; E.hold.forEach(h=>{ (by[h.c]=by[h.c]||[]).push(h); }); E.fund={};
-  Object.keys(by).forEach(c=>{ const H=by[c], cost=H.reduce((a,h)=>a+h.q*h.cost,0), bal=ledBal(c), f=bal==null?1:bal<=0?0:Math.min(1,bal/(cost||1));
+  Object.keys(by).forEach(c=>{ const H=by[c], cost=H.filter(h=>h.tag!=='DPO').reduce((a,h)=>a+h.q*h.cost,0), bal=ledBal(c), f=bal==null?1:bal<=0?0:Math.min(1,bal/(cost||1));
     H.forEach(h=>{ h.hcFull=h.hc; h.hc=h.hc*f; h.fund=f; }); E.fund[c]={f,bal,cost,src:bal==null?'no ledger - assumed funded':bal<=0?'ledger in credit - own funds':f<1?'ledger debit covers '+Math.round(f*100)+'% of holdings':'ledger debit covers all holdings'}; });
   return E; }
 const hurdleOf=(days,ST)=>((ST||stat()).hurdle||0)*Math.max(days,1)/365;   /* benchmark % for the days held */
@@ -1086,5 +1091,27 @@ const TPL={
 function template(t){ const b=new Blob([TPL[t].join('\n')+'\n'],{type:'text/csv'}), a=document.createElement('a'); a.href=URL.createObjectURL(b);
   a.download={trade:'Trade book template.csv',ledger:'Ledger template.csv',dp:'DP holdings template.csv'}[t]; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500); }
 (function verCheck(){ setTimeout(async()=>{ try{ const v=await fetch('version.json?x='+Date.now(),{cache:'no-store'}).then(r=>r.json()); if(v.build&&v.build>BUILD&&!document.getElementById('pfNew')){ const d=document.createElement('div'); d.id='pfNew'; d.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;background:#3f3c00;color:#fff;padding:10px 16px;border-radius:10px;font:800 13px Inter,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer'; d.textContent='⟳ New version of the app is ready - tap to reload'; d.onclick=()=>location.reload(); document.body.appendChild(d); } }catch(e){} },2500); })();
-window.PF={dpCost,setDpCost,dpOnly,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+
+/* Watchlist daily call - the same rules as watchlist.html analyse() (TF Daily): EMA 9/21 and slope, price vs EMA 9 and the 20-day average, RSI 14,
+   volume of the last 3 bars vs the 20 before, fresh 9/21 cross; score -100..100, BUY >= 45, SELL <= -45, else AVOID; levels from ATR 14.
+   Same code as the client report's copy (parameters from jc-params when loaded). Bars: [{d,c,o,h,l,v}] oldest first, p = live price. */
+const wlSig=(()=>{ const q=(k,d)=>window.JCP&&JCP.P&&JCP.P[k]!=null?JCP.P[k]:d;
+const ema=(a,n)=>{ const out=Array(a.length).fill(null); if(a.length<n) return out; const k=2/(n+1); let e=a.slice(0,n).reduce((x,y)=>x+y,0)/n; out[n-1]=e; for(let i=n;i<a.length;i++){ e=a[i]*k+e*(1-k); out[i]=e; } return out; };
+const tick=x=>Math.round(x*20)/20;
+function wlSig(S0,p){ const S=S0.slice(-260).map(x=>Object.assign({},x)); if(S.length<25) return null; if(p){ const z=S[S.length-1]; z.c=p; if(z.h!=null) z.h=Math.max(z.h,p); if(z.l!=null) z.l=Math.min(z.l,p); }
+  const c=S.map(x=>x.c), n=c.length, L=n-1, ltp=c[L], e9=ema(c,q('WL_EMA_FAST',9)), e21=ema(c,q('WL_EMA_SLOW',21)), NA=q('IND_ATR_PERIOD',14), NR=q('IND_RSI_PERIOD',14);
+  let A=null; for(let i=1;i<n;i++){ const h=S[i].h!=null?S[i].h:c[i], l=S[i].l!=null?S[i].l:c[i], tr=Math.max(h-l,Math.abs(h-c[i-1]),Math.abs(l-c[i-1])); A=A==null?tr:(A*(NA-1)+tr)/NA; }
+  let g=0,ls=0; for(let i=1;i<=NR;i++){ const d=c[i]-c[i-1]; if(d>0) g+=d; else ls-=d; } g/=NR; ls/=NR; for(let i=NR+1;i<n;i++){ const d=c[i]-c[i-1]; g=(g*(NR-1)+Math.max(d,0))/NR; ls=(ls*(NR-1)+Math.max(-d,0))/NR; } const R14=ls===0?100:100-100/(1+g/ls);
+  const ref=c.slice(-20).reduce((a,x)=>a+x,0)/Math.min(20,n), V=S.map(x=>x.v), hasV=V.slice(-23).every(v=>v!=null&&v>0);
+  const av=a=>a.reduce((x,y)=>x+y,0)/Math.max(1,a.length), vr=hasV?av(V.slice(-3))/(av(V.slice(-23,-3))||1):null, mv=c[L]-c[Math.max(0,L-3)];
+  let cross=null; for(let i=L;i>21&&i>L-30;i--){ if(e9[i]==null||e9[i-1]==null||e21[i-1]==null) break; if((e9[i]>e21[i])!==(e9[i-1]>e21[i-1])){ cross=L-i; break; } }
+  const wT=q('WL_W_TREND',25), wS=q('WL_W_SLOPE',10), wE=q('WL_W_LTP_EMA',10), wR=q('WL_W_REF',15), wI=q('WL_W_RSI',10), wX=q('WL_W_RSI_X',8), wV=q('WL_W_VOL',15), wC=q('WL_W_CROSS',15);
+  const bull=e9[L]>e21[L]; let sc=bull?wT:-wT; const sl=e21[L]-e21[Math.max(0,L-3)]; sc+=sl>0?wS:sl<0?-wS:0; sc+=ltp>e9[L]?wE:ltp<e9[L]?-wE:0; sc+=ltp>ref?wR:ltp<ref?-wR:0;
+  sc+=R14>q('RSI_BULL',55)?wI:R14<q('RSI_BEAR',45)?-wI:0; if(R14>q('WL_RSI_HOT',75)) sc-=wX; if(R14<q('WL_RSI_COLD',25)) sc+=wX; if(vr!=null&&vr>q('WL_VOL_HI',1.15)) sc+=mv>0?wV:mv<0?-wV:0; if(cross!=null&&cross<=q('WL_CROSS_BARS',3)) sc+=bull?wC:-wC; if(vr!=null&&vr<q('WL_VOL_LO',0.85)) sc*=q('WL_VOL_DAMP',0.8);
+  sc=Math.max(-100,Math.min(100,Math.round(sc))); const cs=q('WL_CALL_SCORE',45), call=sc>=cs?'BUY':sc<=-cs?'SELL':'AVOID';
+  let lv=null; if(call!=='AVOID'&&A){ const dir=call==='BUY'?1:-1, dist=Math.abs(ltp-e21[L])+q('WL_RISK_EXTRA_ATR',0.25)*A, risk=Math.min(q('WL_SL_MAX_ATR',3)*A,Math.max(q('WL_SL_MIN_ATR',1)*A,dist)), en=tick(ltp); lv={en,sl:tick(en-dir*risk),t1:tick(en+dir*risk),t2:tick(en+dir*2*risk),t3:tick(en+dir*3*risk)}; }
+  return {score:sc,conv:Math.abs(sc),call,lv,bull,rsi:R14,vr,e21:e21[L],atr:A}; }
+
+return wlSig; })();
+window.PF={wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
