@@ -64,7 +64,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <nav class="nav"><a class="sw" href="./">MACRO DASHBOARD</a><a class="sw" href="indices.html">INDEX MOVERS</a><a class="sw" href="watchlist.html">WATCHLIST</a><a class="sw" href="plan.html">TOMORROW'S CALLS</a><a class="sw" href="calculator.html">PIVOT CALCULATOR</a><a class="sw" href="review.html">TRADE AUDIT</a><a class="sw on" href="portfolio.html">PORTFOLIO</a><a class="sw" href="reports.html">REPORTS</a></nav></div>
 <div class="wrap">
  <div class="bar"><h2>💼 Portfolio</h2>
-  <label class="mu" style="font-weight:800">Client <select id="cl"></select></label>
+  <label class="mu" style="font-weight:800">Client <select id="cl"></select></label> <label class="mu" style="font-weight:800" title="Show only the clients marked with this family (⚙ below: Family &amp; Referral)">Family <select id="clF"></select></label> <label class="mu" style="font-weight:800" title="Show only the clients referred by this person (⚙ below: Family &amp; Referral)">Referral <select id="clR"></select></label>
   <span class="fl"><input type="text" id="sy" list="syl" placeholder="🔍 Script" style="width:130px"><datalist id="syl"></datalist>
   <select id="mf"><option value="all">All Holdings</option><option value="T">Trading</option><option value="I">Investment</option><option value="trig">With Alerts</option></select></span>
   <div class="dd" id="ddU"><button class="btn" title="Upload a file - saved here and to Google Drive (client codes only)">⬆ Upload</button><div class="ddm">
@@ -90,10 +90,11 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <div class="kpis" id="kpis"></div>
  <div id="body"></div>
  <details class="pan" id="ups"><summary>🗂 Uploaded Trade Books &amp; Ledgers (Client-Wise) - Remove Here</summary><div class="in" id="upIn"></div></details>
+ <details class="pan" id="grpP"><summary>👪 Family &amp; Referral · DP-Only Clients - Start Position &amp; Cost</summary><div class="in" id="grpIn"></div></details>
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=69"></script>
+<script src="pf-core.js?v=70"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -129,9 +130,10 @@ let SRT={pf:LS.get('jc_pf_sort','def'), dp:LS.get('jc_dp_sort','az')};
 const srtBy=(k,sym,val,ext)=>(a,b)=>k==='az'?sym(a).localeCompare(sym(b)):k==='za'?sym(b).localeCompare(sym(a)):k==='val'?val(b)-val(a):ext?ext(a,b):0;
 let ISM={i:{},n:{},b:{}}, QB={}, VM={}, CA0=null;
 const r0val=g=>Q[g.sym]?g.q*Q[g.sym].p:g.cost;
-let TR=null, TRsrc='', Q={}, Qat=0, CL=LS.get('jc_pf_client','ALL');
+let TR=null, TRsrc='', Q={}, Qat=0, CL=LS.get('jc_pf_client','ALL'), GF=LS.get('jc_pf_gf',''), GR=LS.get('jc_pf_gr',''), CLIST=[];
+const okG=c=>PF.grpOk(c,GF,GR);   /* family / referral filter: the Portfolio, DP holdings, tabs and reports see only these clients */
 const hasLed=()=>{ const L=PF.led(); return Object.keys(L.E).length+Object.keys(L.bal).length>0; };
-async function loadTrades(){ const r=await PF.loadTrades(); TR=r.trades; TRsrc=esc(r.src); }
+async function loadTrades(){ const r=await PF.loadTrades(); TR=(GF||GR)?r.trades.filter(t=>okG(t.c)):r.trades; TRsrc=esc(r.src)+((GF||GR)?' · filtered: '+esc([GF&&'family '+GF,GR&&'referral '+GR].filter(Boolean).join(', ')):''); }
 
 /* ---------- engine (shared: pf-core.js) ---------- */
 function compute(){ const E=PF.fundAdj(PF.compute(PF.caAdjust(TR),STAT,rateOf)); E.lr=PF.recovery(E); return E; }
@@ -176,9 +178,13 @@ function render(){
   if(TR&&TR.length){ const BL=PF.brkFromLedgers(TR); let ch=false;   /* the client's rate in ⚙ = the rate read from its ledger, unless typed by hand */
     Object.keys(BL).forEach(c=>{ const X=RATES[c]||{}, L=BL[c]; if(L.bd==null||(X.hist&&X.hist.length)) return; if(X.src==='ledger'||!(X.bd>0)){ const n=Object.assign({},X,{bd:L.bd,bi:L.bi!=null?L.bi:X.bi,bmin:L.bmin||0,src:'ledger'}); if(JSON.stringify(n)!==JSON.stringify(X)){ RATES[c]=n; ch=true; } } });
     if(ch){ LS.set('jc_pf_rates',RATES); $('ratesIn').dataset.n=''; } }
-  const E=compute(), LG=PF.led(), clients=[...new Set([...TR.map(t=>t.c),...Object.keys(LG.E),...Object.keys(LG.bal),...Object.keys(PF.dp().H)])].sort();
+  const E=compute(), LG=PF.led(), clients=[...new Set([...TR.map(t=>t.c),...Object.keys(LG.E),...Object.keys(LG.bal),...Object.keys(PF.dp().H)])].filter(okG).sort(); CLIST=clients;
   if(CL!=='ALL'&&!clients.includes(CL)) CL='ALL';
-  $('cl').innerHTML='<option value="ALL">All Clients ('+clients.length+')</option>'+clients.map(c=>`<option${c===CL?' selected':''}>${esc(c)}</option>`).join('');
+  { const all=[...new Set([...(PF.tb().trades||[]).map(t=>t.c),...Object.keys(PF.led().E),...Object.keys(PF.led().bal),...Object.keys(PF.dp().H)])], fl=PF.grpLabels('fam'), rl=PF.grpLabels('ref');
+    if(GF&&!fl.includes(GF)){ GF=''; LS.set('jc_pf_gf',''); } if(GR&&!rl.includes(GR)){ GR=''; LS.set('jc_pf_gr',''); }
+    $('clF').innerHTML='<option value="">All Families</option>'+fl.map(x=>`<option${x===GF?' selected':''}>${esc(x)}</option>`).join(''); $('clR').innerHTML='<option value="">All Referrals</option>'+rl.map(x=>`<option${x===GR?' selected':''}>${esc(x)}</option>`).join('');
+    $('clF').parentNode.style.display=fl.length?'':'none'; $('clR').parentNode.style.display=rl.length?'':'none'; }
+  $('cl').innerHTML='<option value="ALL">'+((GF||GR)?'All In '+esc([GF,GR].filter(Boolean).join(' · ')):'All Clients')+' ('+clients.length+')</option>'+clients.map(c=>`<option${c===CL?' selected':''}>${esc(c)}</option>`).join('');
   const symOK=s=>!SYF||s.toUpperCase().includes(SYF.toUpperCase());
   const inC=x=>(CL==='ALL'||x.c===CL)&&symOK(x.sym);
   const allSyms=[...new Set([...TR.map(t=>t.sym),...Object.values(PF.dp().H).flat().map(x=>x.sym)])].sort(); $('syl').innerHTML=allSyms.map(s=>'<option value="'+esc(s)+'">').join('');
@@ -187,7 +193,7 @@ function render(){
   const sum=c=>{ const f=x=>(c==='ALL'||x.c===c)&&symOK(x.sym), h=E.hold.filter(f), r=E.real.filter(f), it=E.intra.filter(f), pp=E.parts.filter(f);
     const inv=h.reduce((a,x)=>a+x.q*x.cost,0), val=h.reduce((a,x)=>a+(Q[x.sym]?x.q*Q[x.sym].p:x.q*x.cost),0), priced=h.every(x=>Q[x.sym]);
     const unr=val-inv, rel=r.reduce((a,x)=>a+x.pl,0), ipl=it.reduce((a,x)=>a+x.pl,0), hcOpen=h.reduce((a,x)=>a+x.hc,0), hc=hcOpen+r.reduce((a,x)=>a+x.hc,0);
-    const bought=pp.filter(x=>x.side!=='S').reduce((a,x)=>a+x.net,0), sold=pp.filter(x=>x.side==='S').reduce((a,x)=>a+x.net,0), chg=pp.reduce((a,x)=>a+x.chg,0);
+    const bought=pp.filter(x=>x.side!=='S'&&x.tag!=='DPO').reduce((a,x)=>a+x.net,0), sold=pp.filter(x=>x.side==='S').reduce((a,x)=>a+x.net,0), chg=pp.reduce((a,x)=>a+x.chg,0);
     let led=null, ledSrc='';
     if(hasLed()&&!SYF){ if(c==='ALL'){ const cs=[...new Set(TR.map(t=>t.c))]; const v=cs.map(ledgerBal).filter(v=>v!=null); if(v.length){ led=v.reduce((a,b)=>a+b,0); ledSrc='ledger file ('+v.length+' of '+cs.length+' clients)'; } }
       else { led=ledgerBal(c); if(led!=null) ledSrc='ledger file'; } }
@@ -711,11 +717,30 @@ async function clSync(force){ if(CLW.busy||!localStorage.getItem('jc_admin_key')
   }catch(e){ if(force) alertBox('Client watchlist sync failed: '+e.message,true); else console.warn('clSync',e); } finally{ CLW.busy=0; } }
 let clT=0; const clSoon=()=>{ clearTimeout(clT); clT=setTimeout(()=>clSync(false),5000); };
 function alertBox(t,bad){ const d=document.createElement('div'); d.className='warn'; d.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:999;'+(bad?'background:#FBE3E1;border-color:#E29A93;color:#8a1010':'background:#E3F1DF;border-color:#8DC487;color:#1C5C0D'); d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
+
+/* ---------- family / referral labels and DP-only start positions ---------- */
+function grpPanel(){ const all=[...new Set([...(PF.tb().trades||[]).map(t=>t.c),...Object.keys(PF.led().E),...Object.keys(PF.led().bal),...Object.keys(PF.dp().H)])].sort(), G=PF.grp(), op=PF.dpOpenRows(PF.tb().trades);
+  const dl=(id,k)=>`<datalist id="${id}">${PF.grpLabels(k).map(x=>'<option value="'+esc(x)+'">').join('')}</datalist>`;
+  let h=dl('famL','fam')+dl('refL','ref')+`<div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start"><div><b>Family &amp; Referral</b><table class="x" style="width:auto;margin-top:4px"><thead><tr><th class="l">Client Code</th><th class="l">Family</th><th class="l">Referred By</th></tr></thead><tbody>`+
+   (all.map(c=>{ const g=G[c]||{}; return `<tr><td class="l"><b>${esc(c)}</b></td><td class="l"><input type="text" list="famL" data-gc="${esc(c)}" data-gf="fam" value="${esc(g.fam||'')}" placeholder="Family" style="width:150px"></td><td class="l"><input type="text" list="refL" data-gc="${esc(c)}" data-gf="ref" value="${esc(g.ref||'')}" placeholder="Referred by" style="width:150px"></td></tr>`; }).join('')||'<tr><td class="l mu" colspan="3">No clients yet</td></tr>')+
+   `</tbody></table><div class="note">Type a name (or pick one already used). The Family and Referral filters at the top then show only those clients - Portfolio, DP holdings, tabs and Reports. Saved with the portfolio to Drive.</div></div>`;
+  if(op.length) h+=`<div><b>DP-Only Clients - Start Position &amp; Cost</b><table class="x" style="width:auto;margin-top:4px"><thead><tr><th class="l">Client Code</th><th class="l">Scrip</th><th>Qty (DP)</th><th class="l">Start Date</th><th>Start Rate / Cost ₹</th><th class="l">Source</th><th></th></tr></thead><tbody>`+
+   op.map(o=>`<tr><td class="l"><b>${esc(o.c)}</b></td><td class="l">${esc(o.sym)}</td><td>${fx(o.q,0)}</td><td class="l"><input type="date" data-oc="${esc(o.c)}" data-os="${esc(o.sym)}" data-of="d" value="${o.d}" style="width:128px"></td><td><input type="number" step="0.01" min="0" data-oc="${esc(o.c)}" data-os="${esc(o.sym)}" data-of="r" value="${o.r}" style="width:90px"></td><td class="l ${o.own?'up':'mu'}">${o.own?'✎ entered by you':'DP statement'+(o.dpDate?' · '+dmy(o.dpDate):'')}</td><td>${o.own?`<button class="btn" data-ox="${esc(o.c)}|${esc(o.sym)}" title="Go back to the DP statement's date and rate">✕ Use DP</button>`:''}</td></tr>`).join('')+
+   `</tbody></table><div class="note">These clients have a DP statement but no trades, so each scrip starts from the DP statement (date and rate) and is tracked daily at market price - P&amp;L is <b>since that date</b>, not true profit. Enter the real average cost (and buy date, if known) to get the real P&amp;L and holding interest. Once trades are uploaded for the client, this list is not used.</div></div>`;
+  $('grpIn').innerHTML=h+'</div>';
+  $('grpIn').querySelectorAll('[data-gc]').forEach(i=>i.onchange=()=>{ const c=i.dataset.gc, g=PF.grp()[c]||{}, v=i.value.trim(); PF.setGrp(c,i.dataset.gf==='fam'?v:g.fam,i.dataset.gf==='ref'?v:g.ref); render(); grpPanel(); });
+  const opSave=async(c,s)=>{ const q=k=>$('grpIn').querySelector(`[data-oc="${c}"][data-os="${s}"][data-of="${k}"]`), r=+q('r').value, d=q('d').value; const o=PF.dpOpenRows(PF.tb().trades).find(x=>x.c===c&&x.sym===s)||{};
+    PF.setDpCost(c,s,{r:r>0&&Math.abs(r-(o.dpRate||0))>0.0001?r:(r>0&&d&&d!==o.dpDate?r:null),d:d&&d!==o.dpDate?d:null}); await loadTrades(); render(); prices(); history(); grpPanel(); };
+  $('grpIn').querySelectorAll('[data-oc]').forEach(i=>i.onchange=()=>opSave(i.dataset.oc,i.dataset.os));
+  $('grpIn').querySelectorAll('[data-ox]').forEach(b=>b.onclick=async()=>{ const [c,s]=b.dataset.ox.split('|'); PF.setDpCost(c,s,null); await loadTrades(); render(); prices(); history(); grpPanel(); }); }
+$('grpP').addEventListener('toggle',()=>{ if($('grpP').open) grpPanel(); });
+const grpChg=async()=>{ if(CL!=='ALL'&&!okG(CL)) CL='ALL'; LS.set('jc_pf_client',CL); LS.set('jc_pf_gf',GF); LS.set('jc_pf_gr',GR); await loadTrades(); render(); prices(); history(); };
+$('clF').onchange=()=>{ GF=$('clF').value; grpChg(); }; $('clR').onchange=()=>{ GR=$('clR').value; grpChg(); };
 $('cl').onchange=()=>{ CL=$('cl').value; LS.set('jc_pf_client',CL);
   if(SYF&&CL!=='ALL'){ const u=SYF.toUpperCase(), has=(TR||[]).some(t=>t.c===CL&&t.sym.toUpperCase().includes(u))||(PF.dp().H[CL]||[]).some(x=>String(x.sym||'').toUpperCase().includes(u)); if(!has){ SYF=''; $('sy').value=''; LS.set('jc_pf_sym',''); } }   /* a filter the new client has nothing for would show an empty page */
   render(); };
 $('rf').onclick=()=>prices(true);
-function openRep(lg){ closeDd(); if(CL==='ALL'){ alertBox('Choose a client first (Client dropdown), then Reports → Client Report.',true); return; } try{ localStorage.setItem('jc_rep_lang',lg); }catch(e){} window.open('client-report.html?c='+encodeURIComponent(CL)+'&lang='+lg+'&print=1','_blank','noopener'); }
+function openRep(lg){ closeDd(); let cs=CL; if(CL==='ALL'){ if(!(GF||GR)||!CLIST.length){ alertBox('Choose a client first (Client dropdown) - or a Family / Referral - then Reports → Client Report.',true); return; } cs=CLIST.join(','); } try{ localStorage.setItem('jc_rep_lang',lg); }catch(e){} window.open('client-report.html?c='+encodeURIComponent(cs)+'&lang='+lg+'&print=1','_blank','noopener'); }
 $('crep').onclick=e=>{ e.stopPropagation(); $('crSub').classList.toggle('op'); };
 document.querySelectorAll('#crSub [data-lg]').forEach(b=>b.onclick=()=>openRep(b.dataset.lg));
 function dchip(){ const d=PF.LS.get('jc_pf_dstat',null), b=$('dchip'), hk=!!localStorage.getItem('jc_admin_key'); if(!b) return;
