@@ -154,7 +154,8 @@ function paint(){
     if(document.activeElement!==sel){ sel.innerHTML='<optgroup label="Indices">'+ord.map(n=>'<option value="'+n+'">'+n+'  '+(AP[n].pct>=0?'▲ ':'▼ ')+sg(AP[n].pct)+'%'+(AP[n].real?'':' ≈')+'</option>').join('')+'</optgroup>'
       +(sord.length?'<optgroup label="Sector watchlists (Nifty 500 stocks by sector)">'+sord.map(n=>'<option value="'+n+'">'+n+' ('+APS[n].n+')  '+(APS[n].pct>=0?'▲ ':'▼ ')+sg(APS[n].pct)+'% ≈</option>').join('')+'</optgroup>':''); sel.value=nm; }
     const isS=!!SECT[nm], D=isS?APS[nm]:AP[nm], s=D.rows.slice().sort((a,b)=>b.pct-a.pct), key=i+nm, up=D.pct>=0;
-    el.querySelector('.pb').innerHTML='<div class="sec">▲ Top 5 gainers</div><table>'+HEAD+s.slice(0,5).map(r=>rowH(r,0,key+'g')).join('')+'</table><div class="sec">▼ Top 5 decliners</div><table>'+HEAD+s.slice(-5).reverse().map(r=>rowH(r,0,key+'d')).join('')+'</table>'
+    const G=isS?s.filter(r=>r.pct>0).slice(0,5):s.slice(0,5), Dn=isS?s.filter(r=>r.pct<0).slice(-5).reverse():s.slice(-5).reverse(), none='<tr><td colspan="6" style="color:var(--mu);text-align:center">none today</td></tr>';
+    el.querySelector('.pb').innerHTML='<div class="sec">▲ Top 5 gainers</div><table>'+HEAD+(G.map(r=>rowH(r,0,key+'g')).join('')||none)+'</table><div class="sec">▼ Top 5 decliners</div><table>'+HEAD+(Dn.map(r=>rowH(r,0,key+'d')).join('')||none)+'</table>'
       +'<div class="tile '+(up?'up':'dn')+'"><div>'+(D.lp?f2(D.lp):'≈ calc')+'<small>'+(D.real?'index':'weighted')+'</small></div><div>'+(D.move!=null?sg(D.move):'–')+'<small>points</small></div><div>'+sg(D.pct)+'%<small>'+D.rows.filter(r=>r.pct>0).length+'▲ '+D.rows.filter(r=>r.pct<0).length+'▼</small></div></div>'
       +(isS?'<div class="sec">All '+D.rows.length+' stocks in '+nm.replace(SP,'')+' · best first</div>':'')+'<div class="fx'+(isS?' fxs':'')+'"><table>'+HEAD+D.rows.slice().sort(isS?((a,b)=>b.pct-a.pct):((a,b)=>b.w-a.w)).map(r=>rowH(r,0,key+'c')).join('')+'</table></div>';
   });
