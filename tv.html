@@ -39,4 +39,5 @@ body.idle #bar{opacity:.25}
  let t=null; const wake=()=>{ document.body.classList.remove('idle'); clearTimeout(t); t=setTimeout(()=>document.body.classList.add('idle'),4000); }; ['touchstart','mousemove'].forEach(e=>addEventListener(e,wake)); wake();
  start();
 })();
-</script></body></html>
+</script><script src="signals.js?v=7"></script>
+</body></html>

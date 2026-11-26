@@ -87,7 +87,17 @@
 
   /* ---------- the popups ---------- */
   const css=document.createElement('style'); css.textContent=`
-  #jcSig{position:fixed;right:14px;bottom:70px;z-index:2147481000;display:flex;flex-direction:column-reverse;gap:8px;width:min(360px,calc(100vw - 28px));pointer-events:none;font-family:Inter,"Segoe UI",Arial,sans-serif}
+  #jcTiles{position:fixed;right:12px;bottom:60px;z-index:2147480990;width:208px;display:flex;flex-direction:column;gap:5px;font-family:Inter,"Segoe UI",Arial,sans-serif}
+  #jcTiles:empty{display:none}#jcTiles .th{display:flex;align-items:center;gap:6px;background:#1a1408;border:1px solid #e0cd96;color:#e0cd96;border-radius:9px;padding:3px 8px;font:900 11px Inter,Arial;cursor:move;touch-action:none;user-select:none}
+  #jcTiles .th span{color:#9fb0c6;font-weight:700}#jcTiles .th button{margin-left:auto;border:0;background:none;color:#9fb0c6;cursor:pointer;font-size:12px}
+  .jt{position:relative;border-radius:9px;padding:4px 8px 4px 9px;border:1.5px solid;color:#eef3fb;cursor:pointer;font:700 11px ui-monospace,Consolas,monospace;box-shadow:0 6px 16px rgba(0,0,0,.45);line-height:1.35}
+  .jt.b{background:linear-gradient(135deg,#0c3a2c,#0f1d30);border-color:#35f0a8}.jt.s{background:linear-gradient(135deg,#45122a,#0f1d30);border-color:#ff6b9d}
+  .jt b{font:900 12.5px Inter,Arial}.jt em{font:900 9.5px Inter,Arial;font-style:normal;margin-left:5px;padding:0 5px;border-radius:4px;color:#0b1220}.jt.b em{background:#35f0a8}.jt.s em{background:#ff6b9d}
+  .jt i{font-style:normal;color:#9fb0c6;margin-left:6px;font-size:10px}.jt .jx{position:absolute;top:1px;right:4px;border:0;background:none;color:#9fb0c6;cursor:pointer;font-size:11px}
+  .jt u{text-decoration:none;font-weight:900;margin-left:4px}.jt u.p{color:#35f0a8}.jt u.m{color:#ff6b9d}
+  .jt.fl{animation:jtF .8s ease-in-out 10}@keyframes jtF{50%{box-shadow:0 0 0 3px #f2c14e,0 0 18px #f2c14e;border-color:#f2c14e}}
+  @media(max-width:560px){#jcTiles{width:178px;right:6px;bottom:52px}#jcSig{right:8px}}
+  #jcSig{position:fixed;right:230px;bottom:70px;z-index:2147481000;display:flex;flex-direction:column-reverse;gap:8px;width:min(360px,calc(100vw - 28px));pointer-events:none;font-family:Inter,"Segoe UI",Arial,sans-serif}
   .jcs{pointer-events:auto;border-radius:14px;padding:10px 12px 9px;color:#eef3fb;box-shadow:0 14px 34px rgba(0,0,0,.55);border:1px solid;animation:jcsIn .6s cubic-bezier(.2,.9,.2,1);position:relative}
   .jcs.b{background:linear-gradient(145deg,#0c3a2c,#0f1d30 70%);border-color:#35f0a8}.jcs.s{background:linear-gradient(145deg,#45122a,#0f1d30 70%);border-color:#ff6b9d}
   @keyframes jcsIn{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
@@ -137,9 +147,26 @@
     let hover=false; el.onmouseenter=()=>hover=true; el.onmouseleave=()=>hover=false; setTimeout(function t(){ if(hover) setTimeout(t,5000); else kill(); },90000);
     return el; }
   function beep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=988; g.gain.value=.07; o.connect(g); g.connect(c.destination); o.start(); o.frequency.setValueAtTime(1318,c.currentTime+.12); o.stop(c.currentTime+.28); }catch(e){} }
+  /* small tiles: whichever page is opened shows today's calls of the last 60 minutes as small flashing tiles (each page keeps its own
+     "seen" list, so a call already shown in another tab still flashes here); a tile opens the full card; ✕ hides it on this page */
+  const PS=(()=>{ try{ return JSON.parse(sessionStorage.getItem('jc_sig_ps_'+day())||'{}'); }catch(e){ return {}; } })(), psv=()=>{ try{ sessionStorage.setItem('jc_sig_ps_'+day(),JSON.stringify(PS)); }catch(e){} };
+  const tray=document.createElement('div'); tray.id='jcTiles'; const tmount=()=>document.body.appendChild(tray); if(document.body) tmount(); else addEventListener('DOMContentLoaded',tmount);
+  function tileLive(x){ const C=window.CB&&window.CB.find(x.s).find(c=>c.src==='IM'&&c.side===x.side), L=C&&typeof window.ltpOf==='function'?window.ltpOf(x.s):null; if(!C||!L) return '';
+    window.CB.track(C,L); const g=window.CB.prog(C,L); return `<u class="${g.ret>=0?'p':'m'}">${(g.ret>=0?'+':'')+g.ret.toFixed(2)}%${C.hit.length?' T'+C.hit.length+'✓':''}${C.status!=='OPEN'?' '+C.status:''}</u>`; }
+  function paintTiles(S){ S=S||ld(SK(),{list:[]}); const now=Date.now(), L=S.list.filter(x=>now-x.t<60*60000&&!(PS[x.k]&&PS[x.k].x)), V=L.slice(0,6);
+    tray.innerHTML=V.length?`<div class="th">⚡ Calls <span>${L.length}${L.length>V.length?' · +'+(L.length-V.length)+' more':''}</span><button type="button" title="Hide all on this page">✕</button></div>`+V.map(x=>`<div class="jt ${x.side==='BUY'?'b':'s'}${PS[x.k]&&PS[x.k].s?'':' fl'}" data-k="${esc(x.k)}" title="Click for the full call">
+      <b>${esc(x.s)}</b><em>${x.side}</em><i>${tm(x.t)}</i><button type="button" class="jx" title="Hide">✕</button>
+      <div>E ${fx(x.en)} · SL ${fx(x.sl)}</div><div>T1 ${fx(x.t1)} · T2 ${fx(x.t2)} ${tileLive(x)}</div></div>`).join(''):'';
+    V.forEach(x=>{ PS[x.k]=Object.assign(PS[x.k]||{},{s:1}); }); psv(); }
+  tray.addEventListener('click',e=>{ const S=ld(SK(),{list:[]});
+    if(e.target.closest('.th button')){ S.list.forEach(x=>PS[x.k]=Object.assign(PS[x.k]||{},{x:1})); psv(); paintTiles(S); return; }
+    const t=e.target.closest('.jt'); if(!t) return; const x=S.list.find(y=>y.k===t.dataset.k); if(!x) return;
+    if(e.target.closest('.jx')){ PS[x.k]=Object.assign(PS[x.k]||{},{x:1}); psv(); paintTiles(S); return; }
+    box.innerHTML=''; box.appendChild(card(x)); });
+  setInterval(()=>{ if(!document.hidden) paintTiles(); },20000);
   function showNew(S){ if(!S||!S.list) return; let n=0;
-    S.list.slice().reverse().forEach(x=>{ if(shown.has(x.k)) return; shown.add(x.k); if(Date.now()-x.t<20*60000){ box.appendChild(card(x)); n++; } });
-    sv('jc_sig_shown_'+day(),[...shown]); while(box.children.length>3) box.firstChild.remove();
+    S.list.forEach(x=>{ if(!PS[x.k]&&Date.now()-x.t<60*60000) n++; shown.add(x.k); });
+    sv('jc_sig_shown_'+day(),[...shown]); paintTiles(S);
     if(n){ beep(); bell.classList.remove('nw'); void bell.offsetWidth; bell.classList.add('nw'); } paintBell(S); }
   function paintBell(S){ S=S||ld(SK(),{list:[]});
     if(window.CB) S.list.forEach(x=>{ try{ window.CB.get('IM',x.s,x.side,{en:x.en,sl:x.sl,t1:x.t1,t2:x.t2}); }catch(e){} });   /* index-mover calls join the frozen call book */ const k=S.list.length; bell.classList.toggle('on',k>0); bell.textContent='⚡ Missed a popup? '+k+' call'+(k===1?'':'s')+' today';
@@ -148,13 +175,13 @@
   bell.onclick=()=>{ paintBell(); L.classList.toggle('on'); };
   // every signal window (call cards and the day's list) can be dragged by its title bar
   (function(){ let D=null; const st=document.createElement('style'); st.textContent='.jcs .h,#jcSigL .hd{cursor:move;touch-action:none;user-select:none}'; document.head.appendChild(st);
-    document.addEventListener('pointerdown',e=>{ const h=e.target.closest('.jcs .h,#jcSigL .hd'); if(!h||e.target.closest('button,a')||e.button>0) return; const el=h.closest('.jcs,#jcSigL');
+    document.addEventListener('pointerdown',e=>{ const h=e.target.closest('.jcs .h,#jcSigL .hd,#jcTiles .th'); if(!h||e.target.closest('button,a')||e.button>0) return; const el=h.closest('.jcs,#jcSigL,#jcTiles');
       D={el,x:e.clientX,y:e.clientY,ox:+(el.dataset.dx||0),oy:+(el.dataset.dy||0)}; e.preventDefault(); });
     document.addEventListener('pointermove',e=>{ if(!D) return; const dx=D.ox+e.clientX-D.x, dy=D.oy+e.clientY-D.y; D.el.dataset.dx=dx; D.el.dataset.dy=dy; D.el.style.translate=dx+'px '+dy+'px'; });
     document.addEventListener('pointerup',()=>D=null); })();
   // a new day starts clean
   try{ Object.keys(localStorage).forEach(k=>{ if(/^jc_sig_(shown_)?\d{4}-/.test(k)&&k.indexOf(day())<0) localStorage.removeItem(k); }); }catch(e){}
-  setTimeout(()=>{ const S=ld(SK(),{list:[]}); S.list.forEach(x=>{ if(Date.now()-x.t>=20*60000) shown.add(x.k); }); showNew(S); paintBell(S); },1500);
+  setTimeout(()=>{ showNew(ld(SK(),{list:[]})); },1500);
   setTimeout(scan,IS_WL?8000:4000); setInterval(scan,IS_WL?30000:60000);
   window.JCSIG={scan,pick,im,cons,test:x=>{ const S=ld(SK(),{list:[],seen:{}}); const k='TEST'+Date.now(); S.list.unshift(Object.assign({k,t:Date.now(),s:'TESTCO',side:'BUY',en:100,sl:98.5,t1:101.5,t2:103.2,risk:1.5,room:3.2,rr:2.13,pace:2.4,ch:2.1,src:['Big Fish','Vol up breakout'],rank:1},x||{})); sv(SK(),S); showNew(S); }};
 })();

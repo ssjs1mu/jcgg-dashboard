@@ -640,7 +640,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-26e';
+const BUILD='2026-11-26f';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
