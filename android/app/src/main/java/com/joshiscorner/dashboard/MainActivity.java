@@ -12,7 +12,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.content.SharedPreferences;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -48,9 +50,12 @@ public class MainActivity extends Activity {
     static final int GOLD = 0xFFFFF1A8, BAR = 0xFF676300, MUTED = 0xFFD8D3A6;   // SSJ Finance palette (as the reports): olive bar, cream labels, light-gold active
 
     WebView web, splash, tv;
-    FrameLayout tvBox;
-    boolean tvOn = false;
-    float tvFrac = 0.34f;   // docked TV height as a share of the screen
+    FrameLayout tvBox;          // holds the TV web view (docked on phones; inside the floating window on tablets)
+    LinearLayout tvFloat;       // tablets: floating, movable mini window = drag bar + tvBox
+    boolean tvOn = false, tablet = false;
+    float tvFrac = 0.34f;       // phones: docked TV height as a share of the screen
+    float tvW = 0.5f;           // tablets: floating TV width as a share of the screen width (16:9) - about a quarter of the screen
+    FrameLayout topLayer;
     LinearLayout root;
     FrameLayout stage, fullBox;
     LinearLayout bar;
@@ -80,11 +85,26 @@ public class MainActivity extends Activity {
         setup(web, false);
         stage.addView(web, new FrameLayout.LayoutParams(-1, -1));
 
-        /* docked TV: its own panel between the page and the menu bar - pages above stay fully usable */
+        /* TV: on phones its own panel docked between the page and the menu bar; on tablets a floating mini window
+           (about a quarter of the screen) that can be dragged anywhere by its top bar - pages stay fully usable */
+        tablet = getResources().getConfiguration().smallestScreenWidthDp >= 600;
+        SharedPreferences pr = getSharedPreferences("jc", MODE_PRIVATE);
+        tvW = pr.getFloat("tvW", 0.5f);
         tvBox = new FrameLayout(this);
         tvBox.setBackgroundColor(Color.BLACK);
-        tvBox.setVisibility(View.GONE);
-        root.addView(tvBox, new LinearLayout.LayoutParams(-1, 0));
+        if (tablet) {
+            tvFloat = new LinearLayout(this);
+            tvFloat.setOrientation(LinearLayout.VERTICAL);
+            tvFloat.setBackgroundColor(0xFF3F3C00);
+            tvFloat.setElevation(dp(12));
+            tvFloat.setPadding(dp(2), 0, dp(2), dp(2));
+            tvFloat.setVisibility(View.GONE);
+            tvFloat.addView(buildTvBar(), new LinearLayout.LayoutParams(-1, dp(30)));
+            tvFloat.addView(tvBox, new LinearLayout.LayoutParams(-1, 0, 1f));
+        } else {
+            tvBox.setVisibility(View.GONE);
+            root.addView(tvBox, new LinearLayout.LayoutParams(-1, 0));
+        }
 
         bar = buildBar();
         root.addView(bar, new LinearLayout.LayoutParams(-1, dp(56)));
@@ -94,7 +114,9 @@ public class MainActivity extends Activity {
         fullBox.setVisibility(View.GONE);
 
         FrameLayout top = new FrameLayout(this);
+        topLayer = top;
         top.addView(root, new FrameLayout.LayoutParams(-1, -1));
+        if (tablet) top.addView(tvFloat, new FrameLayout.LayoutParams(dp(320), dp(210), Gravity.TOP | Gravity.START));
         top.addView(fullBox, new FrameLayout.LayoutParams(-1, -1));
 
         if (saved == null) {
@@ -269,18 +291,80 @@ public class MainActivity extends Activity {
         }
         if (!tvOn) tv.loadUrl(BASE + "tv.html");
         tvOn = true;
-        tvBox.setVisibility(View.VISIBLE);
+        if (tablet) tvFloat.setVisibility(View.VISIBLE); else tvBox.setVisibility(View.VISIBLE);
         sizeTv();
     }
 
     void hideTv() {
         tvOn = false;
         if (tv != null) { tv.loadUrl("about:blank"); }
-        tvBox.setVisibility(View.GONE);
+        if (tablet) tvFloat.setVisibility(View.GONE); else tvBox.setVisibility(View.GONE);
+    }
+
+    /** tablets: the floating TV's top bar - drag to move, ⤢ size (quarter / half / third of the width), ✕ close */
+    View buildTvBar() {
+        LinearLayout b = new LinearLayout(this);
+        b.setOrientation(LinearLayout.HORIZONTAL);
+        b.setGravity(Gravity.CENTER_VERTICAL);
+        b.setBackgroundColor(BAR);
+        TextView t = new TextView(this);
+        t.setText("⠿  📺 Live TV · drag to move");
+        t.setTextColor(GOLD);
+        t.setTextSize(12);
+        t.setTypeface(Typeface.DEFAULT_BOLD);
+        t.setPadding(dp(8), 0, dp(8), 0);
+        b.addView(t, new LinearLayout.LayoutParams(0, -1, 1f));
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        TextView sz = barBtn("⤢"), x = barBtn("✕");
+        sz.setOnClickListener(v -> { tvW = tvW >= 0.5f ? 0.34f : tvW >= 0.34f ? 0.25f : 0.5f; getSharedPreferences("jc", MODE_PRIVATE).edit().putFloat("tvW", tvW).apply(); sizeTv(); });
+        x.setOnClickListener(v -> hideTv());
+        b.addView(sz, new LinearLayout.LayoutParams(dp(40), -1));
+        b.addView(x, new LinearLayout.LayoutParams(dp(40), -1));
+        final float[] d = new float[4];
+        b.setOnTouchListener((v, e) -> {
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN: d[0] = e.getRawX(); d[1] = e.getRawY(); d[2] = tvFloat.getTranslationX(); d[3] = tvFloat.getTranslationY(); return true;
+                case MotionEvent.ACTION_MOVE: placeTv(d[2] + e.getRawX() - d[0], d[3] + e.getRawY() - d[1]); return true;
+                case MotionEvent.ACTION_UP: case MotionEvent.ACTION_CANCEL:
+                    getSharedPreferences("jc", MODE_PRIVATE).edit().putFloat("tvX", tvFloat.getTranslationX()).putFloat("tvY", tvFloat.getTranslationY()).apply(); return true;
+            }
+            return false;
+        });
+        return b;
+    }
+
+    TextView barBtn(String s) {
+        TextView v = new TextView(this);
+        v.setText(s); v.setTextColor(GOLD); v.setTextSize(16); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.DEFAULT_BOLD);
+        return v;
+    }
+
+    /** keep the floating TV fully on screen, above the menu bar */
+    void placeTv(float x, float y) {
+        if (topLayer == null || tvFloat == null) return;
+        int W = topLayer.getWidth() > 0 ? topLayer.getWidth() : getResources().getDisplayMetrics().widthPixels;
+        int H = (topLayer.getHeight() > 0 ? topLayer.getHeight() : getResources().getDisplayMetrics().heightPixels) - (bar != null && bar.getVisibility() == View.VISIBLE ? dp(56) : 0);
+        FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) tvFloat.getLayoutParams();
+        tvFloat.setTranslationX(Math.max(0, Math.min(x, W - p.width)));
+        tvFloat.setTranslationY(Math.max(0, Math.min(y, H - p.height)));
     }
 
     void sizeTv() {
         if (!tvOn) return;
+        if (tablet) {
+            FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) tvFloat.getLayoutParams();
+            if (inPip()) { p.width = -1; p.height = -1; tvFloat.setTranslationX(0); tvFloat.setTranslationY(0); tvFloat.getChildAt(0).setVisibility(View.GONE); tvFloat.setLayoutParams(p); return; }
+            tvFloat.getChildAt(0).setVisibility(View.VISIBLE);
+            int W = getResources().getDisplayMetrics().widthPixels, H = getResources().getDisplayMetrics().heightPixels;
+            p.width = Math.round(W * tvW);
+            p.height = Math.round(p.width * 9f / 16f) + dp(32);
+            if (p.height > H * 0.6f) { p.height = Math.round(H * 0.6f); p.width = Math.round((p.height - dp(32)) * 16f / 9f); }
+            tvFloat.setLayoutParams(p);
+            SharedPreferences pr = getSharedPreferences("jc", MODE_PRIVATE);
+            final float x = pr.getFloat("tvX", W - p.width - dp(12)), y = pr.getFloat("tvY", H - p.height - dp(56) - dp(80));
+            tvFloat.post(() -> placeTv(x, y));      // default: bottom-right corner, above the menu bar
+            return;
+        }
         int w = getResources().getDisplayMetrics().widthPixels, h = getResources().getDisplayMetrics().heightPixels;
         int want = Math.min(Math.round(w * 9f / 16f), Math.round(h * tvFrac));
         LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) tvBox.getLayoutParams();
@@ -316,6 +400,7 @@ public class MainActivity extends Activity {
         super.onPictureInPictureModeChanged(on, cfg);
         bar.setVisibility(on ? View.GONE : View.VISIBLE);
         if (tvOn && fullView == null) { stage.setVisibility(on ? View.GONE : View.VISIBLE); sizeTv(); }   // floating window shows only the TV
+        if (tablet && tvOn && !on) sizeTv();
     }
 
     void exitFull() {
