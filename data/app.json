@@ -1,0 +1,10 @@
+{
+  "name": "Joshi's Corner app (Android)",
+  "build": 8,
+  "date": "2026-11-26",
+  "driveId": "1N_0NREDbJ8MZ-_9dUHs5K2f7mcbXJrIC",
+  "sha256": "5d407f54a9bfda9d3a4d488cc92def467ee3eb1e01868a4039dbee202bb1bca4",
+  "size": 280605,
+  "key": "per-build",
+  "notes": "Tablets: Live TV opens as a floating, movable mini window (about a quarter of the screen)."
+}
