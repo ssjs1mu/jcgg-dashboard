@@ -382,7 +382,7 @@ async function importTrades(file){
   if(/\.pdf$/i.test(file.name)){ const out=parseTradePdf(await pdfLines(await file.arrayBuffer()),await isinMap());
     const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
     driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
-    const ds=out.map(x=>x.d).sort(); return out.length+' fills for '+cl.join(', ')+' · '+dmy(ds[0])+' to '+dmy(ds[ds.length-1])+' · client name not read'; }
+    const ds=out.map(x=>x.d).sort(); return out.length+' fills for '+cl.join(', ')+' · '+dmy(ds[0])+' to '+dmy(ds[ds.length-1])+' · client name not read'+((out.skipped||[]).length?' · not a trade, left out: '+out.skipped.join(', '):''); }
   const rows=await readRows(file); if(!rows.length) throw new Error('no rows found');
   { const r0=rows[0], bq=col(r0,/^\s*buy\s*qty/i), ba=col(r0,/^\s*buy\s*(avg|rate|price)/i), sq=col(r0,/^\s*sell\s*qty/i), sa=col(r0,/^\s*sell\s*(avg|rate|price)/i);
     if(bq&&ba&&sq&&sa) return importNetPos(file,rows,{bq,ba,sq,sa}); }
@@ -569,7 +569,25 @@ function parseTradePdf(L,ISM){ const all=L.map(r=>r.text).join('\n'), out=[];
     if(bo&&so&&bo.length>=4&&so.length>=4){ const bq=out.filter(x=>x.side==='B').reduce((a,x)=>a+x.q,0), sq=out.filter(x=>x.side==='S').reduce((a,x)=>a+x.q,0);
       if(Math.abs(bq-(bo[0]+bo[2]))>0.01||Math.abs(sq-(so[0]+so[2]))>0.01) throw new Error('rows read (buy '+bq+' / sell '+sq+') do not match the summary (bought '+(bo[0]+bo[2])+' / sold '+(so[0]+so[2])+') - not imported'); }
     return out; }
-  throw new Error('trade PDF not recognised (supported: Sauda Summary - Settlement Wise, Settlementwise Summary)'); }
+  if(/ANNUAL\s+GLOBAL\s+TRANSACTION\s+STATEMENT/i.test(all)){   /* AGTS: client code (UCC) + per-day trade rows; name, PAN, address, phone are never read */
+    const um=all.match(/UCC\(s\)\s+of\s+the\s+Client\s+([A-Z0-9]+)/i); if(!um) throw new Error('client code (UCC) not found in this AGTS');
+    const c=um[1].toUpperCase(), bad=[]; let d=null, stl='', skipped=[];
+    const nk=x=>String(x).toLowerCase().replace(/\b(limited|ltd)\b/g,'').replace(/[^a-z0-9]/g,'');
+    L.forEach(r=>{ const t=r.text, dm=t.match(/^TRADE\s+DATE:\s*(\d{2}\/\d{2}\/\d{4})\b.*?\(\s*(\d+)\b/i);
+      if(dm){ d=ddmm(dm[1]); stl=dm[2]; return; }
+      const m=t.match(/^(.+?)\s+(NSE|BSE)\s+CAPITAL\s+((?:-?[\d,]+(?:\.\d+)?\s*){12})$/i); if(!m||!d) return;
+      const v=m[3].trim().split(/\s+/).map(n2), ch=v[4]+v[5]+v[6]+v[7]+v[8]+v[9]+v[10], net=v[11];
+      const exp=(v[2]>0||v[3]>0?v[3]:0)-(v[1])-ch;   /* net settlement = sale value - purchase value - all charges */
+      if(Math.abs(exp-net)>0.1){ bad.push(dmy(d)+' '+m[1].trim()+' (statement '+net+', worked out '+exp.toFixed(2)+')'); return; }
+      const nm=m[1].trim();
+      if(!(v[0]>0)&&!(v[2]>0)){ skipped.push(nm+' ₹'+(-net).toFixed(2)); return; }   /* brokerage-only adjustment line: no shares */
+      const sym=((ISM&&ISM.n)||{})[nk(nm)]||nm.toUpperCase().replace(/\b(LTD|LIMITED)\b\.?/g,'').replace(/[^A-Z0-9&]/g,''), base={d,c,sym,ex:m[2].toUpperCase(),ser:'EQ',stl,src:'agts'};
+      if(v[0]>0&&v[1]>0) out.push(Object.assign({},base,{side:'B',q:v[0],r:+(v[1]/v[0]).toFixed(4)}));
+      if(v[2]>0&&v[3]>0) out.push(Object.assign({},base,{side:'S',q:v[2],r:+(v[3]/v[2]).toFixed(4)})); });
+    if(bad.length) throw new Error('rows do not tie to their net settlement amount - not imported: '+bad.join('; '));
+    if(!out.length) throw new Error('no buy / sell rows found in this AGTS');
+    out.skipped=skipped; return out; }
+  throw new Error('trade PDF not recognised (supported: Sauda Summary - Settlement Wise, Settlementwise Summary, Annual Global Transaction Statement)'); }
 
 /* DP "Transaction/Holding" statement - only the closing holding table */
 function parseDPtxn(L){ const all=L.map(r=>r.text).join('\n'), g=re=>{ const m=all.match(re); return m?m[1]:null; };
@@ -645,7 +663,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-26m';
+const BUILD='2026-11-26n';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}

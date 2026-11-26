@@ -68,7 +68,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
   <span class="fl"><input type="text" id="sy" list="syl" placeholder="🔍 Script" style="width:130px"><datalist id="syl"></datalist>
   <select id="mf"><option value="all">All Holdings</option><option value="T">Trading</option><option value="I">Investment</option><option value="trig">With Alerts</option></select></span>
   <div class="dd" id="ddU"><button class="btn" title="Upload a file - saved here and to Google Drive (client codes only)">⬆ Upload</button><div class="ddm">
-   <button id="upT" title="Trade file: back-office / ODIN net-position Excel (Date, Client, Symbol, Buy Qty / Avg, Sell Qty / Avg, Product, VAR %), Date, Client, Symbol, Buy/Sell, Qty, Rate, or the back-office PDF (Sauda Summary - Settlement Wise / Settlementwise Summary) - client name is never read">📈 Trades</button>
+   <button id="upT" title="Trade file: back-office / ODIN net-position Excel (Date, Client, Symbol, Buy Qty / Avg, Sell Qty / Avg, Product, VAR %), Date, Client, Symbol, Buy/Sell, Qty, Rate, or the back-office PDF (Sauda Summary - Settlement Wise / Settlementwise Summary / Annual Global Transaction Statement) - client name is never read">📈 Trades</button>
    <button id="upL" title="LEDGER statement (PDF from the back office) or CSV / Excel template - only client code and entries are read">📒 Ledger</button>
    <button id="upD" title="DP HOLDING statement (PDF from the back office) or CSV / Excel template - only client code, DP a/c and holdings are read">🏦 DP Holdings</button><hr>
    <button id="upM" title="See and remove uploaded trade books and ledgers, client-wise">🗂 Manage Uploads</button>
@@ -93,7 +93,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=68"></script>
+<script src="pf-core.js?v=69"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
