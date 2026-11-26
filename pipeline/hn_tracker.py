@@ -179,6 +179,14 @@ def follow(tr, now):
     age = (now.timestamp() - tr['ts']) / 86400
     B = bars5(tr['s'], '5d' if age < 3 else '1mo' if age < 25 else '60d')
     t0 = tr['ts']; d = tr['d']; best = tr['entry']; best_day = None
+    # frozen levels: entry, first stop, T1, T2 never change. T1 hit -> stop trails to entry; each later target hit -> stop trails to the
+    # previous target and one more target is added a risk-step further (T3, T4, T5). Exit on the trailed stop (TRAIL) or at T5 (TARGET).
+    en = tr['entry']; R = abs(en - tr['stop']) or en * 0.005
+    tg = [tr.get('t1') or round(en + d * R, 2)]
+    tg.append(tr['target'] if d * (tr['target'] - tg[0]) > 0 else round(tg[0] + d * R, 2))
+    if tr.get('t3') and d * (tr['t3'] - tg[1]) > 0:
+        tg.append(tr['t3'])
+    sl = tr['stop']; hits = []
     days = []; nb = 0      # nb = 5-minute bars in the market since the entry (duration in market minutes)
     for t, h, l, c in B:
         if t + 300 <= t0:      # bar closed before the pick was made
@@ -187,25 +195,30 @@ def follow(tr, now):
         if not days or days[-1] != day:
             days.append(day)
         n = len(days) - 1          # sessions after the entry session (0 = same day)
-        hit_stop = l <= tr['stop'] if d > 0 else h >= tr['stop']
-        hit_tg = h >= tr['target'] if d > 0 else l <= tr['target']
-        if tr.get('t1') and not tr.get('t1_hit') and ((d > 0 and h >= tr['t1']) or (d < 0 and l <= tr['t1'])):
-            tr['t1_hit'] = day
+        hit_stop = l <= sl if d > 0 else h >= sl
         if (d > 0 and h > best) or (d < 0 and l < best):
             best = h if d > 0 else l; best_day = n
         nb += 1
         ex = dict(exit_date=day, exit_time=dt.datetime.fromtimestamp(t + 300, IST).strftime('%H:%M'), days=n, best=round(best, 2), best_day=best_day, mins=nb * 5)
-        if hit_stop:
-            return dict(status='STOP', exit=tr['stop'], both=hit_tg, **ex)
-        if hit_tg:
-            return dict(status='TARGET', exit=tr['target'], **ex)
+        tm = dt.datetime.fromtimestamp(t + 300, IST).strftime('%H:%M')
+        if hit_stop:      # checked before any target in the same bar (conservative)
+            return dict(status='TRAIL' if hits else 'STOP', exit=round(sl, 2), sl_now=round(sl, 2), tg=tg, hits=hits, t1_hit=hits[0][0] if hits else None, **ex)
+        while len(hits) < len(tg) and ((d > 0 and h >= tg[len(hits)]) or (d < 0 and l <= tg[len(hits)])):
+            hits.append([day, tm]); k = len(hits)
+            sl = en if k == 1 else tg[k - 2]
+            if k == len(tg):
+                if len(tg) < 5:
+                    tg.append(round(tg[-1] + d * R, 2))
+                else:
+                    return dict(status='TARGET', exit=tg[4], sl_now=round(sl, 2), tg=tg, hits=hits, t1_hit=hits[0][0], **ex)
         bt = dt.datetime.fromtimestamp(t, IST)
+        lv = dict(sl_now=round(sl, 2), tg=tg, hits=hits, t1_hit=hits[0][0] if hits else None)
         if tr.get('src_kind') in ('PLAN', 'IM') and bt.hour * 60 + bt.minute >= 910:      # day trades: square off at 15:15 (close of the 15:10 bar)
-            return dict(status='EXPIRED', exit=round(c, 2), dayend=True, **ex)
+            return dict(status='EXPIRED', exit=round(c, 2), dayend=True, **lv, **ex)
         if n >= MAX_SESSIONS:
-            return dict(status='EXPIRED', exit=round(c, 2), **ex)
+            return dict(status='EXPIRED', exit=round(c, 2), **lv, **ex)
     last = B[-1] if B else None
-    return dict(status='OPEN', last=round(last[3], 2) if last else None, last_date=days[-1] if days else None, days=len(days) - 1 if days else 0, best=round(best, 2), best_day=best_day, mins=nb * 5)
+    return dict(status='OPEN', sl_now=round(sl, 2), tg=tg, hits=hits, t1_hit=hits[0][0] if hits else None, last=round(last[3], 2) if last else None, last_date=days[-1] if days else None, days=len(days) - 1 if days else 0, best=round(best, 2), best_day=best_day, mins=nb * 5)
 
 
 def main():
@@ -300,7 +313,7 @@ def main():
             tr['status'] = 'OPEN'
     # follow open picks
     for tr in T['trades']:
-        if tr['status'] in ('TARGET', 'STOP', 'EXPIRED'):
+        if tr['status'] in ('TARGET', 'STOP', 'EXPIRED', 'TRAIL'):
             continue
         try:
             tr.update(follow(tr, now))
@@ -318,17 +331,17 @@ def main():
     for t in closed:
         eq *= 1 + t['ret'] / 100
     T['summary'] = {'picks': len(T['trades']), 'closed': len(closed), 'open': sum(1 for t in T['trades'] if t['status'] == 'OPEN'),
-                    'targets': sum(1 for t in closed if t['status'] == 'TARGET'), 'stops': sum(1 for t in closed if t['status'] == 'STOP'),
+                    'targets': sum(1 for t in closed if t['status'] in ('TARGET', 'TRAIL')), 'trails': sum(1 for t in closed if t['status'] == 'TRAIL'), 'stops': sum(1 for t in closed if t['status'] == 'STOP'),
                     'expired': sum(1 for t in closed if t['status'] == 'EXPIRED'),
                     'net_sum': round(sum(t['ret'] for t in closed), 2), 'net_compound': round((eq - 1) * 100, 2),
                     'avg': round(sum(t['ret'] for t in closed) / len(closed), 2) if closed else None,
                     'open_mtm': round(sum(t['ret'] or 0 for t in T['trades'] if t['status'] == 'OPEN'), 2),
-                    'avg_mins_target': round(sum(t.get('mins') or 0 for t in closed if t['status'] == 'TARGET') / max(1, sum(1 for t in closed if t['status'] == 'TARGET'))),
+                    'avg_mins_target': round(sum(t.get('mins') or 0 for t in closed if t['status'] in ('TARGET', 'TRAIL')) / max(1, sum(1 for t in closed if t['status'] in ('TARGET', 'TRAIL')))),
                     'avg_mins_stop': round(sum(t.get('mins') or 0 for t in closed if t['status'] == 'STOP') / max(1, sum(1 for t in closed if t['status'] == 'STOP'))),
                     'top_picks': sum(1 for t in T['trades'] if t.get('top', True))}
     for k in ('HNT', 'IM', 'PLAN'):
         L = [t for t in T['trades'] if t.get('src_kind', 'HNT') == k]; Lc = [t for t in L if t['status'] != 'OPEN' and t.get('ret') is not None]
-        T['summary'][k] = {'calls': len(L), 'closed': len(Lc), 'targets': sum(1 for t in Lc if t['status'] == 'TARGET'), 'stops': sum(1 for t in Lc if t['status'] == 'STOP'),
+        T['summary'][k] = {'calls': len(L), 'closed': len(Lc), 'targets': sum(1 for t in Lc if t['status'] in ('TARGET', 'TRAIL')), 'stops': sum(1 for t in Lc if t['status'] == 'STOP'),
                            'net_sum': round(sum(t['ret'] for t in Lc), 2), 'open_mtm': round(sum(t['ret'] or 0 for t in L if t['status'] == 'OPEN'), 2)}
     T['updated'] = now.isoformat(timespec='seconds'); T['log'] = T['log'][-120:]
     json.dump(T, open(os.environ.get('OUT', '/tmp/hntrack.json'), 'w'), indent=1)
