@@ -686,7 +686,7 @@ function trkTrail(t){ const tg=t.tg, h=(t.hits||[]).length; if(!tg) return '<spa
   return `SL ${fx(t.sl_now!=null?t.sl_now:t.stop)}${t.sl_now!=null&&t.sl_now!==t.stop?' <span class="tg2">trail</span>':''}${tg.length>2?'<br>'+tg.slice(2).map((v,i)=>'T'+(i+3)+' '+fx(v)+(h>i+2?' <b class="up">✓</b>':'')).join(' · '):''}`; }
 function trkDiff(t){ if(t.status!=='OPEN') return '<span class="mu">closed</span>'; const live=ltpOf(t.s), p=live||t.last; if(!p) return '–'; const d=t.side==='BUY'?1:-1, tg=t.tg||[t.t1,t.target].filter(Boolean), n=(t.hits||[]).length, nx=tg[n]!=null?tg[n]:t.target, sl=t.sl_now!=null?t.sl_now:t.stop, ret=d*(p/t.entry-1)*100;
   return `<b class="${ret>=0?'up':'dn'}">${(ret>=0?'+':'')+ret.toFixed(2)}%</b> <span class="mu">${live?'live':'last'} ${fx(p)}</span><br>T${n+1} ${fx(nx)}: <b>${fx(Math.abs(nx-p))}</b> (${Math.abs((nx/p-1)*100).toFixed(2)}%) · SL ${fx(Math.abs(p-sl))} (${Math.abs((p/sl-1)*100).toFixed(2)}%)`; }
-function cbPaint(){ const B=$('cbBox'); const A=CB.all(); A.forEach(c=>CB.track(c,ltpOf(c.s))); if(!B) return; const SRC={WL:'⭐ Watchlist',HN:'💎 HNT',HM:'🌡 Heat map',OL:'Open = Low',OH:'Open = High',BF:'🐟 Big Fish',BS:'🦈 Tail Fish',IM:'🌐 Index movers'};
+function cbPaint(){ const B=$('cbBox'); const A=CB.all(); A.forEach(c=>CB.track(c,ltpOf(c.s))); if(!B) return; const SRC={WL:'⭐ Watchlist',HN:'💎 HNT',HM:'🌡 Heat map',OL:'Open = Low',OH:'Open = High',BF:'🐟 Big Fish',BS:'🦈 Tail Fish',IM:'🌐 Index movers',CH:'📈 Chart'};
   const L=A.slice().sort((a,b)=>(a.status==='OPEN'?0:1)-(b.status==='OPEN'?0:1)||b.time.localeCompare(a.time));
   const cl=L.filter(c=>c.status!=='OPEN'), win=cl.filter(c=>c.hit.length).length, net=L.reduce((a,c)=>{ const g=CB.prog(c,ltpOf(c.s)); return a+(g&&g.ret!=null?g.ret:0); },0);
   B.innerHTML=`<div class="rbh" style="margin-top:4px"><b>🔒 Today's frozen calls · live</b> <span class="mu">${L.length} calls from every tab · ${L.length-cl.length} open · ${cl.length} closed (${win} after a target) · net <b class="${net>=0?'up':'dn'}">${(net>=0?'+':'')+net.toFixed(2)}%</b> · levels never change, the stop only trails · this device</span></div>
@@ -1206,11 +1206,14 @@ function chDraw(){ const L=window.LightweightCharts, b=CH.raw; const D=aggr(b,CH
   if(CH.on.pd&&PC!=null){ PL_(PH,'#9aa9c0','Prev H',3); PL_(PL,'#9aa9c0','Prev L',3); PL_(PC,'#c9d4e3','Prev C',3); }
   if(CH.on.pv&&piv){ [['R2',piv.R2],['R1',piv.R1],['P',piv.P],['S1',piv.S1],['S2',piv.S2]].forEach(([k,v])=>PL_(v,'#6d7f99',k,1)); }
   // entry / exit / targets
-  let lvTxt=''; const FZ=/\.(NS|BO)$/.test(CH.y)?CB.find(CH.y.replace(/\.(NS|BO)$/,''))[0]:null;
+  let lvTxt=''; const CSY=/\.(NS|BO)$/.test(CH.y)?CH.y.replace(/\.(NS|BO)$/,''):null;
+  /* a call the chart itself works out is frozen too - nothing on screen may move once shown */
+  if(CSY&&!CB.find(CSY).length&&A&&A.lv&&A.call!=='AVOID') CB.get('CH',CSY,A.call,A.lv);
+  const FZ=CSY?CB.find(CSY)[0]:null;
   if(FZ){ const buy=FZ.d>0, live=D.c[n-1]; CB.track(FZ,live);
     PL_(FZ.en,'#2fd0ff','🔒 ENTRY '+FZ.side+' '+FZ.time,0,2); if(FZ.sl!==FZ.sl0) PL_(FZ.sl0,'#ff3b5c','first SL',2,1); PL_(FZ.sl,'#ff3b5c',FZ.sl!==FZ.sl0?'TRAIL SL':'EXIT / SL',0,2);
     FZ.t.forEach((v,i)=>PL_(v,'#35f0a8','T'+(i+1)+(FZ.hit[i]?' ✓':''),FZ.hit[i]?2:0,i<2?2:1));
-    lvTxt=`<b>🔒 Frozen call</b> (${({IM:'Index movers',WL:'Watchlist',HN:'HNT',HM:'Heat map',OL:'Open = Low',OH:'Open = High',BF:'Big Fish',BS:'Tail Fish'})[FZ.src]||FZ.src}) <span class="tag ${buy?'bull':'bear'}" style="font-size:13px">${FZ.side}</span> · <b style="color:#2fd0ff">Entry ${fx(FZ.en,dp)}</b> · <b style="color:#ff3b5c">SL ${CB.slHtml(FZ)}</b> · ${FZ.t.map((v,i)=>'T'+(i+1)+' '+CB.tHtml(FZ,i,buy?'up':'dn')).join(' · ')}<br>${CB.stHtml(FZ,live)}${A&&A.call!==FZ.side?` <span class="mu">· engine now reads ${A.call} - the call is not changed; manage it with the trailed stop</span>`:''}`; }
+    lvTxt=`<b>🔒 Frozen call</b> (${({CH:'Chart',IM:'Index movers',WL:'Watchlist',HN:'HNT',HM:'Heat map',OL:'Open = Low',OH:'Open = High',BF:'Big Fish',BS:'Tail Fish'})[FZ.src]||FZ.src}) <span class="tag ${buy?'bull':'bear'}" style="font-size:13px">${FZ.side}</span> · <b style="color:#2fd0ff">Entry ${fx(FZ.en,dp)}</b> · <b style="color:#ff3b5c">SL ${CB.slHtml(FZ)}</b> · ${FZ.t.map((v,i)=>'T'+(i+1)+' '+CB.tHtml(FZ,i,buy?'up':'dn')).join(' · ')}<br>${CB.stHtml(FZ,live)}${A&&A.call!==FZ.side?` <span class="mu">· engine now reads ${A.call} - the call is not changed; manage it with the trailed stop</span>`:''}`; }
   else if(A&&A.lv&&A.call!=='AVOID'){ const lv=A.lv, buy=A.call==='BUY';
     PL_(lv.en,'#2fd0ff','ENTRY '+A.call,0,2); PL_(lv.sl,'#ff3b5c','EXIT / SL',0,2); PL_(lv.t1,'#35f0a8','T1',0,2); PL_(lv.t2,'#35f0a8','T2',0,1); PL_(lv.t3,'#35f0a8','T3',0,1);
     const r=Math.abs(lv.en-lv.sl), pct=v=>((v/lv.en-1)*100*(buy?1:-1)).toFixed(2);
@@ -1271,7 +1274,7 @@ new MutationObserver(()=>chDecorate()).observe(document.body,{childList:true,sub
   window.addEventListener('beforeunload',e=>{ if(popped()){ e.preventDefault(); e.returnValue=''; } });
 })();
 </script>
-<script src="pf-core.js?v=58"></script>
+<script src="pf-core.js?v=59"></script>
 <script>
 /* ===== Profit-booking pop-up: client holdings (Portfolio page data, same browser) checked against the Watchlist parameters =====
    Holding in profit after holding interest AND
