@@ -88,12 +88,12 @@
   /* ---------- the popups ---------- */
   const css=document.createElement('style'); css.textContent=`
   #jcTiles{position:fixed;right:12px;bottom:60px;z-index:2147480990;width:208px;display:flex;flex-direction:column;gap:5px;font-family:Inter,"Segoe UI",Arial,sans-serif}
-  #jcTiles:empty{display:none}#jcTiles .th{display:flex;align-items:center;gap:6px;background:#1a1408;border:1px solid #e0cd96;color:#e0cd96;border-radius:9px;padding:3px 8px;font:900 11px Inter,Arial;cursor:move;touch-action:none;user-select:none}
-  #jcTiles .th span{color:#9fb0c6;font-weight:700}#jcTiles .th button{margin-left:auto;border:0;background:none;color:#9fb0c6;cursor:pointer;font-size:12px}
+  #jcTiles:empty{display:none}#jcTiles *{box-sizing:border-box}#jcTiles .th button,.jt .jx{all:unset;cursor:pointer;color:#9fb0c6;font-size:12px;line-height:1}#jcTiles .th{height:auto;white-space:nowrap;display:flex;align-items:center;gap:6px;background:#1a1408;border:1px solid #e0cd96;color:#e0cd96;border-radius:9px;padding:3px 8px;font:900 11px Inter,Arial;cursor:move;touch-action:none;user-select:none}
+  #jcTiles .th span{color:#9fb0c6;font-weight:700}#jcTiles .th button{margin-left:auto}
   .jt{position:relative;border-radius:9px;padding:4px 8px 4px 9px;border:1.5px solid;color:#eef3fb;cursor:pointer;font:700 11px ui-monospace,Consolas,monospace;box-shadow:0 6px 16px rgba(0,0,0,.45);line-height:1.35}
   .jt.b{background:linear-gradient(135deg,#0c3a2c,#0f1d30);border-color:#35f0a8}.jt.s{background:linear-gradient(135deg,#45122a,#0f1d30);border-color:#ff6b9d}
   .jt b{font:900 12.5px Inter,Arial}.jt em{font:900 9.5px Inter,Arial;font-style:normal;margin-left:5px;padding:0 5px;border-radius:4px;color:#0b1220}.jt.b em{background:#35f0a8}.jt.s em{background:#ff6b9d}
-  .jt i{font-style:normal;color:#9fb0c6;margin-left:6px;font-size:10px}.jt .jx{position:absolute;top:1px;right:4px;border:0;background:none;color:#9fb0c6;cursor:pointer;font-size:11px}
+  .jt i{font-style:normal;color:#9fb0c6;margin-left:6px;font-size:10px}.jt .jx{position:absolute;top:3px;right:5px}.jt>div{white-space:nowrap}
   .jt u{text-decoration:none;font-weight:900;margin-left:4px}.jt u.p{color:#35f0a8}.jt u.m{color:#ff6b9d}
   .jt.fl{animation:jtF .8s ease-in-out 10}@keyframes jtF{50%{box-shadow:0 0 0 3px #f2c14e,0 0 18px #f2c14e;border-color:#f2c14e}}
   @media(max-width:560px){#jcTiles{width:178px;right:6px;bottom:52px}#jcSig{right:8px}}
@@ -149,7 +149,9 @@
   function beep(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain(); o.type='triangle'; o.frequency.value=988; g.gain.value=.07; o.connect(g); g.connect(c.destination); o.start(); o.frequency.setValueAtTime(1318,c.currentTime+.12); o.stop(c.currentTime+.28); }catch(e){} }
   /* small tiles: whichever page is opened shows today's calls of the last 60 minutes as small flashing tiles (each page keeps its own
      "seen" list, so a call already shown in another tab still flashes here); a tile opens the full card; ✕ hides it on this page */
-  const PS=(()=>{ try{ return JSON.parse(sessionStorage.getItem('jc_sig_ps_'+day())||'{}'); }catch(e){ return {}; } })(), psv=()=>{ try{ sessionStorage.setItem('jc_sig_ps_'+day(),JSON.stringify(PS)); }catch(e){} };
+  /* flashed = this page load only (every page you open flashes them again); hidden with ✕ = remembered for this page in this tab */
+  const PSK='jc_sig_hide_'+day()+'|'+location.pathname, HID=(()=>{ try{ return JSON.parse(sessionStorage.getItem(PSK)||'{}'); }catch(e){ return {}; } })(), PS={};
+  Object.keys(HID).forEach(k=>PS[k]={x:1}); const psv=()=>{ try{ const h={}; Object.keys(PS).forEach(k=>{ if(PS[k].x) h[k]=1; }); sessionStorage.setItem(PSK,JSON.stringify(h)); }catch(e){} };
   const tray=document.createElement('div'); tray.id='jcTiles'; const tmount=()=>document.body.appendChild(tray); if(document.body) tmount(); else addEventListener('DOMContentLoaded',tmount);
   function tileLive(x){ const C=window.CB&&window.CB.find(x.s).find(c=>c.src==='IM'&&c.side===x.side), L=C&&typeof window.ltpOf==='function'?window.ltpOf(x.s):null; if(!C||!L) return '';
     window.CB.track(C,L); const g=window.CB.prog(C,L); return `<u class="${g.ret>=0?'p':'m'}">${(g.ret>=0?'+':'')+g.ret.toFixed(2)}%${C.hit.length?' T'+C.hit.length+'✓':''}${C.status!=='OPEN'?' '+C.status:''}</u>`; }

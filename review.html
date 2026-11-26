@@ -141,5 +141,5 @@ $('out').addEventListener('click',e=>{ const b=e.target.closest('[data-ed],[data
   if(b.dataset.ed) PF.editor(t,rerun); else if(confirm('Delete '+(t.side==='S'?'SELL ':'BUY ')+t.q+' '+t.sym+' @ '+t.r+' for '+t.c+' on '+dmy(t.d)+'?')){ PF.deleteTrade(t.id); rerun(); } });
 main().catch(e=>{ $('out').innerHTML='<div class="empty">Could not build the audit: '+esc(e.message||e)+'</div>'; });
 </script>
-<script src="signals.js?v=7"></script>
+<script src="signals.js?v=8"></script>
 </body></html>
