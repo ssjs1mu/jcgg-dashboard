@@ -88,8 +88,8 @@
   /* ---------- the popups ---------- */
   const css=document.createElement('style'); css.textContent=`
   #jcTiles{position:fixed;right:12px;bottom:60px;z-index:2147480990;width:208px;display:flex;flex-direction:column;gap:5px;font-family:Inter,"Segoe UI",Arial,sans-serif}
-  #jcTiles:empty{display:none}#jcTiles *{box-sizing:border-box}#jcTiles .th button,.jt .jx{all:unset;cursor:pointer;color:#9fb0c6;font-size:12px;line-height:1}#jcTiles .th{height:auto;white-space:nowrap;display:flex;align-items:center;gap:6px;background:#1a1408;border:1px solid #e0cd96;color:#e0cd96;border-radius:9px;padding:3px 8px;font:900 11px Inter,Arial;cursor:move;touch-action:none;user-select:none}
-  #jcTiles .th span{color:#9fb0c6;font-weight:700}#jcTiles .th button{margin-left:auto}
+  #jcTiles:empty{display:none}#jcTiles *{box-sizing:border-box}#jcTiles .jcth button,.jt .jx{all:unset;cursor:pointer;color:#9fb0c6;font-size:12px;line-height:1}#jcTiles .jcth{height:auto;white-space:nowrap;display:flex;align-items:center;gap:6px;background:#1a1408;border:1px solid #e0cd96;color:#e0cd96;border-radius:9px;padding:3px 8px;font:900 11px Inter,Arial;cursor:move;touch-action:none;user-select:none}
+  #jcTiles .jcth span{color:#9fb0c6;font-weight:700}#jcTiles .jcth button{margin-left:auto}
   .jt{position:relative;border-radius:9px;padding:4px 8px 4px 9px;border:1.5px solid;color:#eef3fb;cursor:pointer;font:700 11px ui-monospace,Consolas,monospace;box-shadow:0 6px 16px rgba(0,0,0,.45);line-height:1.35}
   .jt.b{background:linear-gradient(135deg,#0c3a2c,#0f1d30);border-color:#35f0a8}.jt.s{background:linear-gradient(135deg,#45122a,#0f1d30);border-color:#ff6b9d}
   .jt b{font:900 12.5px Inter,Arial}.jt em{font:900 9.5px Inter,Arial;font-style:normal;margin-left:5px;padding:0 5px;border-radius:4px;color:#0b1220}.jt.b em{background:#35f0a8}.jt.s em{background:#ff6b9d}
@@ -156,12 +156,12 @@
   function tileLive(x){ const C=window.CB&&window.CB.find(x.s).find(c=>c.src==='IM'&&c.side===x.side), L=C&&typeof window.ltpOf==='function'?window.ltpOf(x.s):null; if(!C||!L) return '';
     window.CB.track(C,L); const g=window.CB.prog(C,L); return `<u class="${g.ret>=0?'p':'m'}">${(g.ret>=0?'+':'')+g.ret.toFixed(2)}%${C.hit.length?' T'+C.hit.length+'✓':''}${C.status!=='OPEN'?' '+C.status:''}</u>`; }
   function paintTiles(S){ S=S||ld(SK(),{list:[]}); const now=Date.now(), L=S.list.filter(x=>now-x.t<60*60000&&!(PS[x.k]&&PS[x.k].x)), V=L.slice(0,6);
-    tray.innerHTML=V.length?`<div class="th">⚡ Calls <span>${L.length}${L.length>V.length?' · +'+(L.length-V.length)+' more':''}</span><button type="button" title="Hide all on this page">✕</button></div>`+V.map(x=>`<div class="jt ${x.side==='BUY'?'b':'s'}${PS[x.k]&&PS[x.k].s?'':' fl'}" data-k="${esc(x.k)}" title="Click for the full call">
+    tray.innerHTML=V.length?`<div class="jcth">⚡ Calls <span>${L.length}${L.length>V.length?' · +'+(L.length-V.length)+' more':''}</span><button type="button" title="Hide all on this page">✕</button></div>`+V.map(x=>`<div class="jt ${x.side==='BUY'?'b':'s'}${PS[x.k]&&PS[x.k].s?'':' fl'}" data-k="${esc(x.k)}" title="Click for the full call">
       <b>${esc(x.s)}</b><em>${x.side}</em><i>${tm(x.t)}</i><button type="button" class="jx" title="Hide">✕</button>
       <div>E ${fx(x.en)} · SL ${fx(x.sl)}</div><div>T1 ${fx(x.t1)} · T2 ${fx(x.t2)} ${tileLive(x)}</div></div>`).join(''):'';
     V.forEach(x=>{ PS[x.k]=Object.assign(PS[x.k]||{},{s:1}); }); psv(); }
   tray.addEventListener('click',e=>{ const S=ld(SK(),{list:[]});
-    if(e.target.closest('.th button')){ S.list.forEach(x=>PS[x.k]=Object.assign(PS[x.k]||{},{x:1})); psv(); paintTiles(S); return; }
+    if(e.target.closest('.jcth button')){ S.list.forEach(x=>PS[x.k]=Object.assign(PS[x.k]||{},{x:1})); psv(); paintTiles(S); return; }
     const t=e.target.closest('.jt'); if(!t) return; const x=S.list.find(y=>y.k===t.dataset.k); if(!x) return;
     if(e.target.closest('.jx')){ PS[x.k]=Object.assign(PS[x.k]||{},{x:1}); psv(); paintTiles(S); return; }
     box.innerHTML=''; box.appendChild(card(x)); });
@@ -177,7 +177,7 @@
   bell.onclick=()=>{ paintBell(); L.classList.toggle('on'); };
   // every signal window (call cards and the day's list) can be dragged by its title bar
   (function(){ let D=null; const st=document.createElement('style'); st.textContent='.jcs .h,#jcSigL .hd{cursor:move;touch-action:none;user-select:none}'; document.head.appendChild(st);
-    document.addEventListener('pointerdown',e=>{ const h=e.target.closest('.jcs .h,#jcSigL .hd,#jcTiles .th'); if(!h||e.target.closest('button,a')||e.button>0) return; const el=h.closest('.jcs,#jcSigL,#jcTiles');
+    document.addEventListener('pointerdown',e=>{ const h=e.target.closest('.jcs .h,#jcSigL .hd,#jcTiles .jcth'); if(!h||e.target.closest('button,a')||e.button>0) return; const el=h.closest('.jcs,#jcSigL,#jcTiles');
       D={el,x:e.clientX,y:e.clientY,ox:+(el.dataset.dx||0),oy:+(el.dataset.dy||0)}; e.preventDefault(); });
     document.addEventListener('pointermove',e=>{ if(!D) return; const dx=D.ox+e.clientX-D.x, dy=D.oy+e.clientY-D.y; D.el.dataset.dx=dx; D.el.dataset.dy=dy; D.el.style.translate=dx+'px '+dy+'px'; });
     document.addEventListener('pointerup',()=>D=null); })();

@@ -700,5 +700,5 @@ $('mf').onchange=()=>{ MF=$('mf').value; LS.set('jc_pf_mf',MF); render(); };
 (async()=>{ try{ [ISM,CA0]=await Promise.all([PF.isinMap().catch(()=>ISM),PF.corpActs()]); await loadTrades(); render(); await prices(); history(); clSoon(); }catch(e){ $('body').innerHTML='<div class="warn">Could not load trades: '+esc(e.message)+'</div>'; } })();
 setInterval(()=>{ if(mktOpen()&&!document.hidden) prices(); },30000);
 </script>
-<script src="signals.js?v=8"></script>
+<script src="signals.js?v=9"></script>
 </body></html>
