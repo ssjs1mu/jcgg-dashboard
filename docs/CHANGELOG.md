@@ -1,5 +1,6 @@
 | Date (IST) | Change |
 |---|---|
+| 2026-11-27 | **[Claude]** Build 2026-11-27c - **Corporate actions follow the RECORD date**: a split / bonus / demerger changes the trade book only once its record date has been reached (ex-date alone is no longer enough), and the client-wise entitlement list counts the holding as on the record date - shares sold up to and on that day are not counted. |
 | 2026-11-27 | **[Claude]** Build 2026-11-27b - **Corporate actions take effect only from their ex-date**: a split / bonus / demerger whose ex-date is still ahead no longer restates the trade book (it used to multiply the quantity and divide the rate of every earlier trade at once, so value and P&L ran ahead of the live price). Trades before the ex-date are restated from the ex-date onwards, as before. |
 | 2026-11-27 | **[Claude]** Build 2026-11-27a - Portfolio ＋ Add Trades: new **Different Date Per Row** option - every row gets its own date (many dates, many stocks, one client). Pasted lines can carry a date (04-Mar-22, 04/03/2022 or 2022-03-04) and switch the option on by themselves. Single-date entry is unchanged. |
 | 2026-11-26 | **[Claude]** Build 2026-11-26q - Portfolio: the red "☁ Not saved" chip now shows the reason (backend message) in brackets and in its tooltip, so a failed Drive sync can be diagnosed. |
