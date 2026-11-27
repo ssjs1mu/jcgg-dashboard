@@ -73,8 +73,10 @@ function setGrp(c,fam,ref){ const G=grp(); fam=String(fam||'').trim(); ref=Strin
 const grpOk=(c,fam,ref)=>{ const g=grp()[c]||{}; return (!fam||g.fam===fam)&&(!ref||g.ref===ref); };
 const grpLabels=k=>[...new Set(Object.values(grp()).map(g=>g[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
 /* single trades: add, edit, delete (manual entries are listed as source 'entered') */
+const isRE=sym=>/-RE\d*$/i.test(String(sym||'').trim());   /* rights entitlement (e.g. ADANI-RE): credited free, so a rate of 0 is valid */
+const rateOk=(sym,r)=>+r>0||(isRE(sym)&&r!==''&&r!=null&&+r===0);
 function clean(x){ const o={d:String(x.d).slice(0,10),c:String(x.c).trim().toUpperCase(),sym:String(x.sym).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side:x.side==='S'?'S':'B',q:Math.abs(+x.q),r:+x.r}; if(x.ex) o.ex=String(x.ex).toUpperCase(); if(x.prod) o.prod=String(x.prod).trim(); if(x.tag==='IPO'&&x.side!=='S') o.tag='IPO';
-  if(!/^\d{4}-\d\d-\d\d$/.test(o.d)||!o.c||!o.sym||!(o.q>0)||!(o.r>0)) throw new Error('date, client code, symbol, quantity and rate are all needed'); return o; }
+  if(!/^\d{4}-\d\d-\d\d$/.test(o.d)||!o.c||!o.sym||!(o.q>0)||!rateOk(o.sym,o.r)) throw new Error('date, client code, symbol, quantity and rate are all needed'); return o; }
 function saveTrade(x){ const t=tb(), o=clean(x);
   if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; const nt=Object.assign({},t.trades[i],o,{edited:true}); if(!o.tag) delete nt.tag; t.trades[i]=nt; }
   else { o.id=nid(); o.man=true; t.trades.push(o); }
@@ -128,7 +130,7 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
   const svN=()=>body.querySelectorAll('tr[data-tid]').length;
   const svShow=()=>{ if(one) return; const n=svN(); g('edSv').textContent=n?'✓ '+n+' row'+(n>1?'s':'')+' saved automatically - closing this box keeps them':''; g('edX').textContent=n?'Close':'Cancel'; };
   const auto=tr=>{ if(one||!tr||!tr.isConnected) return; try{ const h=headV(), o=rowV(tr);
-      if(/[a-z]{2,}\s+[a-z]{2,}/i.test(h.c)||!h.c.trim()||!o.sym.trim()||!(+o.q>0)||!(+o.r>0)||!o.d) return;
+      if(/[a-z]{2,}\s+[a-z]{2,}/i.test(h.c)||!h.c.trim()||!o.sym.trim()||!(+o.q>0)||!rateOk(o.sym,o.r)||!o.d) return;
       if(h.tag==='IPO'&&o.side==='S') return;
       clean(Object.assign({},h,o)); const t=saveTrade(Object.assign({id:tr.dataset.tid||undefined},h,o)); tr.dataset.tid=t.id; CHG=true; svShow(); }catch(e){} };
   const autoAll=()=>body.querySelectorAll('tr').forEach(auto);
@@ -707,7 +709,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-27n';
+const BUILD='2026-11-27o';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -1162,5 +1164,5 @@ function wlSig(S0,p){ const S=S0.slice(-260).map(x=>Object.assign({},x)); if(S.l
   return {score:sc,conv:Math.abs(sc),call,lv,bull,rsi:R14,vr,e21:e21[L],atr:A}; }
 
 return wlSig; })();
-window.PF={xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={isRE,xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
