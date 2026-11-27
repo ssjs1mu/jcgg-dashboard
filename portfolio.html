@@ -94,7 +94,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=77"></script>
+<script src="pf-core.js?v=78"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -481,6 +481,50 @@ function taxTab(E,inC){ const X=PF.taxCalc(E,Q,STAT,inC), rw=X.rows, A=CL==='ALL
   return h; }
 /* ---------- 🆕 IPO allotments & listing + 🔀 demergers: full record, kept for future reference ---------- */
 let LIQ={};
+/* ---------- 🔎 IPO search: type a script or company -> dashboard card (issue price, RETAIL DISCOUNT, lot, quota, subscription, listing) ---------- */
+let IPQ='';
+function ipoSearchHtml(S,L,lp,need){
+  if(!PF.__detL){ PF.__detL=1; PF.ipoDet().then(()=>{ PF.__detOk=1; if(TAB==='ca') render(); }); }
+  const td=PF.todayS(), q0=(IPQ||'').trim(), qs=q0||(SYF||'').trim(), M=qs&&PF.__ipoOk?PF.ipoFind(qs):[];
+  const ex=r=>[r.s,r.was].some(x=>x&&String(x).toUpperCase()===qs.toUpperCase());
+  let R=null, pick=[]; if(M.length){ if(M.length===1||ex(M[0])) R=M[0]; else pick=M; }
+  const opts=PF.__ipoOk?PF.ipoUniq().map(r=>`<option value="${esc(r.was||r.s)}">${esc(r.n||'')}${r.was?' (now '+esc(r.s)+')':''}</option>`).join(''):'';
+  let h=`<div class="card" style="margin:4px 0 12px;padding:9px 11px;border:2px solid var(--kh)"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><b style="font-size:13px">🔎 IPO Search</b>
+    <input id="ipq" list="ipql" value="${esc(q0)}" placeholder="Script or company name - e.g. LICI, Mahanadi, Zomato" autocomplete="off" style="flex:1;min-width:230px;max-width:430px;border:1px solid #CFC9A3;border-radius:8px;padding:7px 10px;font:700 13px Inter,sans-serif"><datalist id="ipql">${opts}</datalist>
+    <button class="btn p" id="ipqg">Show</button>${q0?'<button class="btn" id="ipqx">✕ Clear</button>':''}<span class="mu" style="font-size:11.5px">${PF.__ipoOk?PF.ipoUniq().length+' issues on NSE since 2010 · ':'loading the NSE IPO list… '}press Enter or pick from the list${!q0&&SYF&&R?' · using the script filter <b>'+esc(SYF)+'</b>':''}</span></div>`;
+  if(qs&&PF.__ipoOk&&!M.length) h+=`<div class="note">No IPO found for <b>${esc(qs)}</b> - try the company name, or the old symbol if it was renamed. SME and main-board issues are both searched.</div>`;
+  if(pick.length) h+=`<div style="margin-top:8px;font-size:12px">${pick.length} matches - pick one: ${pick.map(r=>`<button class="btn" data-ipk="${esc(r.was||r.s)}" style="margin:2px 3px 2px 0">${esc(r.s)} · ${esc(r.n||'')}${r.ld?' · '+dmy(r.ld):''}</button>`).join('')}</div>`;
+  if(R){
+    const key=R.was||R.s, d=PF.ipoDetOf(key), dc=(d&&d.disc)||null, ip=R.ip, ld=R.ld||'', li0=L[R.s]||L[key], p=lp(R.s)||lp(key), cl=S.find(o=>o.s===R.s);
+    if(ld&&ld<=td&&!li0&&!LIQ[R.s]) need.push([R.s,ld]);
+    const acts=((CA0&&CA0.a)||[]).filter(a=>a.s===R.s&&(a.t==='bonus'||a.t==='split')&&a.ex>ld), F=acts.reduce((f,a)=>f*(PF.caFactor?PF.caFactor(a):1),1), li=li0&&{ld:li0.ld,o:li0.o*F,c:li0.c*F};
+    const pct=(a,b)=>a&&b?((a/b-1)*100):null, pc=v=>v==null?'<span class="mu">–</span>':`<b class="${v>=0?'up':'dn'}">${(v>=0?'+':'')+v.toFixed(2)}%</b>`;
+    const st=R.op&&td<R.op?['Upcoming','pf']:R.cl&&td<=R.cl?['Open Now','en']:ld&&td>=ld?['Listed','ls']:['Closed - Awaiting Listing','pf'];
+    const IK=(lab,val,tip)=>`<div class="k"${tip?` data-tip="${esc(tip)}" tabindex="0"`:''}><span>${lab}</span><b>${val}</b></div>`, x2=v=>v==null?'–':fx(v,2)+'x';
+    let ban;
+    const parts=[]; if(dc){ if(dc.e||dc.ep) parts.push('Employees '+(dc.e?'₹'+fx(dc.e,0):dc.ep+'%')); if(dc.s||dc.sp) parts.push((d.othn||'Shareholders')+' '+(dc.s?'₹'+fx(dc.s,0):dc.sp+'%')); }
+    if(!d) ban=`<div style="background:#F1EDD9;color:#6E6A45;border:1px solid #CFC9A3;border-radius:10px;padding:9px 12px"><b>RETAIL DISCOUNT: NOT COLLECTED YET</b> <span style="font-size:11.5px">· NSE issue details are fetched daily and fill in for older issues over a few days - the issue price and dates below are from the NSE list.</span></div>`;
+    else if(dc&&(dc.r||dc.rp)){ const amt=dc.r||(ip?ip*dc.rp/100:0); ban=`<div style="background:#E3F1DF;color:#1C5C0D;border:2px solid #8DC487;border-radius:10px;padding:9px 12px"><div style="font:900 15px Inter,sans-serif">🎁 RETAIL DISCOUNT: ${dc.r?'₹'+fx(dc.r,2)+' per share':dc.rp+'% per share'}${ip?` <span style="font-weight:800">(${fx(amt/ip*100,2)}% off ₹${fx(ip)}) → retail pays ₹${fx(ip-amt)} a share`:''}</span></div>${parts.length?`<div style="font-size:12px;margin-top:2px">Also: ${parts.join(' · ')}</div>`:''}<div style="font-size:11px;margin-top:2px;opacity:.85">NSE: ${esc(dc.t||'')}</div></div>`; }
+    else if(dc&&dc.t&&!(dc.e||dc.s||dc.ep||dc.sp)) ban=`<div style="background:#E8EEF9;color:#1b3f7a;border:1px solid #9db4dc;border-radius:10px;padding:9px 12px"><b>DISCOUNT STATED BY NSE:</b> ${esc(dc.t)} <span style="font-size:11.5px">· could not be split by category - read the line for retail.</span></div>`;
+    else ban=`<div style="background:#FFF1C9;color:#7A5A00;border:1px solid #E7CF8A;border-radius:10px;padding:9px 12px"><b style="font-size:14px">NO RETAIL DISCOUNT</b> <span style="font-size:12px">· ${parts.length?'discount only for '+parts.join(' · '):'no discount of any kind in this issue'}</span>${dc&&dc.t?`<div style="font-size:11px;margin-top:2px;opacity:.85">NSE: ${esc(dc.t)}</div>`:''}</div>`;
+    const sub=(d&&d.sub)||{}, off=(d&&d.offr)||{}, tot=off.tot, qp=off.ret&&tot?off.ret/tot*100:null, sh=v=>v?(v>=1e7?fx(v/1e7,2)+' Cr':v>=1e5?fx(v/1e5,2)+' L':fx(v,0)):'–';
+    h+=`<div style="margin-top:10px"><div style="display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;margin-bottom:7px"><b style="font-size:16px">${esc(R.n||R.s)}</b><span style="font:900 13px Inter,sans-serif;color:var(--ol)">${esc(R.s)}</span>${R.was?`<span class="mu">(IPO as ${esc(R.was)})</span>`:''}<span class="chip ${st[1]}" style="margin:0">${st[0]}</span><span class="chip ${R.sme?'pf':'ls'}" style="margin:0">${R.sme?'SME':'Main Board'}</span>${d&&d.t?`<span class="chip ls" style="margin:0">${esc(d.t)}</span>`:''}${d&&d.isin?`<span class="mu" style="font-size:11px">${esc(d.isin)}</span>`:''}</div>${ban}
+      <div class="kpis" style="margin-top:9px">
+        ${IK('Issue Price',ip?'₹'+fx(ip):'–',R.band||'')}${IK('Retail Pays',ip&&d?'₹'+fx(ip-((dc&&(dc.r||(dc.rp&&ip*dc.rp/100)))||0)):'–',dc&&(dc.r||dc.rp)?'Issue price less the retail discount':'No retail discount - retail pays the issue price')}${IK('Price Band',esc(((d&&d.band)||R.band||'–').replace(/Rs\.?\s*/gi,'₹')),'Lower - upper end of the band; the issue price is fixed within it')}
+        ${IK('Lot Size',d&&d.lot?fx(d.lot,0)+' Sh':'–','Minimum bid lot (shares)')}${IK('Min Investment',d&&d.lot&&ip?'₹'+fx(d.lot*ip,0):'–','One lot at the issue price')}${IK('Max Retail Bid',d&&d.mx?'₹'+fx(d.mx,0):'–','Maximum application amount for a retail investor')}
+        ${IK('Retail Quota',qp!=null?fx(qp,1)+'%':'–',off.ret?sh(off.ret)+' shares reserved for retail of '+sh(tot)+' offered':'')}${IK('Face Value',d&&d.fv?'₹'+fx(d.fv,0):'–','')}${IK('Issue Size',tot?sh(tot)+' Sh':'–',d&&d.sz?d.sz:'')}
+        ${IK('Issue Open',R.op?dmy(R.op):'–','')}${IK('Issue Close',R.cl?dmy(R.cl):'–','')}${IK('Listing Date',ld?dmy(ld):'–','')}
+        ${IK('Listing Open',li?'₹'+fx(li.o):(ld&&ld<=td?(LIQ[R.s]===2?'not found':'fetching…'):'–'),li?'Opening price on the listing day':'')}${IK('Listing Close',li?'₹'+fx(li.c):'–','')}${IK('Gain Open / Close',li?pc(pct(li.o,ip))+' / '+pc(pct(li.c,ip)):'–','Against the issue price')}
+        ${IK('LTP',p?'₹'+fx(p):'–',p?'Latest price from your Portfolio prices (script held by a client)':'Shown for scripts in your Portfolio')}${IK('Now Vs Issue',p&&ip?pc(pct(p*F,ip)):'–',F!==1?'After '+acts.map(a=>a.sub).join(', ')+': issue ≈ ₹'+fx(ip/F)+' today':'')}
+        ${IK('Total Subscribed',x2(sub.tot),'Bids received ÷ shares on offer, NSE + BSE')}${IK('Retail Subscribed',x2(sub.ret),'Retail Individual Investors')}${IK('QIB Subscribed',x2(sub.qib),'Qualified Institutional Buyers')}${IK('NII Subscribed',x2(sub.nii),'Non-Institutional (HNI)')}${IK('Employees',x2(sub.emp),'Employee reservation')}${sub.oth!=null?IK(esc(d.othn||'Others'),x2(sub.oth),''):''}
+      </div>`;
+    if(d&&Object.keys(sub).length) h+=`<div class="sx" style="margin-top:8px;max-height:none"><table class="x"><thead><tr><th class="l">Category</th><th>Shares Offered</th><th>Times Subscribed</th></tr></thead><tbody>${[['Total','tot'],['Qualified Institutional Buyers','qib'],['Non-Institutional (All)','nii'],['  NII Above ₹10 Lakh','bnii'],['  NII ₹2 - 10 Lakh','snii'],['Retail Individuals','ret'],['Employees','emp'],[d.othn||'Others','oth']].filter(([,k])=>sub[k]!=null).map(([n,k])=>`<tr${k==='ret'?' class="rc"':''}><td class="l">${esc(n)}</td><td>${off[k]?fx(off[k],0):'–'}</td><td><b>${x2(sub[k])}</b></td></tr>`).join('')}</tbody></table></div>`;
+    h+=`<div class="note">${d?`Registrar <b>${esc(d.reg||'–')}</b> · Lead managers ${esc(d.lm||'–')}${d.rhp?` · <a href="${esc(d.rhp)}" target="_blank" rel="noopener">Red Herring Prospectus</a>`:''} · subscription ${esc(d.at||'')} · `:''}NSE issue details as of ${(()=>{ const a=PF.ipoDetAt(); return a?new Date(a).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour12:false,day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})+' IST':'the last daily run'; })()}</div>`;
+    h+=cl?`<div class="note" style="color:var(--ol)">Your clients in this IPO: ${cl.clients.map(c=>`<b>${esc(c.c)}</b> · ${esc(c.how)} · held <b>${fx(c.dp||c.held,0)}</b>${c.avg?' @ '+fx(c.avg):''}`).join(' · ')}</div>`:'';
+    h+=`</div>`;
+  }
+  return h+'</div>';
+}
 function ipoDmHtml(){ const Q0=(SYF||'').trim().toUpperCase(), sf=(...a)=>!Q0||a.some(x=>x&&String(x).toUpperCase().includes(Q0)), cf=x=>CL==='ALL'||x===CL, L=PF.listings(), I=PF.ipoRows(TR).filter(r=>cf(r.t.c)), D=PF.dmRecords(TR,CA0&&CA0.a), lp=sym=>(Q[sym]&&Q[sym].p)||(QB[sym]&&QB[sym].p)||null;
   const need=D.map(r=>[r.dm.child,r.dm.ex]).filter(([y])=>!L[y]&&!LIQ[y]);
   const pct=(a,b)=>a&&b?((a/b-1)*100):null, pc=v=>v==null?'<span class="mu">–</span>':`<b class="${v>=0?'up':'dn'}">${(v>=0?'+':'')+v.toFixed(2)}%</b>`;
@@ -489,10 +533,11 @@ function ipoDmHtml(){ const Q0=(SYF||'').trim().toUpperCase(), sf=(...a)=>!Q0||a
   const S=PF.ipoScripts(TR,PF.dp().H).map(o=>Object.assign(o,{clients:o.clients.filter(c=>cf(c.c))})).filter(o=>o.clients.length&&sf(o.s,o.ipo.n,o.ipo.was));
   I.forEach(({t})=>{ if(S.some(o=>o.s===t.sym)||!sf(t.sym)) return; S.push({s:t.sym,ipo:{s:t.sym,n:'',ip:t.r,band:'issue price from your IPO entry',ld:(L[t.sym]||{}).ld||'',from:t.d},clients:[{c:t.c,how:'IPO allotment',first:t,bq:t.q,sq:0,held:t.q,avg:t.r,dp:0}]}); });
   if(PF.__ipoOk) S.forEach(o=>{ if(!L[o.s]&&!LIQ[o.s]) need.push([o.s,o.ipo.ld||o.ipo.cl||o.ipo.from||'']); });   /* only once the NSE list is in: it gives the listing date to look from */
+  const srch=ipoSearchHtml(S,L,lp,need);
   if(need.length){ const nn=need.filter(([y])=>!LIQ[y]); nn.forEach(([y])=>LIQ[y]=1); if(nn.length) (async()=>{ for(const [y,d] of nn){ const r=await PF.listInfo(y,d); LIQ[y]=r?1:2; } if(TAB==='ca') render(); })(); }
   /* bonus / split after a date: Yahoo's history is adjusted for them, the issue price and old buy rates are not */
   const CAa=(CA0&&CA0.a)||[], fac=(sym,d)=>CAa.filter(a=>a.s===sym&&(a.t==='bonus'||a.t==='split')&&a.ex>d).reduce((f,a)=>f*(PF.caFactor?PF.caFactor(a):1),1);
-  let h=`<h3 class="sec">🆕 IPO Details - Scripts Held Or Traded <small>${Q0?'<b>filtered: '+esc(Q0)+'</b> · ':''}every script of ${CL==='ALL'?'your clients':esc(CL)} that came by an IPO (NSE past issues since 2010, refreshed daily) + IPO-tagged entries · issue price, issue dates, listing day, gains · per client: allotment or market buy, qty, held · ${S.length} script${S.length===1?'':'s'}</small></h3>`;
+  let h=srch+`<h3 class="sec">🆕 IPO Details - Scripts Held Or Traded <small>${Q0?'<b>filtered: '+esc(Q0)+'</b> · ':''}every script of ${CL==='ALL'?'your clients':esc(CL)} that came by an IPO (NSE past issues since 2010, refreshed daily) + IPO-tagged entries · issue price, issue dates, listing day, gains · per client: allotment or market buy, qty, held · ${S.length} script${S.length===1?'':'s'}</small></h3>`;
   h+=S.length?`<div class="sx"><table class="x"><thead><tr><th class="l">Script</th><th class="l">Company</th><th>Issue Price</th><th class="l">Issue Open - Close</th><th class="l">Listing Date</th><th>Listing Open</th><th>Day High / Low</th><th>Listing Close</th><th>Listing Gain Open / Close</th><th>After 1 Week</th><th>After 1 Month</th><th>LTP</th><th>Now vs Issue</th><th class="l">Clients - How Got · Qty · Held · Avg Cost · Gain</th><th></th></tr></thead><tbody>`+
     S.map(o=>{ const ip=o.ipo.ip, li0=L[o.s], p=lp(o.s), ld0=(li0&&li0.ld)||o.ipo.ld||'', Fl=fac(o.s,ld0), F1=fac(o.s,ld0?addDay(ld0,7):''), F2=fac(o.s,ld0?addDay(ld0,30):''), Fn=fac(o.s,'9999'),
         li=li0&&{ld:li0.ld,o:li0.o*Fl,h:li0.h*Fl,l:li0.l*Fl,c:li0.c*Fl,w1:li0.w1&&li0.w1*F1,m1:li0.m1&&li0.m1*F2}, pN=p&&p*Fl, acts=CAa.filter(a=>a.s===o.s&&(a.t==='bonus'||a.t==='split')&&a.ex>ld0);
@@ -525,7 +570,10 @@ function dmForm(){ const m=document.createElement('div'); m.id='dmM'; m.style.cs
   g('dmOk').onclick=()=>{ const o={s:g('dmS').value.trim(),child:g('dmC').value.trim(),ex:g('dmE').value,rec:g('dmRd').value,r:[+g('dmR0').value,+g('dmR1').value],pct:+g('dmP').value,note:g('dmN').value.trim()};
     if(!o.s||!o.child||!o.ex||!(o.r[0]>0&&o.r[1]>0)||!(o.pct>0&&o.pct<100)){ g('dmErr').textContent='parent, new company, ex-date, ratio and cost % (between 0 and 100) are all needed'; return; }
     PF.addDemerger(o); m.remove(); loadTrades().then(render); }; }
-document.addEventListener('click',e=>{ const a=e.target.closest('#dmAdd'); if(a){ dmForm(); return; }
+const ipqGo=v=>{ IPQ=String(v||'').trim(); render(); setTimeout(()=>{ const i=$('ipq'); if(i&&IPQ){ i.focus(); } },30); };
+document.addEventListener('change',e=>{ if(e.target&&e.target.id==='ipq') ipqGo(e.target.value); });
+document.addEventListener('keydown',e=>{ if(e.target&&e.target.id==='ipq'&&e.key==='Enter'){ e.preventDefault(); ipqGo(e.target.value); } });
+document.addEventListener('click',e=>{ const a=e.target.closest('#dmAdd'); if(a){ dmForm(); return; } const ik=e.target.closest('[data-ipk]'); if(ik){ ipqGo(ik.dataset.ipk); return; } if(e.target.closest('#ipqg')){ ipqGo(($('ipq')||{}).value); return; } if(e.target.closest('#ipqx')){ IPQ=''; render(); return; }
   const f=e.target.closest('[data-lif]'); if(f){ const [y,d]=f.dataset.lif.split('|'); f.textContent='…'; PF.listInfo(y,d,true).then(()=>render()); return; }
   const x=e.target.closest('[data-dmdel]'); if(x){ const [s0,c0]=x.dataset.dmdel.split('|'); if(confirm('Remove the demerger record '+s0+' → '+c0+'? Trades are restated without it.')){ PF.addDemerger({s:s0,child:c0,del:true}); loadTrades().then(render); } } });
 function caTab(clients){ const C=PF.corpActs&&CA0; if(!C||!C.a){ $('kpis').innerHTML=''; return '<div class="warn">Corporate actions are loading…</div>'; }
