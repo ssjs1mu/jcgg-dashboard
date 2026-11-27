@@ -97,18 +97,18 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
   const th='font:800 10.5px Inter,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#6E6A45;text-align:left;padding:2px 4px';
   const q=v=>v==null?'':String(v).replace(/"/g,'&quot;');
   const exV=String(x.ex||'').toUpperCase().indexOf('BSE')>=0?'BSE':'NSE';
-  m.innerHTML='<div style="background:#F7F4E6;border-radius:16px;width:100%;max-width:'+(one?'480':'640')+'px;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.35);font:600 13px Inter,sans-serif;color:#2E2C14">'+
-    '<div style="background:linear-gradient(180deg,#5f5b00,#3f3c00);color:#F3EFD6;padding:11px 14px;font:900 15px Inter,sans-serif">'+(one?'✎ Edit Trade':'＋ Add Trades <span style="font:600 12px Inter,sans-serif;opacity:.8">- one day, one client, many rows</span>')+'</div><div style="padding:6px 16px 14px;overflow:auto">'+
+  m.innerHTML='<div style="background:#F7F4E6;border-radius:16px;width:100%;max-width:'+(one?'480':'720')+'px;max-height:94vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.35);font:600 13px Inter,sans-serif;color:#2E2C14">'+
+    '<div style="background:linear-gradient(180deg,#5f5b00,#3f3c00);color:#F3EFD6;padding:11px 14px;font:900 15px Inter,sans-serif">'+(one?'✎ Edit Trade':'＋ Add Trades <span id="edSub" style="font:600 12px Inter,sans-serif;opacity:.8">- one day, one client, many rows</span>')+'</div><div style="padding:6px 16px 14px;overflow:auto">'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 90px 110px 130px;gap:0 10px">'+
-    '<div><label style="'+lab+'">Trade Date</label><input id="edD" type="date" style="'+inp+'" value="'+q(x.d)+'"></div>'+
+    '<div><label id="edDl" style="'+lab+'">Trade Date</label><input id="edD" type="date" style="'+inp+'" value="'+q(x.d)+'"></div>'+
     '<div><label style="'+lab+'">Client Code</label><input id="edC" list="edCl" style="'+inp+';text-transform:uppercase" value="'+q(x.c)+'" placeholder="code, not name"><datalist id="edCl">'+codes.map(c=>'<option value="'+c+'">').join('')+'</datalist></div>'+
     '<div><label style="'+lab+'">Exchange</label><select id="edE" style="'+inp+'"><option'+(exV==='NSE'?' selected':'')+'>NSE</option><option'+(exV==='BSE'?' selected':'')+'>BSE</option></select></div>'+
     '<div><label style="'+lab+'">Product</label><select id="edP" style="'+inp+'">'+['Delivery','Margin','Intraday'].map(v=>'<option'+((x.prod||'Delivery')===v?' selected':'')+'>'+v+'</option>').join('')+'</select></div>'+
     '<div><label style="'+lab+'">Tag</label><select id="edG" style="'+inp+'"><option value="">Normal trade</option><option value="IPO"'+(x.tag==='IPO'?' selected':'')+'>🆕 IPO allotment</option></select></div></div>'+
     '<div id="edGh" style="display:none;margin-top:6px;padding:6px 9px;border-radius:8px;background:#E3F1DF;color:#1C5C0D;font:700 11.5px Inter,sans-serif">IPO allotment: Trade Date = allotment date, Rate = issue price, Buy only, no brokerage / charges. Listing day details are fetched and kept on record (Corporate Actions → IPO Allotments & Listing).</div>'+
     '<datalist id="edSl">'+syms.map(c=>'<option value="'+c+'">').join('')+'</datalist>'+
-    '<table style="width:100%;border-collapse:collapse;margin-top:10px"><thead><tr><th style="'+th+'">#</th><th style="'+th+'">Symbol (NSE)</th><th style="'+th+'">Buy / Sell</th><th style="'+th+'">Quantity</th><th style="'+th+'">Rate (₹)</th><th style="'+th+';text-align:right">Value (₹)</th>'+(one?'':'<th></th>')+'</tr></thead><tbody id="edRows"></tbody></table>'+
-    (one?'':'<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="edAdd" style="border:1px dashed #676300;background:#fff;color:#3f3c00;border-radius:8px;padding:5px 10px;font:800 12px Inter,sans-serif;cursor:pointer">＋ Add Row</button><span style="font:600 11.5px Inter,sans-serif;color:#6E6A45">Enter on the last rate adds a row · paste several lines into a Symbol box</span></div>')+
+    '<table style="width:100%;border-collapse:collapse;margin-top:10px"><thead><tr><th style="'+th+'">#</th><th class="dc" style="'+th+';display:none">Date</th><th style="'+th+'">Symbol (NSE)</th><th style="'+th+'">Buy / Sell</th><th style="'+th+'">Quantity</th><th style="'+th+'">Rate (₹)</th><th style="'+th+';text-align:right">Value (₹)</th>'+(one?'':'<th></th>')+'</tr></thead><tbody id="edRows"></tbody></table>'+
+    (one?'':'<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="edAdd" style="border:1px dashed #676300;background:#fff;color:#3f3c00;border-radius:8px;padding:5px 10px;font:800 12px Inter,sans-serif;cursor:pointer">＋ Add Row</button><span style="font:600 11.5px Inter,sans-serif;color:#6E6A45">Enter on the last rate adds a row · paste several lines into a Symbol box (a date in a line sets the date of that row)</span><span style="flex:1"></span><label style="font:800 12px Inter,sans-serif;color:#3f3c00;cursor:pointer;white-space:nowrap"><input id="edMD" type="checkbox" style="vertical-align:middle"> Different Date Per Row</label></div>')+
     '<div id="edTot" style="margin-top:8px;font:800 12.5px Inter,sans-serif;color:#3f3c00"></div>'+
     '<div id="edErr" style="color:#B00000;font-weight:800;margin-top:6px"></div>'+
     '<div style="display:flex;gap:8px;margin-top:12px;align-items:center">'+(one?'<button id="edDel" style="border:1px solid #E29A93;background:#FBE3E1;color:#B00000;border-radius:8px;padding:7px 12px;font:800 12.5px Inter,sans-serif;cursor:pointer">🗑 Delete</button>':'')+
@@ -120,8 +120,17 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
   const tot=()=>{ let b=0,s=0,n=0; body.querySelectorAll('tr').forEach(tr=>{ const qq=+tr.querySelector('.q').value||0, rr=+tr.querySelector('.r').value||0, v=qq*rr; tr.querySelector('.v').textContent=v?fmt(v):''; if(v){ n++; if(tr.querySelector('.b').value==='S') s+=v; else b+=v; } });
     g('edTot').textContent=n?n+' row'+(n>1?'s':'')+' · Buy ₹'+fmt(b)+' · Sell ₹'+fmt(s)+' · Net '+(b-s>=0?'pay ₹':'receive ₹')+fmt(Math.abs(b-s)):''; };
   const renum=()=>body.querySelectorAll('tr').forEach((tr,k)=>{ tr.querySelector('.n').textContent=k+1; });
+  let MD=false;
+  const mdSet=on=>{ MD=on; if(g('edMD')) g('edMD').checked=on; document.querySelectorAll('#pfEd .dc').forEach(e=>e.style.display=on?'table-cell':'none'); g('edDl').textContent=on?'Default Date':'Trade Date';
+    if(g('edSub')) g('edSub').textContent=on?'- many dates, many stocks, one client':'- one day, one client, many rows'; if(on) body.querySelectorAll('.d').forEach(e=>{ if(!e.value) e.value=g('edD').value; }); };
+  const pDate=t=>{ let m; t=String(t).trim();
+    if(m=t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/)) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+    if(m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/)) return (m[3].length===2?'20'+m[3]:m[3])+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+    if(m=t.match(/^(\d{1,2})[-\/ ]([A-Za-z]{3})[A-Za-z]*[-\/ ](\d{2,4})$/)){ const i='jan feb mar apr may jun jul aug sep oct nov dec'.split(' ').indexOf(m[2].toLowerCase()); if(i>=0) return (m[3].length===2?'20'+m[3]:m[3])+'-'+String(i+1).padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+    return ''; };
   const addRow=(o,focus)=>{ o=o||{}; const tr=document.createElement('tr');
     tr.innerHTML='<td class="n" style="padding:3px 4px;color:#6E6A45;font-weight:800"></td>'+
+      '<td class="dc" style="padding:3px 4px;width:128px;display:'+(MD?'table-cell':'none')+'"><input class="d" type="date" style="'+inp+'" value="'+q(o.d||(MD?g('edD').value:''))+'"></td>'+
       '<td style="padding:3px 4px"><input class="s" list="edSl" style="'+inp+';text-transform:uppercase" value="'+q(o.sym)+'"></td>'+
       '<td style="padding:3px 4px;width:86px"><select class="b" style="'+inp+'"><option value="B"'+(o.side!=='S'?' selected':'')+'>Buy</option><option value="S"'+(o.side==='S'?' selected':'')+'>Sell</option></select></td>'+
       '<td style="padding:3px 4px;width:90px"><input class="q" type="number" min="1" step="1" style="'+inp+'" value="'+q(o.q)+'"></td>'+
@@ -133,18 +142,18 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
     if(tr.querySelector('.x')) tr.querySelector('.x').onclick=()=>{ tr.remove(); if(!body.children.length) addRow(); renum(); tot(); };
     tr.querySelector('.r').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!one&&tr===body.lastElementChild){ e.preventDefault(); addRow({side:tr.querySelector('.b').value},true); } });
     tr.querySelector('.s').addEventListener('paste',e=>{ if(one) return; const t=(e.clipboardData||window.clipboardData).getData('text'); const L=t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean); if(L.length<2&&!/[\t,]/.test(t)) return;
-      e.preventDefault(); let first=true; L.forEach(l=>{ const f=l.split(/[\t,;]+|\s+/).filter(Boolean); const sd=f.find(z=>/^(B|S|BUY|SELL)$/i.test(z)); const nums=f.filter(z=>/^[\d.]+$/.test(z)); const sym=f.find(z=>/[A-Za-z]/.test(z)&&!/^(B|S|BUY|SELL)$/i.test(z));
-        const o2={sym:sym||'',side:sd&&/^S/i.test(sd)?'S':'B',q:nums[0]||'',r:nums[1]||''};
-        if(first&&!tr.querySelector('.s').value){ tr.querySelector('.s').value=o2.sym; tr.querySelector('.b').value=o2.side; tr.querySelector('.q').value=o2.q; tr.querySelector('.r').value=o2.r; first=false; } else addRow(o2); }); tot(); });
+      e.preventDefault(); let first=true; L.forEach(l=>{ let f=l.split(/[\t,;]+|\s+/).filter(Boolean); const dt=f.map(pDate).find(Boolean)||''; if(dt) f=f.filter(z=>!pDate(z)); const sd=f.find(z=>/^(B|S|BUY|SELL)$/i.test(z)); const nums=f.filter(z=>/^[\d.]+$/.test(z)); const sym=f.find(z=>/[A-Za-z]/.test(z)&&!/^(B|S|BUY|SELL)$/i.test(z));
+        const o2={sym:sym||'',side:sd&&/^S/i.test(sd)?'S':'B',q:nums[0]||'',r:nums[1]||'',d:dt}; if(dt&&!MD) mdSet(true);
+        if(first&&!tr.querySelector('.s').value){ tr.querySelector('.s').value=o2.sym; tr.querySelector('.b').value=o2.side; tr.querySelector('.q').value=o2.q; tr.querySelector('.r').value=o2.r; if(o2.d&&tr.querySelector('.d')) tr.querySelector('.d').value=o2.d; first=false; } else addRow(o2); }); tot(); });
     if(focus) setTimeout(()=>tr.querySelector('.s').focus(),20); tot(); return tr; };
   addRow(one||x.sym||x.q?x:{});   /* a pre-filled suggestion (e.g. a missing buy) lands in the first row */
   if(!x.d) g('edD').value=todayS();
   const ipoH=()=>{ const on=g('edG').value==='IPO'; g('edGh').style.display=on?'block':'none'; if(on){ g('edP').value='Delivery'; body.querySelectorAll('.b').forEach(b=>b.value='B'); } }; g('edG').onchange=ipoH; ipoH();
-  m.onclick=e=>{ if(e.target===m) close(); }; g('edX').onclick=close; if(g('edAdd')) g('edAdd').onclick=()=>addRow({},true);
+  m.onclick=e=>{ if(e.target===m) close(); }; g('edX').onclick=close; if(g('edAdd')) g('edAdd').onclick=()=>addRow({},true); if(g('edMD')) g('edMD').onchange=()=>mdSet(g('edMD').checked);
   g('edOk').onclick=()=>{ try{ if(/[a-z]{2,}\s+[a-z]{2,}/i.test(g('edC').value)) throw new Error('enter the client code, not the name');
       const head={d:g('edD').value,c:g('edC').value,ex:g('edE').value,prod:g('edP').value,tag:g('edG').value}, rows=[];
       if(head.tag==='IPO'&&[...body.querySelectorAll('.b')].some(b=>b.value==='S')) throw new Error('an IPO allotment is a buy - set every row to Buy');
-      body.querySelectorAll('tr').forEach((tr,k)=>{ const o={sym:tr.querySelector('.s').value,side:tr.querySelector('.b').value,q:tr.querySelector('.q').value,r:tr.querySelector('.r').value};
+      body.querySelectorAll('tr').forEach((tr,k)=>{ const o={sym:tr.querySelector('.s').value,side:tr.querySelector('.b').value,q:tr.querySelector('.q').value,r:tr.querySelector('.r').value}; if(MD&&tr.querySelector('.d').value) o.d=tr.querySelector('.d').value;
         if(!one&&!o.sym.trim()&&!o.q&&!o.r) return;   /* blank row - skipped */
         try{ clean(Object.assign({},head,o)); }catch(e){ throw new Error('Row '+(k+1)+': '+e.message); } rows.push(o); });
       if(!rows.length) throw new Error('add at least one row');
@@ -688,7 +697,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-26q';
+const BUILD='2026-11-27a';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
