@@ -66,7 +66,7 @@ ul.pts{margin:4px 0 0;padding-left:16px}ul.pts li{margin:2px 0;break-inside:avoi
 <div class="noprint"><select id="lang" title="Language"><option value="en">English</option><option value="hi">हिंदी</option><option value="bn">বাংলা</option></select><span id="phint" style="align-self:center;background:#fff8e6;border:1px solid #E8C96A;border-radius:8px;padding:6px 10px;font:700 11.5px var(--ff);color:#6b4d0e;box-shadow:0 3px 10px rgba(0,0,0,.15)">In the print window: More settings → untick “Headers and footers”</span><button id="bpr" onclick="window.print()">⬇ Save as PDF / Print</button><button id="bcl" onclick="repClose()" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the report…</div></div>
 <script src="jc-params.js?v=1"></script>
-<script src="pf-core.js?v=99"></script>
+<script src="pf-core.js?v=100"></script>
 <script src="client-report-i18n.js?v=44"></script>
 <script>/* close the report tab; if the browser refuses (tab not opened by a script), go back to Portfolio instead */
 function repClose(){ try{ window.close(); }catch(e){} setTimeout(()=>{ if(!window.closed) location.replace('portfolio.html'); },250); }</script>
@@ -282,7 +282,10 @@ async function buildOne(){
 
   /* ledger balance (option) */
   SUP=!O.led;
-  { const ld=led, rcv=fin.reduce((a,e)=>a+e.cr-e.dr,0), pay=fout.reduce((a,e)=>a+e.dr-e.cr,0), ds=L.map(e=>e.d).filter(Boolean).sort(), dL=ds.length?ds[ds.length-1]:'';
+  { /* a ledger that ends up to a month before the last trade is still used here: its closing balance + the trades after it */
+    const CV=PF.ledCover(C), cEnd=CV.length?CV[CV.length-1][1]:'', lastT=T.map(t=>t.d).sort().pop()||'', near=!LFR&&LB.length&&cEnd&&lastT&&(Date.parse(lastT)-Date.parse(cEnd))<=31*864e5, L2=LFR?L:near?LB:[];
+    const ld=L2.length?PF.ledBal(C):null, fin2=L2.filter(e=>e.k==='in'), fout2=L2.filter(e=>e.k==='out'), intr2=L2.filter(e=>e.k==='int').reduce((a,e)=>a+e.dr-e.cr,0), dpChg2=L2.filter(e=>e.k==='dp'&&kOf(e)!=='dpdep').reduce((a,e)=>a+e.dr-e.cr,0);
+    const rcv=fin2.reduce((a,e)=>a+e.cr-e.dr,0), pay=fout2.reduce((a,e)=>a+e.dr-e.cr,0), ds=L2.map(e=>e.d).filter(Boolean).sort(), dL=cEnd&&(!ds.length||cEnd>ds[ds.length-1])?cEnd:(ds.length?ds[ds.length-1]:'');
     /* balance as on the report date = ledger closing + the trades after the ledger's last date (not yet in the uploaded ledger) */
     const aft=ld==null?[]:E.parts.filter(p=>p.d>dL), aftNet=aft.reduce((a,p)=>a+(p.side==='S'?-p.net:p.net),0), now=ld==null?null:ld+aftNet;
     const amt=v=>`${inr(Math.abs(v),2)} <small>${v>0.005?'Dr':v<-0.005?'Cr':''}</small>`;
@@ -291,7 +294,7 @@ async function buildOne(){
     else { const dr=now>0.5;
       let h=H2(SN.led,R.lT)+`<div class="t3w">`+tile(R.lNow(dlong(today)),amt(now),dr?R.lDr:now<-0.5?R.lCr:R.lNil,'big '+(dr?'dr':'cr'))
         +tile(R.lPer(dmy(dL)),amt(ld),R.lPerS)+(aft.length?tile(R.lAft(dmy(dL)),`${aftNet>=0?'+':'−'} ${inr(Math.abs(aftNet),2)}`,R.lAftS(aft.length)):'')
-        +tile(R.lRec(fin.length),inr(rcv,2),'')+tile(R.lPaid(fout.length),inr(pay,2),'')+tile(R.lInt,inr(Math.max(0,intr),2),'')+tile(R.lDp,inr(Math.max(0,dpChg),2),'')+`</div>`;
+        +tile(R.lRec(fin2.length),inr(rcv,2),'')+tile(R.lPaid(fout2.length),inr(pay,2),'')+tile(R.lInt,inr(Math.max(0,intr2),2),'')+tile(R.lDp,inr(Math.max(0,dpChg2),2),'')+`</div>`;
       let hh=56+150+(aft.length?0:0);
       if(dr){ h+=`<div class="pay3"><div class="pq">${R.lPay(inr(now,2))}</div><table class="bank"><tr><th colspan="2">${R.lBank}</th></tr>`+
           [[R.bName,'SSJ Finance &amp; Securities Pvt. Ltd.'],[R.bBank,'HDFC Bank Ltd'],[R.bBr,'Fort'],[R.bAc,'0060-034-0006253'],[R.bIfsc,'HDFC0000240']].map(([a,b])=>`<tr><td>${a}</td><td><b>${b}</b></td></tr>`).join('')+`</table><div class="pn">${R.lPayN}</div></div>`; hh+=170; }
