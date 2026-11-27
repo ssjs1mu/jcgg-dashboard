@@ -96,7 +96,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=87"></script>
+<script src="pf-core.js?v=88"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -595,6 +595,8 @@ function ipoDmHtml(){ const Q0=(SYF||'').trim().toUpperCase(), sf=(...a)=>!Q0||a
         <td><button class="ic" data-lif="${esc(o.s)}|${o.ipo.ld||''}" title="Fetch the listing day again">⟳</button></td></tr>`; }).join('')+'</tbody></table></div>'
     :`<div class="note">${PF.__ipoL&&!(window.__ipoTried)?'Loading the NSE IPO list…':'No script of these clients came by an IPO in the NSE list (since 2010). Tag an allotment in ＋ Add trade → Tag: 🆕 IPO allotment.'}</div>`;
   h+=`<h3 class="sec">🔀 Demergers - Full Record <small>parent → new company: ex-date, ratio, cost split, listing day of the new company, and per client the shares received, cost carried over, every later trade and shares held now · <button class="btn p" id="dmAdd">＋ Record a demerger</button></small></h3>`;
+  const PN=PF.dmPending(TR,CA0&&CA0.a).filter(x=>sf(x.s)&&(CL==='ALL'||x.clients.includes(CL)));
+  if(PN.length) h+=`<div class="warn" style="margin:6px 0"><b>⚠ Demergers Without Details</b> - NSE lists these, but the ratio and cost split are not recorded, so the book is not restated: ${PN.map(x=>`<b>${esc(x.s)}</b> (ex ${dmy(x.ex)}${x.clients.length?' · '+x.clients.length+' client'+(x.clients.length>1?'s':''):''})`).join(', ')}. Use ＋ Record a demerger (child symbol, ratio, % of cost to the child).</div>`;
   h+=D.filter(({dm})=>sf(dm.s,dm.child)).map(({dm,li,clients})=>{ const cs=clients.filter(c=>cf(c.c));
     return `<div class="card" style="margin:6px 0 10px;padding:8px 10px"><div style="display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;font-size:12.5px">
       <b style="font-size:14px">${esc(dm.s)} → ${esc(dm.child)}</b><span>Ex-date <b>${dmy(dm.ex)}</b></span>${dm.rec?`<span>Record <b>${dmy(dm.rec)}</b></span>`:''}<span>Ratio <b>${dm.r[0]} ${esc(dm.child)} for every ${dm.r[1]} ${esc(dm.s)}</b></span><span>Cost split <b>${(100-dm.pct).toFixed(2)}% ${esc(dm.s)} / ${(+dm.pct).toFixed(2)}% ${esc(dm.child)}</b></span>

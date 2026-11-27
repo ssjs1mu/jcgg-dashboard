@@ -709,7 +709,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-27o';
+const BUILD='2026-11-27p';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -788,10 +788,20 @@ async function caRun(trades,onStep){ await corpActs(true); const nse=new Set((CA
    (holding period carries over); fractional entitlements (paid in cash by the company) are left out. Add new demergers here. */
 const DEMERGERS=[
   {s:'ITC',ex:'2025-01-06',child:'ITCHOTELS',r:[1,10],pct:13.51,note:'ITC guidance: cost 86.49% ITC / 13.51% ITC Hotels'},
-  {s:'TMPV',ex:'2025-10-14',child:'TMCV',r:[1,1],pct:31.15,note:'Tata Motors guidance: cost 68.85% TMPV / 31.15% TMCV'}];
+  {s:'TMPV',ex:'2025-10-14',child:'TMCV',r:[1,1],pct:31.15,note:'Tata Motors guidance: cost 68.85% TMPV / 31.15% TMCV'},
+  /* Vedanta five-way demerger (record date 1 May 2026, ex 30 Apr; 1 share of EACH new company per 1 VEDL; listed 15 Jun 2026).
+     Company filing - cost of acquisition: VEDL 52.34%, VOGL (ex Malco Energy) 21.49%, VEDPOWER (ex Talwandi Sabo) 12.23%, VAML 7.15%, VISL 6.79% */
+  {s:'VEDL',ex:'2026-04-30',rec:'2026-05-01',child:'VOGL',r:[1,1],pct:21.49,note:'Vedanta filing: cost 52.34% VEDL / 21.49% VOGL / 12.23% VEDPOWER / 7.15% VAML / 6.79% VISL'},
+  {s:'VEDL',ex:'2026-04-30',rec:'2026-05-01',child:'VEDPOWER',r:[1,1],pct:12.23,note:'Vedanta filing: cost 52.34% VEDL / 21.49% VOGL / 12.23% VEDPOWER / 7.15% VAML / 6.79% VISL'},
+  {s:'VEDL',ex:'2026-04-30',rec:'2026-05-01',child:'VAML',r:[1,1],pct:7.15,note:'Vedanta filing: cost 52.34% VEDL / 21.49% VOGL / 12.23% VEDPOWER / 7.15% VAML / 6.79% VISL'},
+  {s:'VEDL',ex:'2026-04-30',rec:'2026-05-01',child:'VISL',r:[1,1],pct:6.79,note:'Vedanta filing: cost 52.34% VEDL / 21.49% VOGL / 12.23% VEDPOWER / 7.15% VAML / 6.79% VISL'}];
 const demergers=A=>{ const seen={}; return DEMERGERS.concat(userDm()).concat((A||[]).filter(a=>a.t==='demerger'&&a.child&&a.r&&a.pct!=null)).filter(d=>{ const k=d.s+'>'+d.child; if(seen[k]) return false; seen[k]=1; return true; }); };   /* one entry per parent > child */
+/* demergers NSE lists (subject "Demerger") that have no cost split / ratio recorded yet, on scripts a client traded before the ex-date: they change nothing until recorded */
+function dmPending(trades,A){ const have=new Set(demergers(A).map(d=>d.s+'|'+d.ex)), by={}; (trades||[]).forEach(t=>{ (by[canonSym(t.sym)]=by[canonSym(t.sym)]||[]).push(t); });
+  return (A||[]).filter(a=>/demerg|scheme of arrangement/i.test(a.sub||'')&&a.t!=='demerger'||(a.t==='demerger'&&!(a.child&&a.r&&a.pct!=null))).filter(a=>!have.has(a.s+'|'+a.ex)&&(a.rec||a.ex)<=todayS()&&(by[a.s]||[]).some(t=>t.d<a.ex)).map(a=>({s:a.s,ex:a.ex,rec:a.rec||'',sub:a.sub,clients:[...new Set((by[a.s]||[]).filter(t=>t.d<a.ex).map(t=>t.c))].sort()})); }
 function demergeAdjust(trades,A){ const D=demergers(A).filter(d=>(d.rec||d.ex)<=todayS()); if(!D.length) return trades;   /* a demerger not yet effective changes nothing */ let T=trades;
-  D.slice().sort((x,y)=>x.ex.localeCompare(y.ex)).forEach(dm=>{ const out=[], byC={};
+  const cum={};   /* a parent with several children (Vedanta -> 4): each child's % is of the ORIGINAL cost, but the parent rate is already cut by the earlier children, so use pct / (100 - already given away) */
+  D.slice().sort((x,y)=>x.ex.localeCompare(y.ex)).forEach(dm0=>{ const ck=dm0.s+'|'+dm0.ex, given=cum[ck]||0, dm=Object.assign({},dm0,{pct:dm0.pct/(100-given)*100}); cum[ck]=given+dm0.pct; const out=[], byC={};
     T.forEach(t=>{ if(t.sym===dm.s&&t.d<dm.ex) (byC[t.c]=byC[t.c]||[]).push(t); });
     const repl=new Map();
     Object.entries(byC).forEach(([c,L])=>{ L=L.slice().sort((a,b)=>a.d.localeCompare(b.d)||(a.side==='S'?1:-1)); const lots=[];
@@ -799,7 +809,7 @@ function demergeAdjust(trades,A){ const D=demergers(A).filter(d=>(d.rec||d.ex)<=
       const held=lots.reduce((a,l)=>a+l.rem,0), entitled=Math.floor(held*dm.r[0]/dm.r[1]+1e-9), k=dm.pct/100; if(held<=0||entitled<1) return;   /* no whole child share (e.g. 2 ITC -> 0.2 ITC Hotels): the cost stays with the parent */
       lots.filter(l=>l.rem>0).forEach(l=>{ const t=l.t, sold=t.q-l.rem, pieces=[];
         if(sold>0) pieces.push(Object.assign({},t,{q:sold,id:t.id+'#s'}));   /* sold before the ex-date: full cost */
-        pieces.push(Object.assign({},t,{q:l.rem,r:t.r*(1-k),id:t.id+'#p',dm:dm.child,dmNote:dm.note}));
+        pieces.push(Object.assign({},t,{q:l.rem,r:t.r*(1-k),id:t.id+'#p',dm:dm.child,dms:(t.dms||[]).concat(dm.child),dmNote:dm.note}));
         const cq=entitled*l.rem/held;   /* child shares from this lot (whole-number total) */
         if(cq>0) pieces.push(Object.assign({},t,{sym:dm.child,q:cq,r:t.r*k*l.rem/cq,id:t.id+'#c',dmFrom:dm.s,dmNote:dm.note}));
         repl.set(t,pieces); }); });
@@ -849,7 +859,7 @@ function dmRecords(trades,A){ const all=DEMERGERS.concat(userDm()).concat((A||(C
   const T=trades||tb().trades, adj=demergeAdjust(T.map(t=>Object.assign({},t,{sym:canonSym(t.sym)})),A), L=listings();
   all.forEach(dm=>{ const k=dm.s+'>'+dm.child; if(seen[k]) return; seen[k]=1; const cl={};
     adj.filter(p=>p.dmFrom===dm.s&&p.sym===dm.child).forEach(p=>{ const c=cl[p.c]=cl[p.c]||{c:p.c,got:0,cost:0,par:0,parCost:0,later:[]}; c.got+=p.q; c.cost+=p.q*p.r; });
-    adj.filter(p=>p.dm===dm.child&&p.sym===dm.s).forEach(p=>{ const c=cl[p.c]=cl[p.c]||{c:p.c,got:0,cost:0,par:0,parCost:0,later:[]}; c.par+=p.q; c.parCost+=p.q*p.r; });
+    adj.filter(p=>(p.dms||[p.dm]).includes(dm.child)&&p.sym===dm.s).forEach(p=>{ const c=cl[p.c]=cl[p.c]||{c:p.c,got:0,cost:0,par:0,parCost:0,later:[]}; c.par+=p.q; c.parCost+=p.q*p.r; });
     T.filter(t=>canonSym(t.sym)===dm.child&&t.d>=dm.ex).forEach(t=>{ const c=cl[t.c]=cl[t.c]||{c:t.c,got:0,cost:0,par:0,parCost:0,later:[]}; c.later.push(t); });
     Object.values(cl).forEach(c=>{ c.later.sort((a,b)=>a.d.localeCompare(b.d)); c.bought=c.later.filter(t=>t.side!=='S').reduce((a,t)=>a+t.q,0); c.sold=c.later.filter(t=>t.side==='S').reduce((a,t)=>a+t.q,0); c.now=Math.round((c.got+c.bought-c.sold)*1e4)/1e4; });
     out.push({dm,li:L[dm.child]||null,clients:Object.values(cl).sort((a,b)=>a.c.localeCompare(b.c))}); });
@@ -1164,5 +1174,5 @@ function wlSig(S0,p){ const S=S0.slice(-260).map(x=>Object.assign({},x)); if(S.l
   return {score:sc,conv:Math.abs(sc),call,lv,bull,rsi:R14,vr,e21:e21[L],atr:A}; }
 
 return wlSig; })();
-window.PF={isRE,xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={dmPending,isRE,xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
