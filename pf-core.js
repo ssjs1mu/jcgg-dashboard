@@ -401,6 +401,17 @@ const SECTOR_RX=[[/aerospace|defen/i,'Defence'],[/auto parts/i,'Auto Ancillary']
   [/department|specialty retail|internet retail|grocery|discount/i,'Retail'],[/entertainment|broadcast|publishing|advertising|internet content/i,'Media & Entertainment'],[/semiconductor|electronic|computer hardware|communication equipment/i,'Electronics'],
   [/furnishing|appliance|fixtures|recreational|leisure/i,'Consumer Durables'],[/packaging/i,'Packaging'],[/paper|lumber/i,'Paper'],[/conglomerate/i,'Conglomerate'],[/education/i,'Education'],[/rental|staffing|consulting|business services|security/i,'Services']];
 const sectorOf=(sym,ind,sec)=>SECTOR_FIX[sym]||((SECTOR_RX.find(([r])=>r.test(ind||''))||[])[1])||sec||'';
+/* 🏷 sector of any script: Nifty 500 from idx.json (Yahoo industry, else NSE industry), others looked up once on Yahoo and kept in jc_pf_sec */
+let SECM=null, SECP=null; const SECBAD={};
+function secLoad(){ if(SECP) return SECP; SECP=(async()=>{ const M={}; try{ const j=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/idx/idx.json?x='+Math.floor(Date.now()/864e5),{cache:'no-store'}).then(r=>r.json());
+    Object.entries(j.yi||{}).forEach(([s,y])=>{ const v=sectorOf(s,y,''); if(v) M[s]=v; }); Object.entries(j.ind||{}).forEach(([s,n])=>{ if(!M[s]) M[s]=sectorOf(s,'',n)||n; }); }catch(e){}
+  SECM=Object.assign(M,LS.get('jc_pf_sec',{})); return SECM; })(); return SECP; }
+const secOf=sym=>(SECM&&SECM[sym])||SECTOR_FIX[sym]||'';
+async function secFill(syms){ await secLoad(); const need=[...new Set(syms)].filter(s=>s&&!SECM[s]&&!SECBAD[s]).slice(0,40); if(!need.length) return 0; const C=LS.get('jc_pf_sec',{}); let n=0;
+  for(const s of need){ SECBAD[s]=1; for(const tk of [s+'.NS',s+'.BO']){ try{ const u='https://query2.finance.yahoo.com/v10/finance/quoteSummary/'+encodeURIComponent(tk)+'?modules=assetProfile';
+      const j=await fetch(BE+'?action=fetch&url='+encodeURIComponent(u)).then(r=>r.json()), a=j&&j.quoteSummary&&j.quoteSummary.result&&j.quoteSummary.result[0]&&j.quoteSummary.result[0].assetProfile;
+      if(a&&(a.industry||a.sector)){ const v=sectorOf(s,a.industry||'',a.sector||''); if(v){ SECM[s]=C[s]=v; n++; } break; } }catch(e){} } }
+  if(n) LS.set('jc_pf_sec',C); return n; }
 /* Trading / Investment mark is per client + symbol ('S1MU061|ITC'); an old symbol-wide mark ('ITC') still applies to clients
    with no mark of their own until one client's mark is changed - then it is copied to every client holding that symbol and removed */
 const markOf=(M,c,sym)=>(M||{})[c+'|'+sym]||(M||{})[sym]||'';
@@ -732,7 +743,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-27t';
+const BUILD='2026-11-27u';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -1206,5 +1217,5 @@ function wlSig(S0,p){ const S=S0.slice(-260).map(x=>Object.assign({},x)); if(S.l
   return {score:sc,conv:Math.abs(sc),call,lv,bull,rsi:R14,vr,e21:e21[L],atr:A}; }
 
 return wlSig; })();
-window.PF={dmPending,isRE,xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={secLoad,secOf,secFill,dmPending,isRE,xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
