@@ -103,7 +103,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=95"></script>
+<script src="pf-core.js?v=96"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -230,7 +230,7 @@ function render(){
     document.querySelectorAll('a[data-tr]').forEach(a=>a.onclick=e=>{ e.preventDefault(); e.stopPropagation(); const [c,sy]=a.dataset.tr.split('|'); tradePop(c,sy); });
     document.querySelectorAll('tr[data-stk]').forEach(tr=>tr.onclick=()=>{ SYF=tr.dataset.stk; $('sy').value=SYF; LS.set('jc_pf_sym',SYF); DV='client'; $('dv').value=DV; LS.set('jc_pf_dv',DV); render(); scrollTo(0,0); });
     document.querySelectorAll('tr[data-c]').forEach(tr=>tr.onclick=()=>{ CL=tr.dataset.c; LS.set('jc_pf_client',CL); render(); scrollTo(0,0); });
-    $('st').innerHTML='<b>●</b> '+(CL==='ALL'?'all clients':'client '+esc(CL))+' · '+(TAB==='cl'?'client list':TAB==='dp'?'DP holdings':TAB==='ca'?'corporate actions':TAB==='tal'?'tally':TAB==='tax'?'taxation & returns':TAB==='xs'?'broker billing check':TAB==='rec'?'reconciliation':'ledger'); ratesPanel(clients); return; }
+    $('st').innerHTML='<b>●</b> '+(CL==='ALL'?'All Clients':'Client '+esc(CL))+' · '+(TAB==='cl'?'client list':TAB==='dp'?'DP holdings':TAB==='ca'?'corporate actions':TAB==='tal'?'tally':TAB==='tax'?'taxation & returns':TAB==='xs'?'broker billing check':TAB==='rec'?'reconciliation':'ledger'); ratesPanel(clients); return; }
   const w=[]; { const BL=PF.LS.get('jc_pf_brkled',{})||{}, noR=[...new Set(TR.concat(OPEN).map(t=>t.c))].filter(c=>!(rateOf(c).bd>0)); if(noR.length) w.push('Brokerage not known for '+esc(noR.join(', '))+' - upload the client\'s ledger (the rate is read from its bills) or enter it in ⚙ Brokerage, charges & interest below. Taxes and exchange charges are already included.'); }
   E.warn.filter(x=>CL==='ALL'||x.startsWith(CL+' ')).forEach(x=>w.push(esc(x)));
   if(SYF) w.unshift('🔍 Showing only script <b>'+esc(SYF)+'</b> - <a href="#" id="clrSy">✕ show all scripts</a>');
@@ -323,7 +323,7 @@ function render(){
   const pt=Qat?new Date(Qat+19800000).toISOString().slice(11,16)+' IST':'not loaded';
   { const lf=hasLed()?PF.led().files:[], full='Updated '+dmy(todayS())+' '+ist().toISOString().slice(11,16)+' IST\nTrades: '+TRsrc.replace(/&amp;/g,'&')+'\nLedger: '+(lf.length?lf.map(f=>f.name+' ('+f.clients.length+' client'+(f.clients.length>1?'s':'')+', '+f.at+')').join('\n   '):'none uploaded')+'\nPrices: '+(mktOpen()?'live, ':'last close, ')+pt;
     $('upd').innerHTML='Updated <b>'+ist().toISOString().slice(11,16)+'</b> IST · Prices: '+(mktOpen()?'<b>live</b>':'last close')+'<br>Trades: '+(TR.length?new Set(TR.map(t=>t.c)).size+' client'+(new Set(TR.map(t=>t.c)).size>1?'s':'')+', '+TR.length+' fills':'none')+' · Ledger: '+(lf.length?lf.length+' file'+(lf.length>1?'s':''):'none'); $('upd').title=full; }
-  $('st').innerHTML='<b>●</b> '+(CL==='ALL'?'all clients':'client '+esc(CL))+' · '+fx(S.val,0);
+  $('st').innerHTML='<b>●</b> '+(CL==='ALL'?'All Clients':'Client '+esc(CL))+(SYF?' · '+esc(SYF.toUpperCase()):'')+' · <span title="value of the shares held, at today\'s market price (cost where a price is not in yet)">Portfolio Value ₹'+fx(S.val,0)+'</span>';
   ratesPanel(clients);
 }
 
