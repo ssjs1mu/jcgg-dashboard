@@ -96,7 +96,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=85"></script>
+<script src="pf-core.js?v=86"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -343,11 +343,12 @@ function swPop(E,inC,sym){ const x=swData(E,inC).find(y=>y.sym===sym); if(!x) re
     `<tr class="tot"><td class="l" colspan="2">Total · ${x.C.length} client${x.C.length>1?'s':''}</td><td>${fx(x.qty,0)}</td><td>${fx(x.avg)}</td><td>${fx(x.cost,0)}</td><td>${x.val!=null?fx(x.val,0):'–'}</td><td class="${cls(x.pl)}">${sgn(x.pl,0)}</td><td class="${cls(x.plp)}">${pc(x.plp)}</td></tr></tbody></table></div><div class="note">Tap a client to open its portfolio.</div>`); }
 /* ---------- click a column heading to sort (single-row headings; total rows stay at the bottom) ---------- */
 const TSORT={};
-const cellVal=t=>{ t=String(t||'').trim(); const m=t.replace(/[₹,%×\s]/g,'').replace(/^−/,'-').match(/^[+-]?\d+(\.\d+)?/); if(m&&/^[+\-−₹\d.,\s%]/.test(t)) return {n:+m[0]*(/Cr$/.test(t)?-1:1)}; const d=t.match(/^(\d\d)-(\d\d)-(\d{4})/); if(d) return {n:+(d[3]+d[2]+d[1])}; return {s:t.toLowerCase()}; };
+const cellVal=t=>{ t=String(t||'').trim(); const d0=t.match(/^(\d\d)-(\d\d)-(\d{4})(?!\d)/); if(d0) return {n:+(d0[3]+d0[2]+d0[1]),dt:1};   /* a dd-mm-yyyy date sorts as yyyymmdd - checked FIRST, else the number test below would read only the day */
+  const m=t.replace(/[₹,%×\s]/g,'').replace(/^−/,'-').match(/^[+-]?\d+(\.\d+)?/); if(m&&/^[+\-−₹\d.,\s%]/.test(t)) return {n:+m[0]*(/Cr$/.test(t)?-1:1)}; const d=t.match(/^(\d\d)-(\d\d)-(\d{4})/); if(d) return {n:+(d[3]+d[2]+d[1])}; return {s:t.toLowerCase()}; };
 function sortables(root){ (root||document).querySelectorAll('table.x').forEach((tb,ti)=>{ const hr=tb.tHead&&tb.tHead.rows; if(!hr||hr.length!==1||!tb.tBodies[0]) return;
     const h3=tb.closest('.sx')&&tb.closest('.sx').previousElementSibling, key=(h3&&h3.tagName==='H3'?h3.firstChild.textContent.trim():'t'+ti)+'|'+TAB;
     const run=(i,dir)=>{ const B=tb.tBodies[0], rows=[...B.rows], fixed=rows.filter(r=>r.classList.contains('tot')||r.classList.contains('sub')||r.cells.length<hr[0].cells.length-2), mov=rows.filter(r=>!fixed.includes(r));
-      mov.sort((a,b)=>{ const x=cellVal(a.cells[i]&&a.cells[i].innerText), y=cellVal(b.cells[i]&&b.cells[i].innerText); const c=(x.n!=null&&y.n!=null)?x.n-y.n:x.n!=null?-1:y.n!=null?1:String(x.s).localeCompare(String(y.s)); return dir*c; });
+      const ix=new Map(mov.map((r,k)=>[r,k])); mov.sort((a,b)=>{ const x=cellVal(a.cells[i]&&a.cells[i].innerText), y=cellVal(b.cells[i]&&b.cells[i].innerText); if(x.dt&&y.dt&&x.n===y.n) return dir>0?ix.get(b)-ix.get(a):ix.get(a)-ix.get(b);   /* same date: keep the trades of that day in their real order (the tables list newest first) */ const c=(x.n!=null&&y.n!=null)?x.n-y.n:x.n!=null?-1:y.n!=null?1:String(x.s).localeCompare(String(y.s)); return dir*c; });
       mov.concat(fixed).forEach(r=>B.appendChild(r)); [...hr[0].cells].forEach((th,j)=>{ th.dataset.ar=j===i?(dir>0?' ▲':' ▼'):''; }); };
     [...hr[0].cells].forEach((th,i)=>{ if(!th.innerText.trim()) return; th.style.cursor='pointer'; th.title='Click to sort'; th.onclick=()=>{ const o=TSORT[key], dir=o&&o.i===i?-o.dir:(i<=1?1:-1); TSORT[key]={i,dir}; run(i,dir); }; });
     const o=TSORT[key]; if(o) run(o.i,o.dir); }); }
