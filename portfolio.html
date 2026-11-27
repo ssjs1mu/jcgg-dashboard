@@ -54,7 +54,10 @@ details.pan{background:#fff;border:1px solid var(--line);border-radius:10px;marg
 .chip.bk{background:#FBE3E1;color:#B00000;border:1px solid #E29A93}.chip.en{background:#E3F1DF;color:#1C820D;border:1px solid #8DC487}.chip.pf{background:#FFF1C9;color:#7A5A00;border:1px solid #E7CF8A}.chip.ls{background:#F1EDD9;color:#6E6A45;border:1px solid #DCD6B4}
 @keyframes jcb{0%,100%{opacity:1}50%{opacity:.18}}.b1{animation:jcb 1.8s ease-in-out infinite}.b2{animation:jcb .55s ease-in-out infinite}
 tr.hot:not(.rc) td{background:#FFF8E1!important}tr.hot.rc td:first-child{box-shadow:inset 4px 0 0 #E8B33A}
-.liqT{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}#kpis button[data-liq]{color:#fff!important;cursor:pointer;border:0;text-align:left}#kpis button[data-liq] span,#kpis button[data-liq] b,#kpis button[data-liq] small{color:#fff!important}.liqT button{border:0;border-radius:12px;padding:8px 14px;color:#fff;font:800 13px Inter,sans-serif;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.18);text-align:left;line-height:1.25}.liqT button small{display:block;font:700 10.5px Inter,sans-serif;opacity:.92}
+.liqT{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}#kpis button[data-liq]{color:#fff!important;cursor:pointer;border:0;text-align:left;background:var(--lq)!important}
+.lqb{animation:lqP 2.8s ease-in-out infinite}.lqb.lq2{animation-duration:2.2s}
+@keyframes lqP{0%,100%{box-shadow:0 0 0 0 rgba(255,214,0,0),0 2px 6px rgba(0,0,0,.25);filter:brightness(1)}50%{box-shadow:0 0 0 3px #FFD600,0 0 16px 2px rgba(255,214,0,.75);filter:brightness(1.18)}}
+@media (prefers-reduced-motion:reduce){.lqb{animation:none}}#kpis button[data-liq] span,#kpis button[data-liq] b,#kpis button[data-liq] small{color:#fff!important}.liqT button{border:0;border-radius:12px;padding:8px 14px;color:#fff;font:800 13px Inter,sans-serif;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.18);text-align:left;line-height:1.25}.liqT button small{display:block;font:700 10.5px Inter,sans-serif;opacity:.92}
 #pfPop{position:fixed;inset:0;z-index:9800;background:rgba(40,38,10,.5);display:flex;align-items:flex-start;justify-content:center;padding:40px 12px;overflow:auto}#pfPop>div{background:#fff;border-radius:14px;max-width:1100px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.35)}#pfPop h4{margin:0;padding:10px 14px;font:900 15px Inter,sans-serif;color:#3f3c00;border-bottom:2px solid #E8C96A;display:flex;justify-content:space-between;align-items:center}#pfPop .pb{padding:10px 12px}tr.swr{cursor:pointer}
 select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.mk.T{background:#FFF1C9;border-color:#E7CF8A}select.mk.I{background:#E6EEF8;border-color:#A9C1E0}
 .tlk{display:inline-block;margin-left:6px;padding:1px 7px;border:1px solid #1b3f7a;border-radius:10px;font:800 11px Inter,sans-serif;color:#1b3f7a;background:#E8EEF9;text-decoration:none;white-space:nowrap}.tlk:hover{background:#1b3f7a;color:#fff}
@@ -100,7 +103,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=91"></script>
+<script src="pf-core.js?v=92"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -371,9 +374,10 @@ function liqHtml(E,clients){ const out=[];
     if(a.over4>0){ const need=a.over4*1.02, L=PF.liquidate(c,E.hold,Q,MARK,need,STAT,rateOf); out.push({c,a,need,L,lvl:2}); }
     else if(a.maxT>=3) out.push({c,a,lvl:1}); });
   window.LIQTILES=''; if(!out.length) return '';
-  const PAL=['#C62828','#AD1457','#6A1B9A','#283593','#00695C','#EF6C00','#4E342E','#1565C0','#2E7D32','#9E9D24','#D84315','#5D4037'], col=c=>PAL[[...c].reduce((a,ch)=>(a*31+ch.charCodeAt(0))>>>0,7)%PAL.length];
+  /* one distinct colour per badge (in order, so no two clients share one), all dark enough for white text */
+  const PAL=['#C62828','#1565C0','#6A1B9A','#00796B','#EF6C00','#AD1457','#283593','#2E7D32','#5D4037','#00838F','#D84315','#4527A0','#558B2F','#B71C1C','#0277BD','#8E24AA'];
   window.LIQD={};
-  const tiles='<div class="liqT">'+out.sort((x,y)=>y.lvl-x.lvl||y.a.maxT-x.a.maxT).map(o=>`<button class="k ${o.lvl>1?'b2':'b1'}" data-liq="${esc(o.c)}" style="background:${col(o.c)}" title="${o.lvl>1?'Overdue (T+4 and older) '+fx(o.a.over4,0)+' · to raise '+fx(o.need,0):'Debit '+fx(o.a.debit,0)} - click for the debit ageing and the sell suggestion"><span>⚠ ${o.lvl>1?'Liquidate · T+'+o.a.maxT:'Due · T+'+o.a.maxT}</span><b>${esc(o.c)}</b><small>${o.lvl>1?'overdue '+fx(o.a.over4,0):'debit '+fx(o.a.debit,0)}</small></button>`).join('')+'</div>';
+  const tiles='<div class="liqT">'+out.sort((x,y)=>y.lvl-x.lvl||y.a.maxT-x.a.maxT).map((o,i)=>`<button class="k lqb${o.lvl>1?' lq2':''}" data-liq="${esc(o.c)}" style="--lq:${PAL[i%PAL.length]};animation-delay:-${(i*0.37).toFixed(2)}s" title="${o.lvl>1?'Overdue (T+4 and older) '+fx(o.a.over4,0)+' · to raise '+fx(o.need,0):'Debit '+fx(o.a.debit,0)} - click for the debit ageing and the sell suggestion"><span>⚠ ${o.lvl>1?'Liquidate · T+'+o.a.maxT:'Due · T+'+o.a.maxT}</span><b>${esc(o.c)}</b><small>${o.lvl>1?'overdue '+fx(o.a.over4,0):'debit '+fx(o.a.debit,0)}</small></button>`).join('')+'</div>';
   out.forEach(o=>{ const a=o.a;
     const head=`<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:8px 12px;font-weight:800"><span style="font:900 16px Inter,sans-serif">${esc(o.c)}</span>
       <span class="chip ${o.lvl>1?'bk b2':'pf'}" style="font-size:11px">${o.lvl>1?'LIQUIDATE · T+'+a.maxT:'Due · T+'+a.maxT+' (liquidation from T+4)'}</span>

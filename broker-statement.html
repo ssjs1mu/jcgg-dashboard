@@ -23,7 +23,7 @@ thead{display:table-header-group}tr{break-inside:avoid}.tot td{background:#EEEAD
 <div class="noprint"><label style="background:#fff;padding:8px 10px;border-radius:9px;font:700 12px Inter,Arial"><input type="checkbox" id="all"> Show every day</label><button onclick="window.print()">🖨 Save as PDF / Print</button><button onclick="try{window.close()}catch(e){};setTimeout(()=>{ if(!window.closed) location.replace('portfolio.html'); },250)" style="background:#8a8466">✕ Close</button></div>
 <div id="root"><div id="msg">Preparing the statement…</div></div>
 <script src="jc-params.js?v=1"></script>
-<script src="pf-core.js?v=91"></script>
+<script src="pf-core.js?v=92"></script>
 <script>
 const $=id=>document.getElementById(id), P=new URLSearchParams(location.search), C=(P.get('c')||'').toUpperCase();
 const fx=(v,d=2)=>v==null||!isFinite(v)?'–':Number(v).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
