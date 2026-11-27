@@ -1,0 +1,8 @@
+name: probe-ipo-sources
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -I tools/probe_ipo.py
