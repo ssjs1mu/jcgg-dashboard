@@ -697,7 +697,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-27a';
+const BUILD='2026-11-27b';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -778,7 +778,7 @@ const DEMERGERS=[
   {s:'ITC',ex:'2025-01-06',child:'ITCHOTELS',r:[1,10],pct:13.51,note:'ITC guidance: cost 86.49% ITC / 13.51% ITC Hotels'},
   {s:'TMPV',ex:'2025-10-14',child:'TMCV',r:[1,1],pct:31.15,note:'Tata Motors guidance: cost 68.85% TMPV / 31.15% TMCV'}];
 const demergers=A=>{ const seen={}; return DEMERGERS.concat(userDm()).concat((A||[]).filter(a=>a.t==='demerger'&&a.child&&a.r&&a.pct!=null)).filter(d=>{ const k=d.s+'>'+d.child; if(seen[k]) return false; seen[k]=1; return true; }); };   /* one entry per parent > child */
-function demergeAdjust(trades,A){ const D=demergers(A); if(!D.length) return trades; let T=trades;
+function demergeAdjust(trades,A){ const D=demergers(A).filter(d=>d.ex<=todayS()); if(!D.length) return trades;   /* a demerger not yet effective changes nothing */ let T=trades;
   D.slice().sort((x,y)=>x.ex.localeCompare(y.ex)).forEach(dm=>{ const out=[], byC={};
     T.forEach(t=>{ if(t.sym===dm.s&&t.d<dm.ex) (byC[t.c]=byC[t.c]||[]).push(t); });
     const repl=new Map();
@@ -832,7 +832,7 @@ function dmRecords(trades,A){ const all=DEMERGERS.concat(userDm()).concat((A||(C
     out.push({dm,li:L[dm.child]||null,clients:Object.values(cl).sort((a,b)=>a.c.localeCompare(b.c))}); });
   return out.sort((a,b)=>b.dm.ex.localeCompare(a.dm.ex)); }
 function caFactor(a){ if(a.f&&a.f>0) return a.f; return a.t==='bonus'&&a.r&&a.r[1]?(a.r[0]+a.r[1])/a.r[1]:a.t==='split'&&a.fv&&a.fv[1]?a.fv[0]/a.fv[1]:1; }
-function caAdjust(trades,A){ trades=trades.map(t=>{ const k=canonSym(t.sym); return k===t.sym?t:Object.assign({},t,{sym:k,sym0:t.sym}); }); const S=(A||(CA&&CA.a)||[]).filter(a=>(a.t==='bonus'||a.t==='split')&&caFactor(a)!==1); if(!S.length) return demergeAdjust(trades,A||(CA&&CA.a));
+function caAdjust(trades,A){ trades=trades.map(t=>{ const k=canonSym(t.sym); return k===t.sym?t:Object.assign({},t,{sym:k,sym0:t.sym}); }); const S=(A||(CA&&CA.a)||[]).filter(a=>(a.t==='bonus'||a.t==='split')&&caFactor(a)!==1&&a.ex<=todayS());   /* only actions that have taken effect: a split / bonus with a future ex-date changes nothing yet (price and holding are still pre-action) */ if(!S.length) return demergeAdjust(trades,A||(CA&&CA.a));
   const by={}; S.forEach(a=>(by[a.s]=by[a.s]||[]).push(a));
   return demergeAdjust(trades.map(t=>{ const L=by[t.sym]; if(!L) return t; let k=1; L.forEach(a=>{ if(t.d<a.ex) k*=caFactor(a); }); return k===1?t:Object.assign({},t,{q:t.q*k,r:t.r/k,adj:k,q0:t.q,r0:t.r}); }),A); }
 /* client-wise entitlement rows for every action on a script the client traded or holds in DP */
