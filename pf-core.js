@@ -425,6 +425,17 @@ function liquidate(c,hold,Q,marks,need,STAT,rateOf){ const rows=[];
     if(got+full>need){ q=Math.min(r.q,Math.ceil((need-got)/(r.p*0.99))); while(q<r.q&&got+sellNet(c,r.p,q,STAT,rateOf)<need) q++; }
     const net=sellNet(c,r.p,q,STAT,rateOf); got+=net; pick.push({sym:r.sym,mk:r.mk,q,of:r.q,p:r.p,net,pl:r.pl*q/r.q,plp:r.plp}); }
   return {pick,got,short:Math.max(0,need-got)}; }
+/* liquidation, newest purchase first: open positions ordered by their last buy date (latest first), then by the largest profit;
+   Investment-marked stocks only after the rest. Sells until the net sale value covers 'need'. */
+function liquidateNew(c,hold,Q,marks,need,STAT,rateOf){ const rows=[];
+  hold.filter(h=>h.c===c&&Q[h.sym]&&h.cost!=null).forEach(h=>{ let r=rows.find(x=>x.sym===h.sym); if(!r){ r={sym:h.sym,q:0,cost:0,hc:0,last:''}; rows.push(r); } r.q+=h.q; r.cost+=h.q*h.cost; r.hc+=h.hc||0; if((h.d||'')>r.last) r.last=h.d||''; });
+  rows.forEach(r=>{ r.p=Q[r.sym].p; r.mk=markOf(marks,c,r.sym); r.avg=r.cost/r.q; r.pl=r.q*r.p-r.cost-r.hc; r.plp=r.pl/(r.cost+r.hc)*100; });
+  rows.sort((a,b)=>((a.mk==='I')-(b.mk==='I'))||b.last.localeCompare(a.last)||b.pl-a.pl);
+  let got=0; const pick=[];
+  for(const r of rows){ if(got>=need) break; let q=r.q; const full=sellNet(c,r.p,r.q,STAT,rateOf);
+    if(got+full>need){ q=Math.min(r.q,Math.ceil((need-got)/(r.p*0.99))); while(q<r.q&&got+sellNet(c,r.p,q,STAT,rateOf)<need) q++; }
+    const net=sellNet(c,r.p,q,STAT,rateOf); got+=net; pick.push({sym:r.sym,mk:r.mk,last:r.last,avg:r.avg,q,of:r.q,p:r.p,net,pl:r.pl*q/r.q,plp:r.plp}); }
+  return {pick,got,short:Math.max(0,need-got),all:rows}; }
 /* XIRR of dated flows (money in negative, money out / value today positive) */
 function xirr(fl){ if(fl.length<2||!fl.some(f=>f.v<0)||!fl.some(f=>f.v>0)) return null; const t0=Date.parse(fl[0].d);
   const f=r=>fl.reduce((a,x)=>a+x.v/Math.pow(1+r,(Date.parse(x.d)-t0)/864e5/365),0); let lo=-0.99, hi=10;
@@ -743,7 +754,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-28a';
+const BUILD='2026-11-28b';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -1217,5 +1228,5 @@ function wlSig(S0,p){ const S=S0.slice(-260).map(x=>Object.assign({},x)); if(S.l
   return {score:sc,conv:Math.abs(sc),call,lv,bull,rsi:R14,vr,e21:e21[L],atr:A}; }
 
 return wlSig; })();
-window.PF={secLoad,secOf,secFill,dmPending,isRE,xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={liquidateNew,secLoad,secOf,secFill,dmPending,isRE,xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
