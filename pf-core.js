@@ -109,6 +109,7 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
     '<table style="width:100%;border-collapse:collapse;margin-top:10px"><thead><tr><th style="'+th+'">#</th><th style="'+th+'">Date</th><th style="'+th+'">Symbol (NSE)</th><th style="'+th+'">Buy / Sell</th><th style="'+th+'">Quantity</th><th style="'+th+'">Rate (₹)</th><th style="'+th+';text-align:right">Value (₹)</th>'+(one?'':'<th></th>')+'</tr></thead><tbody id="edRows"></tbody></table>'+
     (one?'':'<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="edAdd" style="border:1px dashed #676300;background:#fff;color:#3f3c00;border-radius:8px;padding:5px 10px;font:800 12px Inter,sans-serif;cursor:pointer">＋ Add Row</button><span style="font:600 11.5px Inter,sans-serif;color:#6E6A45">Enter on the last rate adds a row · paste several lines into a Symbol box (a date in a line sets the date of that row)</span></div>')+
     '<div id="edTot" style="margin-top:8px;font:800 12.5px Inter,sans-serif;color:#3f3c00"></div>'+
+    '<div id="edSv" style="margin-top:3px;font:700 11.5px Inter,sans-serif;color:#1C5C0D"></div>'+
     '<div id="edErr" style="color:#B00000;font-weight:800;margin-top:6px"></div>'+
     '<div style="display:flex;gap:8px;margin-top:12px;align-items:center">'+(one?'<button id="edDel" style="border:1px solid #E29A93;background:#FBE3E1;color:#B00000;border-radius:8px;padding:7px 12px;font:800 12.5px Inter,sans-serif;cursor:pointer">🗑 Delete</button>':'')+
     '<span style="flex:1"></span><button id="edX" style="border:1px solid #CFC9A3;background:#fff;border-radius:8px;padding:7px 12px;font:800 12.5px Inter,sans-serif;cursor:pointer;color:#3f3c00">Cancel</button>'+
@@ -119,6 +120,18 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
   const tot=()=>{ let b=0,s=0,n=0; body.querySelectorAll('tr').forEach(tr=>{ const qq=+tr.querySelector('.q').value||0, rr=+tr.querySelector('.r').value||0, v=qq*rr; tr.querySelector('.v').textContent=v?fmt(v):''; if(v){ n++; if(tr.querySelector('.b').value==='S') s+=v; else b+=v; } });
     g('edTot').textContent=n?n+' row'+(n>1?'s':'')+' · Buy ₹'+fmt(b)+' · Sell ₹'+fmt(s)+' · Net '+(b-s>=0?'pay ₹':'receive ₹')+fmt(Math.abs(b-s)):''; };
   const renum=()=>body.querySelectorAll('tr').forEach((tr,k)=>{ tr.querySelector('.n').textContent=k+1; });
+  /* auto-save: a row that is complete (client, date, symbol, quantity, rate all valid) is saved the moment it is left, so closing the box by mistake loses nothing.
+     The row remembers its trade id - later edits of the same row update that trade, never add a second one. Edit mode (one trade) keeps the explicit Save. */
+  let CHG=false;
+  const headV=()=>({c:g('edC').value,ex:g('edE').value,prod:g('edP').value,tag:g('edG').value});
+  const rowV=tr=>({sym:tr.querySelector('.s').value,side:tr.querySelector('.b').value,q:tr.querySelector('.q').value,r:tr.querySelector('.r').value,d:tr.querySelector('.d').value});
+  const svN=()=>body.querySelectorAll('tr[data-tid]').length;
+  const svShow=()=>{ if(one) return; const n=svN(); g('edSv').textContent=n?'✓ '+n+' row'+(n>1?'s':'')+' saved automatically - closing this box keeps them':''; g('edX').textContent=n?'Close':'Cancel'; };
+  const auto=tr=>{ if(one||!tr||!tr.isConnected) return; try{ const h=headV(), o=rowV(tr);
+      if(/[a-z]{2,}\s+[a-z]{2,}/i.test(h.c)||!h.c.trim()||!o.sym.trim()||!(+o.q>0)||!(+o.r>0)||!o.d) return;
+      if(h.tag==='IPO'&&o.side==='S') return;
+      clean(Object.assign({},h,o)); const t=saveTrade(Object.assign({id:tr.dataset.tid||undefined},h,o)); tr.dataset.tid=t.id; CHG=true; svShow(); }catch(e){} };
+  const autoAll=()=>body.querySelectorAll('tr').forEach(auto);
   const pDate=t=>{ let m; t=String(t).trim();
     if(m=t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/)) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
     if(m=t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})$/)) return (m[3].length===2?'20'+m[3]:m[3])+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
@@ -134,26 +147,27 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
       '<td class="v" style="padding:3px 4px;text-align:right;font-weight:800;white-space:nowrap;width:90px"></td>'+
       (one?'':'<td style="padding:3px 2px;width:26px"><button class="x" title="remove row" style="border:none;background:none;color:#B00000;font:900 15px Inter,sans-serif;cursor:pointer">✕</button></td>');
     body.appendChild(tr); renum();
-    tr.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',tot));
-    if(tr.querySelector('.x')) tr.querySelector('.x').onclick=()=>{ tr.remove(); if(!body.children.length) addRow(); renum(); tot(); };
-    tr.querySelector('.r').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!one&&tr===body.lastElementChild){ e.preventDefault(); addRow({side:tr.querySelector('.b').value,d:tr.querySelector('.d').value,sym:tr.querySelector('.s').value},true); } });
+    tr.querySelectorAll('input,select').forEach(e=>{ e.addEventListener('input',tot); e.addEventListener('change',()=>auto(tr)); });
+    if(tr.querySelector('.x')) tr.querySelector('.x').onclick=()=>{ if(tr.dataset.tid){ try{ deleteTrade(tr.dataset.tid); CHG=true; }catch(e){} } tr.remove(); svShow(); if(!body.children.length) addRow(); renum(); tot(); };
+    tr.querySelector('.r').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!one&&tr===body.lastElementChild){ e.preventDefault(); auto(tr); addRow({side:tr.querySelector('.b').value,d:tr.querySelector('.d').value,sym:tr.querySelector('.s').value},true); } });
     tr.querySelector('.s').addEventListener('paste',e=>{ if(one) return; const t=(e.clipboardData||window.clipboardData).getData('text'); const L=t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean); if(L.length<2&&!/[\t,]/.test(t)) return;
       e.preventDefault(); let first=true; L.forEach(l=>{ let f=l.split(/[\t,;]+|\s+/).filter(Boolean); const dt=f.map(pDate).find(Boolean)||''; if(dt) f=f.filter(z=>!pDate(z)); const sd=f.find(z=>/^(B|S|BUY|SELL)$/i.test(z)); const nums=f.filter(z=>/^[\d.]+$/.test(z)); const sym=f.find(z=>/[A-Za-z]/.test(z)&&!/^(B|S|BUY|SELL)$/i.test(z));
         const o2={sym:sym||'',side:sd&&/^S/i.test(sd)?'S':'B',q:nums[0]||'',r:nums[1]||'',d:dt||tr.querySelector('.d').value}; 
-        if(first&&!tr.querySelector('.s').value){ tr.querySelector('.s').value=o2.sym; tr.querySelector('.b').value=o2.side; tr.querySelector('.q').value=o2.q; tr.querySelector('.r').value=o2.r; if(o2.d&&tr.querySelector('.d')) tr.querySelector('.d').value=o2.d; first=false; } else addRow(o2); }); tot(); });
+        if(first&&!tr.querySelector('.s').value){ tr.querySelector('.s').value=o2.sym; tr.querySelector('.b').value=o2.side; tr.querySelector('.q').value=o2.q; tr.querySelector('.r').value=o2.r; if(o2.d&&tr.querySelector('.d')) tr.querySelector('.d').value=o2.d; first=false; } else addRow(o2); }); tot(); autoAll(); });
     if(focus) setTimeout(()=>{ const e=tr.querySelector('.s'); e.focus(); e.select(); },20); tot(); return tr; };
   addRow(one||x.sym||x.q?x:{});   /* a pre-filled suggestion (e.g. a missing buy) lands in the first row */
   
   const ipoH=()=>{ const on=g('edG').value==='IPO'; g('edGh').style.display=on?'block':'none'; if(on){ g('edP').value='Delivery'; body.querySelectorAll('.b').forEach(b=>b.value='B'); } }; g('edG').onchange=ipoH; ipoH();
-  m.onclick=e=>{ if(e.target===m) close(); }; g('edX').onclick=close; if(g('edAdd')) g('edAdd').onclick=()=>{ const l=body.lastElementChild; addRow(l?{side:l.querySelector('.b').value,d:l.querySelector('.d').value,sym:l.querySelector('.s').value}:{},true); }; 
+  const shut=()=>{ close(); if(CHG&&!one) onDone&&onDone(svN()); };
+  m.onclick=e=>{ if(e.target===m) shut(); }; g('edX').onclick=shut; ['edC','edE','edP','edG'].forEach(i=>g(i).addEventListener('change',autoAll)); if(g('edAdd')) g('edAdd').onclick=()=>{ const l=body.lastElementChild; auto(l); addRow(l?{side:l.querySelector('.b').value,d:l.querySelector('.d').value,sym:l.querySelector('.s').value}:{},true); }; 
   g('edOk').onclick=()=>{ try{ if(/[a-z]{2,}\s+[a-z]{2,}/i.test(g('edC').value)) throw new Error('enter the client code, not the name');
-      const head={c:g('edC').value,ex:g('edE').value,prod:g('edP').value,tag:g('edG').value}, rows=[];
+      const head=headV(), rows=[];
       if(head.tag==='IPO'&&[...body.querySelectorAll('.b')].some(b=>b.value==='S')) throw new Error('an IPO allotment is a buy - set every row to Buy');
       body.querySelectorAll('tr').forEach((tr,k)=>{ const o={sym:tr.querySelector('.s').value,side:tr.querySelector('.b').value,q:tr.querySelector('.q').value,r:tr.querySelector('.r').value}; o.d=tr.querySelector('.d').value;
         if(!one&&!o.sym.trim()&&!o.q&&!o.r) return;   /* blank row - skipped */
-        try{ clean(Object.assign({},head,o)); }catch(e){ throw new Error('Row '+(k+1)+': '+e.message); } rows.push(o); });
+        try{ clean(Object.assign({},head,o)); }catch(e){ throw new Error('Row '+(k+1)+': '+e.message); } rows.push({o,tr}); });
       if(!rows.length) throw new Error('add at least one row');
-      rows.forEach(o=>saveTrade(Object.assign({id:one?x.id:undefined},head,o))); close(); onDone&&onDone(rows.length); }catch(e){ g('edErr').textContent=e.message; } };
+      rows.forEach(r=>{ const t=saveTrade(Object.assign({id:one?x.id:(r.tr.dataset.tid||undefined)},head,r.o)); r.tr.dataset.tid=t.id; }); close(); onDone&&onDone(rows.length); }catch(e){ g('edErr').textContent=e.message; } };
   if(g('edDel')) g('edDel').onclick=()=>{ if(!confirm('Delete this trade?')) return; deleteTrade(x.id); close(); onDone&&onDone(); };
   setTimeout(()=>(one?body.querySelector('.q'):g('edC')).focus(),50); }
 /* ---------- broker's statutory charge sheet ("SSJ Finance and SSJ Commodities charges details"), date-wise; rates in % of turnover.
@@ -693,7 +707,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-27d';
+const BUILD='2026-11-27e';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
