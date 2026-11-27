@@ -101,6 +101,9 @@ def run_details(op, A, budget_s=1500, per_run=700):
         if r.get('sme'): continue                            # equity (main board) only for now
         if re.match(r'^\d', k) or re.search(r'DEBT|INVIT|REIT|NCD|BOND', str(r.get('sec') or ''), re.I): continue   # bonds / trusts: no equity issue sheet
         if c is None or (c.get('nf') and (new >= recent or c.get('v') != 2)) or (new >= recent and c.get('at0') != today): todo.append(r)   # v2 = SME / subscription-only records exist now: earlier 'nf' are retried once
+    try: want = [str(x).upper() for x in json.load(open(os.path.join(os.path.dirname(DET), 'ipo_want.json')))]
+    except Exception: want = []
+    todo.sort(key=lambda r: 0 if r['s'] in want else 1)      # symbols listed in data/ipo_want.json (searched / big names) go first; sort is stable so the rest stay newest first
     for r in todo[:per_run]:
         if time.time() - t0 > budget_s: break
         d = fetch_detail(op, r['s'], r.get('sme'))
