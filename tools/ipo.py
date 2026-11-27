@@ -4,7 +4,7 @@ One record per listed symbol: s, n (company), ip (issue price, upper end of the 
 ld (listing date), sec (series / security type), sme. Fetched year by year from NSE's own API; a year that fails is skipped
 and the previous file's records are kept, so the list only grows ("kept for future reference").
 Also data/ipo_det.json: per symbol the NSE ipo-detail record - DISCOUNT (retail / employee / shareholder), lot, max retail amount, issue size, subscription by category ..."""
-import datetime as dt, json, os, re, sys, time
+import datetime as dt, gzip, json, os, re, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from corpact import opener, get, d2
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'ipo.json')
@@ -48,7 +48,7 @@ def first_int(x):
 def parse_detail(j):
     """NSE ipo-detail JSON -> compact record (None when NSE has no issue information for it)."""
     info = {str(x.get('title') or '').strip(): x.get('value') for x in ((j.get('issueInfo') or {}).get('dataList') or []) if x.get('title')}
-    if not info or not (info.get('Issue Period') or info.get('Price Range')): return None
+    has = bool(info) and bool(info.get('Issue Period') or info.get('Price Range'))
     clean = lambda v, n=300: re.sub(r'\s+', ' ', str(v or '').strip().strip('"')).strip()[:n]
     mx = re.findall(r'[\d,]+', str(info.get('Maximum Subscription Amount for Retail Investor') or ''))
     rows = ((j.get('activeCat') or {}).get('dataList') or [])[1:] or j.get('bidDetails') or []
@@ -60,23 +60,36 @@ def parse_detail(j):
         if x is not None: sub[k] = round(x, 2)
         if o: offr[k] = int(o)
         if k == 'oth': lab[k] = clean(r.get('category'), 40)
+    if not has and not sub: return None      # NSE has nothing at all for it
     d = {'t': clean(info.get('Issue Type'), 60), 'per': clean(info.get('Issue Period'), 120), 'sz': clean(info.get('Issue Size'), 320), 'band': clean(info.get('Price Range'), 80),
          'fv': num0((re.search(r'\d[\d,]*(?:\.\d+)?', str(info.get('Face Value') or '')) or [None])[0]), 'lot': first_int(info.get('Bid Lot')), 'mq': first_int(info.get('Minimum Order Quantity')),
          'mx': num0(mx[0]) if mx else None, 'disc': discount(info.get('Discount')), 'reg': clean(info.get('Name of the Registrar'), 80), 'lm': clean(info.get('Book Running Lead Managers'), 260),
          'isin': (j.get('metaInfo') or {}).get('isin') or '', 'sub': sub, 'offr': offr, 'othn': lab.get('oth', ''), 'at': clean((j.get('activeCat') or {}).get('updateTime'), 60)}
+    if not has: d['nodisc'] = 1; d['sme'] = 1
     rhp = str(info.get('Red Herring Prospectus') or '')
     if rhp.startswith('http'): d['rhp'] = rhp.strip()
     return {k: v for k, v in d.items() if v not in (None, '', {}, [])}
 
+def get1(op, url):
+    """one quick attempt (+ one retry after a pause) - the shared get() backs off for ~25 s per failure, far too slow for a backlog"""
+    for a in range(2):
+        try:
+            r = op.open(url, timeout=25); raw = r.read()
+            if r.headers.get('Content-Encoding') == 'gzip': raw = gzip.decompress(raw)
+            return json.loads(raw.decode('utf-8', 'replace'))
+        except Exception as e:
+            err = str(e)[:80]; time.sleep(1.5)
+    raise RuntimeError(err)
+
 def fetch_detail(op, sym, sme):
     for ser in (['SM', 'EQ'] if sme else ['EQ', 'SM']):
-        try: j = get(op, 'https://www.nseindia.com/api/ipo-detail?symbol=%s&series=%s' % (sym, ser))
+        try: j = get1(op, 'https://www.nseindia.com/api/ipo-detail?symbol=%s&series=%s' % (sym, ser))
         except Exception as e: print('detail', sym, ser, str(e)[:100]); continue
         d = parse_detail(j or {})
         if d: return d
     return None
 
-def run_details(op, A, budget_s=900, per_run=320):
+def run_details(op, A, budget_s=1500, per_run=700):
     """IPO details (discount, lot, subscription ...) per symbol -> data/ipo_det.json. Newest first; recent issues are refreshed every run
     (subscription moves), older ones once; a symbol NSE has nothing for is remembered (nf) and retried only while it is recent."""
     try: cur = json.load(open(DET)).get('d', {})
@@ -85,12 +98,13 @@ def run_details(op, A, budget_s=900, per_run=320):
     todo = []
     for r in A:                                               # A is newest first
         k = r['s']; c = cur.get(k); new = r.get('ld') or r.get('cl') or ''
-        if c is None or (c.get('nf') and new >= recent) or (new >= recent and c.get('at0') != today): todo.append(r)
+        if re.match(r'^\d', k) or re.search(r'DEBT|INVIT|REIT|NCD|BOND', str(r.get('sec') or ''), re.I): continue   # bonds / trusts: no equity issue sheet
+        if c is None or (c.get('nf') and (new >= recent or c.get('v') != 2)) or (new >= recent and c.get('at0') != today): todo.append(r)   # v2 = SME / subscription-only records exist now: earlier 'nf' are retried once
     for r in todo[:per_run]:
         if time.time() - t0 > budget_s: break
         d = fetch_detail(op, r['s'], r.get('sme'))
-        cur[r['s']] = dict(d, at0=today) if d else {'nf': 1, 'at0': today}
-        n += 1; time.sleep(0.6)
+        cur[r['s']] = dict(d, at0=today, v=2) if d else {'nf': 1, 'at0': today, 'v': 2}
+        n += 1; time.sleep(0.4)
     print('ipo details fetched', n, 'of', len(todo), 'waiting; total', len(cur), 'with data', sum(1 for v in cur.values() if not v.get('nf')))
     json.dump({'asOf': dt.datetime.utcnow().isoformat(timespec='seconds') + 'Z', 'src': 'NSE ipo-detail', 'n': len(cur), 'd': cur}, open(DET, 'w'), separators=(',', ':'), ensure_ascii=False)
 
