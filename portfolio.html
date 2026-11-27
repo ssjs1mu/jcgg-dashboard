@@ -28,7 +28,11 @@ select,input[type=number],input[type=text]{border:1px solid #CFC9A3;border-radiu
 .nws .op{align-self:center;font:900 20px Inter,sans-serif;color:#676300;padding:0 1px}.nws details summary{cursor:pointer;font:800 11.5px Inter,sans-serif;color:#676300;margin-top:2px}.nws .chk{font:700 11.5px Inter,sans-serif;margin:-3px 0 6px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:7px;margin-bottom:10px}
 .k{background:#fff;border:1px solid var(--line);border-radius:11px;padding:6px 10px;box-shadow:0 1px 4px rgba(63,60,0,.06);position:relative;outline:0}.k small{display:none}
-.k[data-tip]{cursor:help}.k.dd{cursor:pointer}.k.dd:hover{border-color:var(--kh);box-shadow:0 2px 10px rgba(63,60,0,.18)}.k.dd>span:after{content:' 🔍';font-size:10px;opacity:.7}.k[data-tip]:hover,.k[data-tip]:focus{border-color:var(--kh);z-index:30}
+.k[data-tip]{cursor:help}.cfb{display:inline-block;margin-left:4px;padding:0 4px;border-radius:4px;font-size:10px;cursor:pointer;opacity:.75}.cfb:hover{background:rgba(255,255,255,.25);opacity:1}.cfb.on{background:#FFD600;color:#3f3c00;opacity:1}
+.cfp{position:fixed;z-index:9950;width:240px;background:#F7F4E6;border:1px solid #CFC9A3;border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.3);padding:8px;font:600 12px Inter,sans-serif;color:#2E2C14}
+.cfp input[type=search]{width:100%;box-sizing:border-box;border:1px solid #CFC9A3;border-radius:7px;padding:5px 7px;font:600 12px Inter,sans-serif}.cfl{max-height:240px;overflow:auto;margin-top:6px}.cfl label{display:block;padding:2px 2px;cursor:pointer;white-space:nowrap}
+.cfi{margin:4px 0;font:700 12px Inter,sans-serif;color:#6E6A45}.cfi:empty{display:none}
+.k.dd{cursor:pointer}.k.dd:hover{border-color:var(--kh);box-shadow:0 2px 10px rgba(63,60,0,.18)}.k.dd>span:after{content:' 🔍';font-size:10px;opacity:.7}.k[data-tip]:hover,.k[data-tip]:focus{border-color:var(--kh);z-index:30}
 .k[data-tip]:hover:after,.k[data-tip]:focus:after{content:attr(data-tip);position:absolute;left:6px;top:calc(100% + 7px);width:max(100%,220px);background:#3f3c00;color:#F3EFD6;font:600 11.5px/1.45 Inter,sans-serif;padding:7px 10px;border-radius:9px;box-shadow:0 8px 20px rgba(0,0,0,.25);white-space:normal;pointer-events:none}
 .k[data-tip]:hover:before,.k[data-tip]:focus:before{content:'';position:absolute;left:20px;top:calc(100% + 1px);border:6px solid transparent;border-bottom-color:#3f3c00;pointer-events:none}
 .k>span{display:block;font:800 10px Inter,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--mu);line-height:1.25}
@@ -103,7 +107,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=96"></script>
+<script src="pf-core.js?v=97"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -222,7 +226,7 @@ function render(){
   if(TAB!=='pf'){ $('warn').innerHTML=''; $('body').innerHTML=TAB==='cl'?clTab():TAB==='rec'?recTab():TAB==='xs'?xsTab():TAB==='tax'?taxTab(E,inC):TAB==='dp'?dpTab(E,clients):TAB==='ca'?caTab(clients):TAB==='tal'?talTab(clients):ledTab(clients);
     if($('ledK')) $('ledK').onchange=()=>{ $('lk').value=$('ledK').value; render(); };
     if($('recNow')) $('recNow').onclick=()=>{ recon(); alertBox('Charges reconciled - see the table'); };
-    document.querySelectorAll('[data-run]').forEach(b=>b.onclick=()=>runStep(b.dataset.run)); sortables($('body'));
+    document.querySelectorAll('[data-run]').forEach(b=>b.onclick=()=>runStep(b.dataset.run)); sortables($('body')); colFilters($('body'));
     if($('clrSy2')) $('clrSy2').onclick=e=>{ e.preventDefault(); SYF=''; $('sy').value=''; LS.set('jc_pf_sym',''); render(); };
     document.querySelectorAll('[data-unal]').forEach(b=>b.onclick=()=>{ PF.setAlias(b.dataset.unal,''); render(); });
     document.querySelectorAll('select[data-al]').forEach(sl=>sl.onchange=()=>{ if(!sl.value) return; const [to,isin,sec]=sl.value.split('|'); PF.setAlias(sl.dataset.al,to,isin,sec); render(); });
@@ -361,6 +365,26 @@ function sortables(root){ (root||document).querySelectorAll('table.x').forEach((
       mov.concat(fixed).forEach(r=>B.appendChild(r)); [...hr[0].cells].forEach((th,j)=>{ th.dataset.ar=j===i?(dir>0?' ▲':' ▼'):''; }); };
     [...hr[0].cells].forEach((th,i)=>{ if(!th.innerText.trim()) return; th.style.cursor='pointer'; th.title='Click to sort'; th.onclick=()=>{ const o=TSORT[key], dir=o&&o.i===i?-o.dir:(i<=1?1:-1); TSORT[key]={i,dir}; run(i,dir); }; });
     const o=TSORT[key]; if(o) run(o.i,o.dir); }); }
+/* ---------- ▾ Excel-style column filters for tables marked .cf: tick values or type to search, per column; kept until cleared ---------- */
+const CF={}; const cfTxt=c=>(c?c.innerText:'').replace(/\s*\((today|\d+d)\)\s*$/,'').replace(/\s+/g,' ').trim()||'(blank)';
+function colFilters(root){ (root||document).querySelectorAll('table.x.cf').forEach((tb,ti)=>{ const hr=tb.tHead&&tb.tHead.rows[0]; if(!hr) return; const key=TAB+'|'+ti, F=CF[key]=CF[key]||{};
+    const rows=()=>[...tb.tBodies[0].rows].filter(r=>!r.classList.contains('tot')&&!r.classList.contains('sub'));
+    const apply=()=>{ let n=0; const R0=rows(); R0.forEach(r=>{ const ok=Object.entries(F).every(([i,f])=>{ const v=cfTxt(r.cells[+i]); return (!f.q||v.toLowerCase().includes(f.q.toLowerCase()))&&(!f.v||f.v.includes(v)); }); r.style.display=ok?'':'none'; if(ok) n++; });
+      [...hr.cells].forEach((th,i)=>{ const b=th.querySelector('.cfb'); if(b) b.classList.toggle('on',!!(F[i]&&(F[i].q||F[i].v))); });
+      let info=tb.parentElement.previousElementSibling; if(!info||!info.classList||!info.classList.contains('cfi')){ info=document.createElement('div'); info.className='cfi'; tb.parentElement.before(info); }
+      const act=Object.keys(F).filter(i=>F[i].q||F[i].v).length; info.innerHTML=act?`▾ ${act} column filter${act>1?'s':''} · showing <b>${n}</b> of ${R0.length} <button class="btn" type="button">✕ Clear Filters</button>`:''; const cb=info.querySelector('button'); if(cb) cb.onclick=()=>{ Object.keys(F).forEach(k=>delete F[k]); apply(); }; };
+    [...hr.cells].forEach((th,i)=>{ if(!th.innerText.trim()||th.querySelector('.cfb')) return; const b=document.createElement('span'); b.className='cfb'; b.textContent='▾'; b.title='Filter this column'; th.appendChild(b);
+      b.onclick=e=>{ e.stopPropagation(); document.querySelectorAll('.cfp').forEach(x=>x.remove()); const vals=[...new Set(rows().map(r=>cfTxt(r.cells[i])))].sort((a,b)=>{ const x=parseFloat(a.replace(/[,₹]/g,'')), y=parseFloat(b.replace(/[,₹]/g,'')); return !isNaN(x)&&!isNaN(y)?x-y:a.localeCompare(b); });
+        const f=F[i]||{}, p=document.createElement('div'); p.className='cfp'; const rc=th.getBoundingClientRect(); p.style.left=Math.min(rc.left,innerWidth-250)+'px'; p.style.top=(rc.bottom+4)+'px';
+        p.innerHTML=`<input type="search" placeholder="Search ${esc(th.innerText.replace('▾','').trim())}" value="${esc(f.q||'')}"><div class="cfl"><label><input type="checkbox" data-all checked> <b>(Select All)</b></label>${vals.map(v=>`<label><input type="checkbox" value="${esc(v)}"${!f.v||f.v.includes(v)?' checked':''}> ${esc(v)}</label>`).join('')}</div><div style="display:flex;gap:6px;margin-top:6px"><button class="btn" type="button" data-x>Clear</button><span style="flex:1"></span><button class="btn p" type="button" data-ok>OK</button></div>`;
+        document.body.appendChild(p); const q=p.querySelector('input[type=search]'), cbs=[...p.querySelectorAll('.cfl input[value]')], all=p.querySelector('[data-all]'); all.checked=cbs.every(c=>c.checked);
+        q.oninput=()=>{ const t=q.value.toLowerCase(); cbs.forEach(c=>c.parentElement.style.display=c.value.toLowerCase().includes(t)?'':'none'); };
+        all.onchange=()=>cbs.filter(c=>c.parentElement.style.display!=='none').forEach(c=>c.checked=all.checked);
+        p.querySelector('[data-x]').onclick=()=>{ delete F[i]; p.remove(); apply(); };
+        p.querySelector('[data-ok]').onclick=()=>{ const sel=cbs.filter(c=>c.checked).map(c=>c.value); F[i]={q:q.value.trim(),v:sel.length===cbs.length?null:sel}; if(!F[i].q&&!F[i].v) delete F[i]; p.remove(); apply(); };
+        q.onkeydown=e2=>{ if(e2.key==='Enter') p.querySelector('[data-ok]').click(); }; setTimeout(()=>q.focus(),0); }; });
+    apply(); }); }
+document.addEventListener('click',e=>{ if(!e.target.closest('.cfp')&&!e.target.closest('.cfb')) document.querySelectorAll('.cfp').forEach(x=>x.remove()); });
 /* ---------- pop-up ---------- */
 function popBox(title,html){ const o=document.getElementById('pfPop'); if(o) o.remove(); const m=document.createElement('div'); m.id='pfPop';
   m.innerHTML=`<div><h4><span>${title}</span><button class="btn" id="popX">✕ Close</button></h4><div class="pb">${html}</div></div>`; document.body.appendChild(m);
@@ -750,7 +774,7 @@ function clTab(){ const tb=PF.tb(), L=PF.led(), D=PF.dp(), RT=PF.LS.get('jc_pf_r
     return {c,br,dp,n:T.length,lt,tu:lastUp(tb.files||[],c),le:cv.length?cv[cv.length-1][1]:'',lu:lastUp(L.files||[],c),bal:PF.ledBal(c),dpas:m.asOf||'',dpac:m.dpac||'',dpn:(D.H[c]||[]).length,du:lastUp(D.files||[],c)}; });
   $('kpis').innerHTML=K2('Clients',R0.length,'trades, ledger, DP or rates')+K2('With Brokerage Scheme',R0.filter(r=>r.br).length,'')+K2('With DP Scheme',R0.filter(r=>r.dp).length,'')+K2('Ledger Older Than 7 Days',`<span class="${R0.filter(r=>r.le&&age(r.le)>7).length?'dn':'up'}">${R0.filter(r=>r.le&&age(r.le)>7).length}</span>`,'ledger covers up to')+K2('DP Older Than 7 Days',`<span class="${R0.filter(r=>r.dpas&&age(r.dpas)>7).length?'dn':'up'}">${R0.filter(r=>r.dpas&&age(r.dpas)>7).length}</span>`,'DP statement as on');
   return `<h3 class="sec">Clients - Schemes And Last Updates <small>${R0.length} clients · brokerage and DP scheme in force today (Rates panel) · trades: last trade date and last upload · ledger: covered up to and last upload · DP: statement date and last upload · (age in days: amber over 7, red over 30)</small></h3>
-  <div class="sx"><table class="x"><thead><tr><th class="l">Client Code</th><th class="l">Brokerage Scheme</th><th>Delivery %</th><th>Intraday %</th><th>Min ₹ / Exch / Day</th><th class="l">From</th><th class="l">DP Scheme</th><th>DP ₹ / Debit</th><th>AMC</th><th>Pledge</th><th>Trades</th><th class="l">Last Trade</th><th class="l">Trades Uploaded</th><th class="l">Ledger Covers To</th><th class="l">Ledger Uploaded</th><th>Ledger Balance</th><th class="l">DP A/c</th><th class="l">DP Holding As On</th><th>DP Stocks</th><th class="l">DP Uploaded</th></tr></thead><tbody>`+
+  <div class="sx"><table class="x cf"><thead><tr><th class="l">Client Code</th><th class="l">Brokerage Scheme</th><th>Delivery %</th><th>Intraday %</th><th>Min ₹ / Exch / Day</th><th class="l">From</th><th class="l">DP Scheme</th><th>DP ₹ / Debit</th><th>AMC</th><th>Pledge</th><th>Trades</th><th class="l">Last Trade</th><th class="l">Trades Uploaded</th><th class="l">Ledger Covers To</th><th class="l">Ledger Uploaded</th><th>Ledger Balance</th><th class="l">DP A/c</th><th class="l">DP Holding As On</th><th>DP Stocks</th><th class="l">DP Uploaded</th></tr></thead><tbody>`+
    R0.map(r=>`<tr><td class="l"><b>${esc(r.c)}</b></td><td class="l">${r.br?esc(r.br.scheme||'custom'):'<span class="dn">not set</span>'}</td><td>${r.br&&r.br.bd!=null?fx(r.br.bd,3):'–'}</td><td>${r.br&&r.br.bi!=null?fx(r.br.bi,3):'–'}</td><td>${r.br&&r.br.bmin!=null?fx(r.br.bmin,0):'–'}</td><td class="l">${r.br&&r.br.from&&r.br.from>'2001'?dmy(r.br.from):'<span class="mu">always</span>'}</td>
      <td class="l">${r.dp?esc(r.dp.scheme||'custom'):'<span class="dn">not set</span>'}</td><td>${r.dp&&r.dp.dp!=null?fx(r.dp.dp,2):'–'}</td><td>${r.dp&&r.dp.amc?fx(r.dp.amc,0):'–'}</td><td>${r.dp&&r.dp.pledge!=null?fx(r.dp.pledge,0):'–'}</td>
      <td>${r.n||'<span class="mu">0</span>'}</td><td class="l">${ag(r.lt)}</td><td class="l">${ag(r.tu)}</td><td class="l">${ag(r.le)}</td><td class="l">${ag(r.lu)}</td><td>${r.bal!=null?drcr(r.bal):'–'}</td><td class="l mu">${esc(r.dpac)}</td><td class="l">${ag(r.dpas)}</td><td>${r.dpn||'–'}</td><td class="l">${ag(r.du)}</td></tr>`).join('')+`</tbody></table></div>
