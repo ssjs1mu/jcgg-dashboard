@@ -185,7 +185,7 @@ function compute(TR,STAT,rateOf){
   const parts=[];
   Object.values(grp).forEach(g=>{ const bq=g.B.reduce((a,f)=>a+f.q,0), sq=g.S.reduce((a,f)=>a+f.q,0); let iq={B:Math.min(bq,sq),S:Math.min(bq,sq)};
     ['B','S'].forEach(s=>g[s].forEach(f=>{ const qi=Math.min(f.q,iq[s]); iq[s]-=qi; if(qi>0) parts.push(Object.assign({},f,{q:qi,type:'I'})); if(f.q-qi>0) parts.push(Object.assign({},f,{q:f.q-qi,type:'D'})); })); });
-  parts.sort((a,b)=>a.d.localeCompare(b.d)||(a.side==='B'?-1:1)||a.i-b.i);
+  parts.sort((a,b)=>a.d.localeCompare(b.d)||((a.side==='S')-(b.side==='S'))||a.i-b.i);   /* same day: buys before sells, and each side in the order the trades were entered (FIFO lots) - the old comparator returned -1 for every pair of buys, so the lot order among same-day buys was arbitrary */
   const dpDone={};
   parts.forEach(p=>{ const R=rateOf(p.c,p.d); p.v=p.q*p.r; p.brk=p.v*(p.type==='D'?R.bd:R.bi)/100; });
   /* minimum brokerage per contract note = client + day + EXCHANGE (NSE and BSE each carry their own minimum, e.g. Rs 50):
@@ -707,7 +707,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-27i';
+const BUILD='2026-11-27j';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -855,7 +855,26 @@ function dmRecords(trades,A){ const all=DEMERGERS.concat(userDm()).concat((A||(C
 function caFactor(a){ if(a.f&&a.f>0) return a.f; return a.t==='bonus'&&a.r&&a.r[1]?(a.r[0]+a.r[1])/a.r[1]:a.t==='split'&&a.fv&&a.fv[1]?a.fv[0]/a.fv[1]:1; }
 function caAdjust(trades,A){ trades=trades.map(t=>{ const k=canonSym(t.sym); return k===t.sym?t:Object.assign({},t,{sym:k,sym0:t.sym}); }); const S=(A||(CA&&CA.a)||[]).filter(a=>(a.t==='bonus'||a.t==='split')&&caFactor(a)!==1&&(a.rec||a.ex)<=todayS());   /* a split / bonus changes the book only once its RECORD date has been reached (holding as on the record date) - before that nothing moves */ if(!S.length) return demergeAdjust(trades,A||(CA&&CA.a));
   const by={}; S.forEach(a=>(by[a.s]=by[a.s]||[]).push(a));
-  return demergeAdjust(trades.map(t=>{ const L=by[t.sym]; if(!L) return t; let k=1; L.forEach(a=>{ if(t.d<a.ex) k*=caFactor(a); }); return k===1?t:Object.assign({},t,{q:t.q*k,r:t.r/k,adj:k,q0:t.q,r0:t.r}); }),A); }
+  /* LOT-WISE: only the shares still held AT the record date get the factor. A buy lot (or the part of it) that was sold on or before the record
+     date stays in its original quantity / rate - the split or bonus never touches it - so a position closed before the record date shows no
+     corporate action at all. A trade is first cut into its intraday part (same-day offset, never held) and its delivery part, as compute() does. */
+  const P=trades.map(t=>[t]), K={};
+  trades.forEach((t,i)=>{ if(by[t.sym]) (K[t.c+'|'+t.sym]=K[t.c+'|'+t.sym]||[]).push(i); });
+  Object.keys(K).forEach(k=>{ const idx=K[k], dayG={};
+    idx.forEach(i=>{ const t=trades[i], g=dayG[t.d]=dayG[t.d]||{B:[],S:[]}; g[t.side==='S'?'S':'B'].push(i); });
+    Object.values(dayG).forEach(g=>{ const bq=g.B.reduce((a,i)=>a+trades[i].q,0), sq=g.S.reduce((a,i)=>a+trades[i].q,0); let iq={B:Math.min(bq,sq),S:Math.min(bq,sq)};
+      ['B','S'].forEach(sd=>g[sd].forEach(i=>{ const t=trades[i], qi=Math.min(t.q,iq[sd]); iq[sd]-=qi; const o=[]; if(qi>0) o.push(Object.assign({},t,{q:qi,_ty:'I'})); if(t.q-qi>1e-9) o.push(Object.assign({},t,{q:t.q-qi,_ty:'D'})); P[i]=o.length?o:[Object.assign({},t,{_ty:'D'})]; })); });
+    (by[trades[idx[0]].sym]||[]).slice().sort((a,b)=>a.ex.localeCompare(b.ex)).forEach(a=>{ const R=a.rec||a.ex, f=caFactor(a), ev=[];
+      idx.forEach(i=>P[i].forEach(p=>{ if(p._ty==='D') ev.push({p,o:i}); }));
+      ev.sort((x,y)=>x.p.d.localeCompare(y.p.d)||(x.p.side==='S'?1:0)-(y.p.side==='S'?1:0)||x.o-y.o);
+      const lots=[]; ev.forEach(e=>{ const p=e.p; if(p.d>R) return;
+        if(p.side!=='S'){ const L={p,rem:p.d<a.ex?p.q:0}; lots.push(L); e.L=L; return; }
+        let q=p.q; for(let j=0;j<lots.length&&q>1e-9;j++){ const L=lots[j]; if(L.rem>1e-9){ const m=Math.min(q,L.rem); L.rem-=m; q-=m; } } });
+      idx.forEach(i=>{ const o=[]; P[i].forEach(p=>{ const e=ev.find(x=>x.p===p), L=e&&e.L;
+        if(!L||p.side==='S'||L.rem<=1e-9){ o.push(p); return; }
+        const held=L.rem, sold=p.q-held; if(sold>1e-9) o.push(Object.assign({},p,{q:sold}));
+        o.push(Object.assign({},p,{q:held*f,r:p.r/f,adj:(p.adj||1)*f,q0:p.q0||held,r0:p.r0||p.r})); }); P[i]=o; }); }); });
+  return demergeAdjust([].concat(...P.map((o,i)=>by[trades[i].sym]&&K[trades[i].c+'|'+trades[i].sym]?o.map(p=>{ const c=Object.assign({},p); delete c._ty; return c; }):o)),A); }
 /* client-wise entitlement rows for every action on a script the client traded or holds in DP */
 function caRows(trades,dpH,A){ A=A||(CA&&CA.a)||[]; const out=[], today=todayS(), bySym={};
   const DM=demergers(A).map(d=>Object.assign({t:'demerger',sub:'Demerger - '+d.r[0]+' '+d.child+' per '+d.r[1]+' '+d.s+' ('+d.note.replace(/^.*?cost /,'cost ')+')'},d));
@@ -864,7 +883,7 @@ function caRows(trades,dpH,A){ A=A||(CA&&CA.a)||[]; const out=[], today=todayS()
   const pos={}; trades.forEach(t=>{ const s=canonSym(t.sym); (pos[t.c+'|'+s]=pos[t.c+'|'+s]||[]).push(t); });
   const keys=new Set(Object.keys(pos)); Object.keys(dpH||{}).forEach(c=>(dpH[c]||[]).forEach(x=>keys.add(c+'|'+dpKey(x))));
   keys.forEach(k=>{ const [c,sym]=k.split('|'), L=bySym[sym]; if(!L) return; const T=(pos[k]||[]).slice().sort((a,b)=>a.d.localeCompare(b.d)), dq=((dpH||{})[c]||[]).filter(x=>dpKey(x)===sym).reduce((a,x)=>a+x.q,0);
-    L.forEach(a=>{ let q=0, basis='trade book'; T.forEach(t=>{ if(t.d<=(a.rec||a.ex)) q+=(t.side==='S'?-1:1)*t.q; });   /* holding as on the record date: whatever was sold up to and on that day is not counted */
+    L.forEach(a=>{ let q=0, basis='trade book'; T.forEach(t=>{ if(t.side==='S'?t.d<=(a.rec||a.ex):t.d<a.ex) q+=(t.side==='S'?-1:1)*t.q; });   /* holding as on the record date: whatever was sold up to and on that day is not counted; a buy on the ex / record day is not entitled */
       /* bonus / split before this action restate the quantity */
       L.filter(b=>b!==a&&(b.t==='bonus'||b.t==='split')&&b.ex<a.ex).forEach(b=>{ if(T.some(t=>t.d<b.ex)) q*=caFactor(b); });
       if(!T.length&&dq>0){ q=dq; if((a.rec||a.ex)<=today) L.filter(b=>(b.t==='bonus'||b.t==='split')&&b.ex>=a.ex&&b.ex<=today).forEach(b=>{ q/=caFactor(b); }); basis=(a.rec||a.ex)>today?'DP holding':'DP holding (worked back, no trades)'; if(Math.abs(q-Math.round(q))>1e-6) return; }   /* a fraction = the shares came after this action */ else if((a.rec||a.ex)>today&&dq>0&&Math.abs(dq-q)>0.0001){ basis='trade book (DP now '+dq+')'; }
