@@ -103,7 +103,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=93"></script>
+<script src="pf-core.js?v=94"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -757,7 +757,7 @@ function clTab(){ const tb=PF.tb(), L=PF.led(), D=PF.dp(), RT=PF.LS.get('jc_pf_r
   <div class="note">Rates are edited in the Rates panel (Brokerage, Charges &amp; Interest). Upload newer files with ⬆ Upload; a red age means the data is over a month old.</div>`; }
 /* ---------- 🔍 tile drill-downs: every tile opens what is behind its number (stock-wise, sector-wise, month-wise) ---------- */
 let LASTE=null, LASTC=[], SECK=0;
-const ddc=c=>CL==='ALL'||c===CL, dds=sym=>symOK(sym);
+const ddc=c=>CL==='ALL'||c===CL, dds=sym=>!SYF||String(sym||'').toUpperCase().includes(SYF.toUpperCase());
 const ddT=(head,rows,tot)=>`<div class="sx" style="max-height:60vh"><table class="x"><thead><tr>${head.map((h,i)=>`<th${i===0||/^(Clients|Stocks|Sector|Ex-Date|Month|Client Code)/.test(h)?' class="l"':''}>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')||'<tr><td class="l mu" colspan="'+head.length+'">Nothing to show.</td></tr>'}${tot||''}</tbody></table></div>`;
 const secN=sym=>PF.secOf(sym)||'Not Classified';
 const hv=h=>Q[h.sym]?h.q*Q[h.sym].p:h.q*h.cost;
