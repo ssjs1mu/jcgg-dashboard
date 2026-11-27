@@ -22,6 +22,10 @@ select,input[type=number],input[type=text]{border:1px solid #CFC9A3;border-radiu
 .ddm button{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;padding:7px 10px;border-radius:7px;font:800 12.5px Inter,sans-serif;color:#3f3c00;cursor:pointer;white-space:nowrap}.ddm button:hover,.ddm button.on{background:#F3EFD6}.ddm button.on:after{content:'●';color:var(--ol);font-size:9px}.ddm hr{border:0;border-top:1px solid #EEE9D2;margin:4px 2px}
 .sub{position:relative}.sub>.ddm{top:-6px;left:calc(100% - 4px)}.sub:hover>.ddm,.sub.op>.ddm{display:block}.ddm .def{font:700 10px Inter,sans-serif;color:var(--mu)}
 .kpis.ipk{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}.kpis.ipk .k{min-width:0;overflow:hidden}.kpis.ipk .k b{white-space:normal;overflow-wrap:anywhere;line-height:1.15;font-size:clamp(12px,1.15vw,15px)}.kpis.ipk .k span{white-space:normal}
+.nws{grid-column:1/-1;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;box-shadow:0 1px 4px rgba(63,60,0,.06)}.nws .t{font:900 12.5px Inter,sans-serif;color:#3f3c00;margin:2px 0 3px}.nws .t small{font:600 11px Inter,sans-serif;color:var(--mu)}
+.nws .rw{display:flex;flex-wrap:wrap;align-items:stretch;gap:5px;margin:3px 0 8px}.nws .bx{flex:1 1 128px;min-width:118px;max-width:225px;border:1px solid var(--line);border-radius:10px;padding:5px 9px;background:#FFFDF2;cursor:pointer;text-align:left;font-family:inherit;color:inherit}.nws .bx:hover{background:#FFF6C8}.nws .bx.res{background:#EFF7E6;border-color:#9CC88A}
+.nws .bx span{display:block;font:800 11.5px Inter,sans-serif;color:#3f3c00}.nws .bx b{display:block;font:900 17px Inter,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}.nws .bx small{display:block;font:600 10.5px/1.25 Inter,sans-serif;color:var(--mu);margin-top:1px}
+.nws .op{align-self:center;font:900 20px Inter,sans-serif;color:#676300;padding:0 1px}.nws details summary{cursor:pointer;font:800 11.5px Inter,sans-serif;color:#676300;margin-top:2px}.nws .chk{font:700 11.5px Inter,sans-serif;margin:-3px 0 6px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:7px;margin-bottom:10px}
 .k{background:#fff;border:1px solid var(--line);border-radius:11px;padding:6px 10px;box-shadow:0 1px 4px rgba(63,60,0,.06);position:relative;outline:0}.k small{display:none}
 .k[data-tip]{cursor:help}.k[data-tip]:hover,.k[data-tip]:focus{border-color:var(--kh);z-index:30}
@@ -96,7 +100,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=88"></script>
+<script src="pf-core.js?v=89"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -231,7 +235,7 @@ function render(){
   if(!hasLed()) w.push('No ledger file yet - ledger balance is worked out from the trades only (purchases debit, sales credit). Upload the ledger (⬆ Ledger) for the real balance with receipts and payments.');
   $('warn').innerHTML=w.map(x=>'<div class="warn">'+x+'</div>').join('');
   const K=(lab,val,sub)=>`<div class="k"><span>${lab}</span><b>${val}</b>${sub?'<small>'+sub+'</small>':''}</div>`;
-  $('kpis').innerHTML=
+  const oldK=
     K('Portfolio Size',fx(S.val,0),S.priced?'holdings at market price':'some prices pending - cost used')+
     K('Invested (Net Cost)',fx(S.inv,0),'open holdings incl. charges')+
     K('Ledger Balance',drcr(S.led),esc(S.ledSrc))+
@@ -243,6 +247,7 @@ function render(){
     K('P&amp;L After Cost',`<span class="${cls(S.after)}">${sgn(S.after,0)}</span>`,S.inv?pc((S.unr-S.hcOpen)/(S.inv+S.hcOpen)*100)+' on open holdings incl. interest':'')+
     K('Charges Paid',fx(S.chg,0),'brokerage + taxes + DP')+
     K('Loss To Recover',`<span class="${S.bal>0?'dn':''}">${fx(S.bal?-S.bal:0,0)}</span>`,'booked losses '+fx(S.lossB,0)+' · recovered '+fx(S.recd,0));
+  { const nw=SYF?null:nwStmt(E,clients,oldK); $('kpis').innerHTML=nw||oldK; if(nw) $('kpis').querySelectorAll('[data-nw]').forEach(b=>b.onclick=()=>nwPop(b.dataset.nw)); }
   let h=liqHtml(E,clients)+swHtml(E,inC)+acctHtml(E,clients,inC)+dpNote(E,clients);
   if(CL==='ALL'){ const cs=[...new Set(TR.concat(OPEN).map(t=>t.c))].sort();
     h+=`<h3 class="sec">Clients <small>click a client to open</small></h3><div class="sx"><table class="x"><thead><tr><th class="l">Client</th><th>Portfolio Size</th><th>Invested</th><th>Ledger</th><th>Net Balance</th><th>Unrealised</th><th>%</th><th>Booked</th><th>Total P&amp;L</th><th>%</th><th>Holding Cost</th><th>After Cost</th></tr></thead><tbody>`+
@@ -697,6 +702,34 @@ function ledTab(clients){ const L=PF.led(), cs=Object.keys(L.E).filter(c=>CL==='
 function dpNote(E,clients){ if(!Object.keys(PF.dp().H).length) return ''; const R=dpRows(E,clients), bad=R.filter(r=>Math.abs(r.diff)>0.0001).length;
   return `<div class="note" style="margin:6px 0 10px">🏦 DP holdings: ${[...new Set(R.filter(r=>r.d).map(r=>r.c))].length} client(s), value ${fx(R.reduce((a,r)=>a+r.v,0),0)}${bad?' · <b class="dn">'+bad+' mismatch'+(bad>1?'es':'')+' with the trade book</b>':' · all match the trade book'} - <a href="#" id="goDP">open the DP holdings tab ▸</a></div>`; }
 /* ---------- client account: funds in / out, interest, DP, charges, investment return ---------- */
+/* ---------- Net Worth statement: replaces the row of tiles - two sentences the reader can follow, every box opens its client-wise table ---------- */
+let NWA=null;
+function nwStmt(E,clients,oldK){ const cs=clients.filter(c=>CL==='ALL'||c===CL), A=cs.map(c=>acct(c,E)), L=A.filter(a=>a.has&&a.bal!=null); NWA={A,L,E};
+  if(!L.length) return null;   /* no ledger: the plain tiles stay */
+  const sm=f=>L.reduce((t,a)=>t+(+f(a)||0),0), T={val:sm(a=>a.val),bal:sm(a=>a.bal),netF:sm(a=>a.netF),rel:sm(a=>a.rel),unr:sm(a=>a.unr),div:sm(a=>a.div),int:sm(a=>a.int)};
+  T.nw=T.val-T.bal; T.exp=T.netF+T.rel+T.unr+T.div-T.int; T.gap=T.nw-T.exp; NWA.T=T;
+  const bx=(k,lab,val,sub,c)=>`<button class="bx ${c||''}" data-nw="${k}" title="Click: client-wise figures and what this means"><span>${lab}</span><b>${val}</b><small>${sub}</small></button>`, op=x=>`<span class="op">${x}</span>`;
+  const noF=L.filter(a=>!a.fio).length, miss=A.length-L.length, ok=Math.abs(T.gap)<=Math.max(500,Math.abs(T.nw)*0.01);
+  return `<div class="nws"><div class="t">① What The Client Is Worth Today <small>Holdings Value − Ledger Balance = Net Worth · ${L.length} client${L.length>1?'s':''} with a ledger${miss?' · '+miss+' without a ledger left out':''}</small></div>
+   <div class="rw">${bx('val','Holdings Value',fx(T.val,0),'shares in the demat × today\'s price')}${op('−')}${bx('bal','Ledger Balance',drcr(T.bal),'Dr = client owes the broker (reduces worth) · Cr = broker owes client (adds)')}${op('=')}${bx('nw','Net Worth',`<span class="${cls(T.nw)}">${fx(T.nw,0)}</span>`,'what is left if everything is sold today and the ledger is cleared','res')}</div>
+   <div class="t">② How It Got There - The Money Trail <small>Net Funds Put In + Profits + Dividends − Interest ± Other = Net Worth</small></div>
+   <div class="rw">${bx('netF','Net Funds Put In',fx(T.netF,0),'money received from client − paid back (ledger)')}${op('+')}${bx('rel','Booked P&amp;L',`<span class="${cls(T.rel)}">${sgn(T.rel,0)}</span>`,'sold shares: profit / loss after all charges')}${op('+')}${bx('unr','Unrealised P&amp;L',`<span class="${cls(T.unr)}">${sgn(T.unr,0)}</span>`,'shares still held: value − cost')}${op('+')}${bx('div','Dividends',fx(T.div,0),'received on shares held on the record date')}${op('−')}${bx('int','Interest Charged',fx(T.int,0),'on the debit balance (ledger)')}${op('±')}${bx('gap','Other / Unmatched',`<span class="${ok?'':'dn'}">${sgn(T.gap,0)}</span>`,'opening balance, timing, items not in the trade book')}${op('=')}${bx('nw','Net Worth',`<span class="${cls(T.nw)}">${fx(T.nw,0)}</span>`,ok?'✔ same as ① - the trail explains it':'same as ① - gap shown in Other','res')}</div>
+   <div class="chk ${ok?'up':'mu'}">${ok?'✔ The trail matches the net worth within '+fx(Math.max(500,Math.abs(T.nw)*0.01),0)+'.':'The trail leaves '+sgn(T.gap,0)+' under Other / Unmatched - click it to see which client carries it.'}${noF?' '+noF+' client'+(noF>1?'s have':' has')+' no receipt / payment vouchers in the ledger, so their funds put in is not known and falls under Other.':''}</div>
+   <details><summary>Other Numbers (Total P&amp;L, After Holding Cost, Charges, Loss To Recover)</summary><div class="kpis" style="margin:5px 0 0">${oldK}</div></details></div>`; }
+function nwPop(k){ if(!NWA) return; const {A,L,T}=NWA, tr=(a)=>a.nw-(a.netF+a.rel+a.unr+a.div-a.int);
+  const D={val:['Holdings Value','The shares each client holds in the demat, valued at today\'s price. Taken from the DP statement when one is uploaded, otherwise from the trade book.',[['Holdings Value',a=>fx(a.val,0)],['Source',a=>a.vsrc==='DP'?'DP statement':'Trade book']]],
+    bal:['Ledger Balance','What the broker\'s ledger shows. Dr (debit) = the client owes money; Cr (credit) = the client has money with the broker. It is subtracted, so a Dr balance lowers net worth.',[['Ledger Balance',a=>drcr(a.bal)]]],
+    nw:['Net Worth','Holdings Value − Ledger Balance: what the client would hold after selling everything at today\'s price and clearing the ledger.',[['Holdings Value',a=>fx(a.val,0)],['Ledger Balance',a=>drcr(a.bal)],['Net Worth',a=>fx(a.val-a.bal,0)]]],
+    netF:['Net Funds Put In','Money the client sent (receipts) less money paid back, from the ledger vouchers. This is the starting capital of the trail.',[['Funds In',a=>a.fio?fx(a.fin,0):'–'],['Funds Out',a=>a.fio?fx(a.fout,0):'–'],['Net Funds',a=>a.fio?fx(a.netF,0):'<span class="mu">no vouchers</span>']]],
+    rel:['Booked P&L','Profit or loss on shares already sold (delivery and intraday), after brokerage, taxes and DP charges.',[['Booked P&L',a=>`<span class="${cls(a.rel)}">${sgn(a.rel,0)}</span>`],['of which Brokerage',a=>fx(a.brk,0)],['Taxes & Exchange',a=>fx(a.stat,0)]]],
+    unr:['Unrealised P&L','Gain or loss on shares still held: today\'s value less what they cost.',[['Unrealised P&L',a=>`<span class="${cls(a.unr)}">${sgn(a.unr,0)}</span>`]]],
+    div:['Dividends','Dividend on shares held on the record date, from the corporate-action list.',[['Dividends',a=>a.div?fx(a.div,0):'–']]],
+    int:['Interest Charged','Interest the broker charged on the debit balance, from the ledger.',[['Interest',a=>fx(a.int,0)]]],
+    gap:['Other / Unmatched','Net Worth minus everything above. It holds what the trade book cannot see: opening balances before the first trade, shares or funds moved outside the books, price timing, and clients whose ledger has no receipt / payment vouchers.',[['Net Worth',a=>fx(a.nw,0)],['Explained By Trail',a=>fx(a.nw-tr(a),0)],['Other / Unmatched',a=>`<span class="${Math.abs(tr(a))>500?'dn':''}">${sgn(tr(a),0)}</span>`]]]}[k];
+  if(!D) return; const cols=D[2], tot=k==='bal'?T.bal:k==='val'?T.val:k==='gap'?T.gap:k==='nw'?T.nw:T[k];
+  const body=L.map(a=>`<tr><td class="l"><b>${esc(a.c)}</b></td>${cols.map(c=>`<td>${c[1](a)}</td>`).join('')}</tr>`).join('');
+  const miss=A.filter(a=>!(a.has&&a.bal!=null));
+  popBox(D[0]+' - Client-Wise',`<div class="note" style="margin-bottom:6px">${D[1]}</div><div class="sx"><table class="x"><thead><tr><th class="l">Client Code</th>${cols.map(c=>`<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${body}<tr class="tot"><td class="l">Total (${L.length})</td><td colspan="${cols.length}" style="text-align:right"><b>${k==='bal'?drcr(tot):fx(tot,0)}</b></td></tr></tbody></table></div>${miss.length?`<div class="mu" style="margin-top:6px">Left out - no ledger: ${esc(miss.map(a=>a.c).join(', '))}</div>`:''}`); }
 function acct(c,E){ const L=PF.led(), fresh=PF.ledFresh(c,TR||[]), en=fresh?(L.E[c]||null):null, f=x=>x.c===c, dh=PF.dp().H[c];   /* an old-period ledger (ends before the last trade) is not used for funds or return */
   /* holdings value: the DP statement when there is one (what is really in the demat), else the trade book */
   const val=dh?dh.reduce((a,x)=>a+x.q*(xinfo(x).p||x.rate||0),0):E.hold.filter(f).reduce((a,x)=>a+(Q[x.sym]?x.q*Q[x.sym].p:x.q*x.cost),0);
