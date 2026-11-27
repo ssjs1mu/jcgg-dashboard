@@ -266,3 +266,29 @@ Object.assign(window.RL.bn,{ xR9:'প্রাপ্ত ডিভিডেন্
 Object.assign(window.RL.en,{ wTotC:'Total costs paid (same as Costs of investing)', wGovX:'Government (STT, stamp duty, GST, SEBI fee)' });
 Object.assign(window.RL.hi,{ wTotC:'चुकाए गए कुल ख़र्च (निवेश की लागत जैसा)', wGovX:'सरकार (STT, स्टांप शुल्क, GST, SEBI शुल्क)' });
 Object.assign(window.RL.bn,{ wTotC:'দেওয়া মোট খরচ (বিনিয়োগের খরচের মতো)', wGovX:'সরকার (STT, স্ট্যাম্প ডিউটি, GST, SEBI ফি)' });
+
+/* ledger balance as on the report date, 3D tiles, payment request only on a debit (2026-11-28) */
+Object.assign(window.RL.en,{ lT:'Ledger Balance', lNone:'No ledger uploaded for this client (or it ends before the last trade) - the balance is not available.',
+  lNow:d=>'Ledger balance as on '+d, lDr:'Debit - amount payable by you', lCr:'Credit - your money with us', lNil:'Nil - nothing payable',
+  lPer:d=>'As per ledger on '+d, lPerS:'closing balance of the uploaded ledger', lAft:d=>'Trades after '+d, lAftS:n=>n+' trade'+(n>1?'s':'')+' not yet in the ledger (net of charges)',
+  lRec:n=>'Money received ('+n+')', lPaid:n=>'Money paid out ('+n+')', lInt:'Interest charged', lDp:'DP charges',
+  lPay:a=>`Your account shows a <b>debit of ₹${a}</b>. Please transfer this amount <b>without further delay</b> - a debit balance attracts interest at <b>18% per annum</b>.`,
+  lBank:'Transfer funds to', bName:'Name', bBank:'Bank', bBr:'Branch', bAc:'A/c No.', bIfsc:'IFSC',
+  lPayN:'Please transfer only from your own bank account registered with us and share the transaction reference after payment.',
+  lNote:(a,b)=>'Ledger period '+a+' to '+b+'. Dr (debit) balances are in blue and Cr (credit) in red.' });
+Object.assign(window.RL.hi,{ lT:'लेजर बैलेंस', lNone:'इस ग्राहक का लेजर अपलोड नहीं है (या वह अंतिम ट्रेड से पहले समाप्त होता है) - बैलेंस उपलब्ध नहीं है।',
+  lNow:d=>d+' को लेजर बैलेंस', lDr:'डेबिट - आपके द्वारा देय राशि', lCr:'क्रेडिट - हमारे पास आपका पैसा', lNil:'शून्य - कुछ देय नहीं',
+  lPer:d=>d+' को लेजर अनुसार', lPerS:'अपलोड किए गए लेजर का अंतिम बैलेंस', lAft:d=>d+' के बाद के ट्रेड', lAftS:n=>n+' ट्रेड अभी लेजर में नहीं (शुल्क सहित शुद्ध)',
+  lRec:n=>'प्राप्त राशि ('+n+')', lPaid:n=>'भुगतान की गई राशि ('+n+')', lInt:'ब्याज लगाया गया', lDp:'DP शुल्क',
+  lPay:a=>`आपके खाते में <b>₹${a} का डेबिट</b> है। कृपया यह राशि <b>बिना देरी के</b> ट्रांसफर करें - डेबिट बैलेंस पर <b>18% वार्षिक ब्याज</b> लगता है।`,
+  lBank:'राशि यहाँ ट्रांसफर करें', bName:'नाम', bBank:'बैंक', bBr:'शाखा', bAc:'खाता सं.', bIfsc:'IFSC',
+  lPayN:'कृपया केवल हमारे पास पंजीकृत अपने बैंक खाते से ही ट्रांसफर करें और भुगतान के बाद ट्रांज़ैक्शन संदर्भ साझा करें।',
+  lNote:(a,b)=>'लेजर अवधि '+a+' से '+b+'। Dr (डेबिट) नीले और Cr (क्रेडिट) लाल रंग में।' });
+Object.assign(window.RL.bn,{ lT:'লেজার ব্যালান্স', lNone:'এই গ্রাহকের লেজার আপলোড করা নেই (বা শেষ ট্রেডের আগে শেষ হয়েছে) - ব্যালান্স পাওয়া যাচ্ছে না।',
+  lNow:d=>d+' তারিখে লেজার ব্যালান্স', lDr:'ডেবিট - আপনার দেয় অর্থ', lCr:'ক্রেডিট - আমাদের কাছে আপনার টাকা', lNil:'শূন্য - কিছু দেয় নেই',
+  lPer:d=>d+' তারিখে লেজার অনুযায়ী', lPerS:'আপলোড করা লেজারের শেষ ব্যালান্স', lAft:d=>d+' এর পরের ট্রেড', lAftS:n=>n+'টি ট্রেড এখনও লেজারে নেই (চার্জ সহ নিট)',
+  lRec:n=>'প্রাপ্ত অর্থ ('+n+')', lPaid:n=>'প্রদত্ত অর্থ ('+n+')', lInt:'সুদ ধার্য', lDp:'DP চার্জ',
+  lPay:a=>`আপনার অ্যাকাউন্টে <b>₹${a} ডেবিট</b> রয়েছে। অনুগ্রহ করে এই অর্থ <b>দেরি না করে</b> ট্রান্সফার করুন - ডেবিট ব্যালান্সে <b>বার্ষিক 18% সুদ</b> লাগে।`,
+  lBank:'অর্থ এখানে ট্রান্সফার করুন', bName:'নাম', bBank:'ব্যাংক', bBr:'শাখা', bAc:'অ্যাকাউন্ট নং', bIfsc:'IFSC',
+  lPayN:'অনুগ্রহ করে শুধুমাত্র আমাদের কাছে নথিভুক্ত আপনার নিজের ব্যাংক অ্যাকাউন্ট থেকে ট্রান্সফার করুন এবং পেমেন্টের পরে লেনদেনের রেফারেন্স জানান।',
+  lNote:(a,b)=>'লেজার সময়কাল '+a+' থেকে '+b+'। Dr (ডেবিট) নীল ও Cr (ক্রেডিট) লাল রঙে।' });
