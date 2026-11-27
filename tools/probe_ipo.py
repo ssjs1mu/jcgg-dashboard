@@ -1,4 +1,4 @@
-"""One-off probe (2): what does a Chittorgarh IPO page carry for a runner? Prints title, links and the discount / reservation text. Writes nothing."""
+"""One-off probe (3): how to list Chittorgarh IPO page addresses (slug/id) for past years. Writes nothing."""
 import re, gzip, html, urllib.request, urllib.error
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 def get(url):
@@ -8,14 +8,18 @@ def get(url):
         return r.status, b.decode('utf-8', 'replace')
     except urllib.error.HTTPError as e: return e.code, ''
     except Exception as e: return 0, str(e)
-def txt(t): return re.sub(r'\s+', ' ', html.unescape(re.sub(r'<script.*?</script>|<style.*?</style>|<[^>]+>', ' ', t, flags=re.S)))
+def links(t): return sorted(set(re.findall(r'/ipo/[a-z0-9-]+/\d+/', t.replace('\\/', '/'))))
+for u in ['https://www.chittorgarh.com/report/ipo-in-india-list-main-board-sme/82/?year=2022',
+          'https://www.chittorgarh.com/report/ipo-in-india-list-main-board-sme/82/2022/',
+          'https://www.chittorgarh.com/report/mainboard-ipo-list-in-india-bse-nse/83/?year=2022',
+          'https://www.chittorgarh.com/report/ipo-list-in-india-main-board-sme/82/2022/',
+          'https://www.chittorgarh.com/sitemap.xml', 'https://www.chittorgarh.com/sitemap_ipo.xml', 'https://www.chittorgarh.com/robots.txt',
+          'https://www.chittorgarh.com/ipo/lic-ipo/1236/']:
+    s, t = get(u); L = links(t); print('\n', u, '->', s, len(t), 'ipo links', len(L), L[:3], '| LIC' if re.search(r'lic-ipo|Life Insurance Corporation', t) else '')
+    if 'robots' in u or 'sitemap' in u: print('   ', re.sub(r'\s+', ' ', t[:500]))
+    m = re.search(r'<title>(.*?)</title>', t, re.S); print('   title:', m and html.unescape(m.group(1)).strip()[:100])
 s, t = get('https://www.chittorgarh.com/report/ipo-in-india-list-main-board-sme/82/')
-L = sorted(set(re.findall(r'/ipo/[a-z0-9-]+/\d+/', t)))
-print('list status', s, 'ipo links in html', len(L), L[:8]); print('rsc/next data present:', '__NEXT_DATA__' in t, 'self.__next_f' in t)
-for m in list(re.finditer(r'lic-ipo|Life Insurance', t))[:3]: print('  LIC ctx:', t[max(0, m.start() - 100):m.end() + 100].replace('\n', ' '))
-s, t = get('https://www.chittorgarh.com/ipo/lic-ipo/492/')
-print('\nguess page', s, len(t)); m = re.search(r'<title>(.*?)</title>', t, re.S); print('title:', m and html.unescape(m.group(1)).strip())
-T = txt(t)
-for k in ['Discount', 'Reservation', 'Lot Size', 'Price Band', 'Issue Price', 'Face Value']:
-    for m in list(re.finditer(k, T))[:2]: print('  [%s] ...%s' % (k, T[max(0, m.start() - 60):m.end() + 140]))
-print('tables:', t.count('<table'))
+F = ''.join(re.findall(r'self\.__next_f\.push\(\[\d+,"(.*?)"\]\)', t, re.S)).replace('\\"', '"').replace('\\/', '/')
+print('\nflight len', len(F), 'ipo links in flight', len(links(F)), 'has year option', bool(re.search(r'2022', F)))
+for m in list(re.finditer(r'"(?:year|financialYear|fy|api|url|endpoint)[A-Za-z]*":"[^"]{0,120}"', F))[:12]: print('  ', m.group(0))
+print('urls with api:', sorted(set(re.findall(r'https?://[^"\\ ]*(?:api|json|data)[^"\\ ]*', F)))[:8])
