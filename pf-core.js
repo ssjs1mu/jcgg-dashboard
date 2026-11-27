@@ -8,7 +8,30 @@ const todayS=()=>ist().toISOString().slice(0,10);
 const dmy=d=>d?d.slice(8,10)+'-'+d.slice(5,7)+'-'+d.slice(0,4):'–';
 const days=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/864e5);
 const addD=(d,n)=>new Date(Date.parse(d)+n*864e5).toISOString().slice(0,10);
-const LS={get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }};
+/* ---------- 💾 browser storage (2026-11-27): portfolio keys are stored COMPRESSED (about 9x smaller), and a write that does not fit
+   is never silent - old caches are cleared and the write retried; if it still fails, a red bar shows and nothing is synced to Drive
+   (a full browser once dropped keys while loading the Drive copy, and the sync then believed the wrong copy was newer) ---------- */
+/* lz-string 1.5.0 (MIT, pieroxy) */
+var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
+const ZP='\u0007Z1', ZC={};
+function lsGetRaw(k){ const v=localStorage.getItem(k); if(v==null||v.slice(0,3)!==ZP) return v; const c=ZC[k]; if(c&&c.z===v) return c.d;
+  const d=LZString.decompressFromUTF16(v.slice(3)); if(d==null) return null; ZC[k]={z:v,d}; return d; }
+function freeSpace(lv){ let n=0; const today=todayS(), K=[]; try{ for(let i=0;i<localStorage.length;i++) K.push(localStorage.key(i)); }catch(e){ return 0; }
+  K.forEach(k=>{ if(/^jc_pf_|^jc_admin|^jcgg[_-](?!news)/.test(k)) return;      /* never: portfolio, passcode, JCGG Suite books */
+    const dm=k.match(/(\d{4}-\d{2}-\d{2})/), old=dm&&dm[1]<today&&/^jc/.test(k);
+    if(/^jcfc:/.test(k)||old||(lv>0&&/^(jc_calls_v1|jc_sigbase_v1|jc_alog_v1|jc_sigfirst_v1|jc_radar_v1|jcgg-news)$/.test(k))){ try{ localStorage.removeItem(k); n++; }catch(e){} } });
+  return n; }
+let STORE_FULL=false;
+function storeBar(on,k){ STORE_FULL=!!on; if(typeof document==='undefined') return; let b=document.getElementById('jcStoreFull');
+  if(!on){ if(b) b.remove(); return; } if(!b){ b=document.createElement('div'); b.id='jcStoreFull'; b.style.cssText='position:fixed;left:0;right:0;top:0;z-index:2147483600;background:#B00000;color:#fff;font:800 13px Inter,Arial,sans-serif;padding:8px 12px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.4)'; (document.body||document.documentElement).appendChild(b); }
+  b.innerHTML='⚠ Browser storage is full - '+(k||'portfolio data')+' could not be saved on this device. Nothing is being saved to Drive until this is fixed (your Drive copy is safe). Close other Joshi\'s Corner tabs and reload this page; if it stays red, tell Claude.'; }
+function lsSetRaw(k,v){ const s=(/^jc_pf_/.test(k)&&v.length>4000)?ZP+LZString.compressToUTF16(v):v;
+  for(let a=0;a<3;a++){ try{ localStorage.setItem(k,s); if(s.slice(0,3)===ZP) ZC[k]={z:s,d:v}; else delete ZC[k]; return true; }catch(e){ if(!freeSpace(a)&&a>0) break; } }
+  try{ localStorage.removeItem(k); }catch(e){} delete ZC[k]; storeBar(true,k); return false; }
+const LS={get(k,d){ try{ const v=lsGetRaw(k); return v?JSON.parse(v):d; }catch(e){ return d; } }, set(k,v){ try{ return lsSetRaw(k,JSON.stringify(v)); }catch(e){ return false; } }};
+/* existing uncompressed portfolio keys are compressed once, freeing space for everything else */
+try{ const K=[]; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(/^jc_pf_/.test(k)) K.push(k); }
+  K.forEach(k=>{ const v=localStorage.getItem(k); if(v&&v.length>4000&&v.slice(0,3)!==ZP) lsSetRaw(k,v); }); }catch(e){}
 /* statutory: STT delivery 0.1% buy+sell, intraday 0.025% sell; NSE transaction 0.00307%; SEBI Rs 10/crore;
    stamp duty delivery 0.015% buy, intraday 0.003% buy; GST 18% on brokerage + transaction + SEBI + DP (as of Nov 2026) */
 const STAT0={sttD:0.1,sttI:0.025,exch:0.00307,sebi:0.0001,stampD:0.015,stampI:0.003,gst:18,int:18,hurdle:8,slab:30,cess:4};
@@ -709,7 +732,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-27r';
+const BUILD='2026-11-27s';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -1068,9 +1091,9 @@ const hurdleOf=(days,ST)=>((ST||stat()).hurdle||0)*Math.max(days,1)/365;   /* be
    browser data was cleared. Drive keeps the newest copy and 40 earlier ones. */
 const SKIP=new Set(['jc_pf_drive','jc_pf_dstat','jc_pf_seen','jc_pf_sync','jc_pf_state_t','jc_pf_state_h','jc_pf_dirty','jc_pf_state_n']);
 const stKeys=()=>{ const k=[]; try{ for(let i=0;i<localStorage.length;i++){ const x=localStorage.key(i); if(/^jc_pf_/.test(x)&&!SKIP.has(x)) k.push(x); } }catch(e){} return k.sort(); };
-const stRaw=()=>stKeys().map(k=>k+'\u0001'+localStorage.getItem(k)).join('\u0002');
+const stRaw=()=>stKeys().map(k=>k+'\u0001'+lsGetRaw(k)).join('\u0002');
 const hsh=s=>{ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))|0; return (h>>>0).toString(36)+'.'+s.length; };
-const lsRaw=(k,v)=>{ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} };
+const lsRaw=(k,v)=>{ try{ if(v==null){ localStorage.removeItem(k); delete ZC[k]; return true; } return lsSetRaw(k,v); }catch(e){ return false; } };
 let ST_BUSY=false, ST_TIMER=null, ST_STARTED=false, ST_READY=false, ST_SHRINK_OK=false;
 /* safety (2026-11-26): nothing is saved before this page has finished loading the Drive copy, and a copy less than half the size of
    the last Drive copy is never saved without a yes - a fresh / cleared browser once saved its empty defaults over the real data */
@@ -1086,11 +1109,14 @@ async function statePush(force){ if(ST_BUSY) return; const raw=stRaw(), h=hsh(ra
     ST_SHRINK_OK=true; }
   if(!akey()){ lsRaw('jc_pf_dirty','1'); driveStat({ok:false,why:'passcode',dirty:true}); return; }
   ST_BUSY=true; driveStat({busy:true,saving:true});
-  try{ const data={}; stKeys().forEach(k=>data[k]=localStorage.getItem(k)); const j=await stPost({action:'pf_state_save',state:JSON.stringify({v:1,t:Date.now(),data})});
+  if(STORE_FULL){ lsRaw('jc_pf_dirty','1'); driveStat({ok:false,why:'browser storage full - not saved',dirty:true}); return; }
+  try{ const data={}; stKeys().forEach(k=>data[k]=lsGetRaw(k)); const j=await stPost({action:'pf_state_save',state:JSON.stringify({v:1,t:Date.now(),data})});
     lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',h); lsRaw('jc_pf_state_n',String(raw.length)); lsRaw('jc_pf_dirty',null); driveStat({ok:true,saved:j.t,mode:'state'}); }
   catch(e){ lsRaw('jc_pf_dirty','1'); driveStat({ok:false,why:e.name==='AbortError'?'timeout':e.message,dirty:true}); }
   finally{ ST_BUSY=false; } }
-function stateApply(st){ const D=(st&&st.data)||{}; stKeys().forEach(k=>{ if(!(k in D)) lsRaw(k,null); }); Object.keys(D).forEach(k=>{ if(/^jc_pf_/.test(k)&&!SKIP.has(k)) lsRaw(k,D[k]); }); }
+function stateApply(st){ const D=(st&&st.data)||{}; let ok=true; Object.keys(D).forEach(k=>{ if(/^jc_pf_/.test(k)&&!SKIP.has(k)&&!lsRaw(k,D[k])) ok=false; });
+  if(ok) stKeys().forEach(k=>{ if(!(k in D)) lsRaw(k,null); });   /* only after every key of the Drive copy is stored */
+  return ok; }
 /* open: newest copy from Drive unless this browser holds changes not saved yet (those go up first) */
 let ST_LAST='';
 async function stateSync(){ if(!ST_STARTED){ ST_STARTED=true;
@@ -1108,8 +1134,14 @@ async function stateSync(){ if(!ST_STARTED){ ST_STARTED=true;
     if(!(st.cleared&&j.t>mine)&&dirty&&mine){
       /* this browser has unsaved changes. If Drive also got a newer copy from another device meanwhile, ask which one wins instead of
          silently overwriting the newer Drive copy */
-      if(!(j.t>mine)||document.hidden||!confirm('Drive has a newer Portfolio copy (saved '+new Date(j.t).toLocaleString('en-IN')+') than this browser, and this browser also has unsaved changes.\n\nOK = load the Drive copy (recommended - this browser\'s unsaved changes are dropped)\nCancel = keep this browser\'s data and save it over Drive')){ await statePush(); return {n:0}; } }
-    if(j.t>mine){ stateApply(st); const h=hsh(stRaw()); lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',h); lsRaw('jc_pf_dirty',null);
+      const cnt=get=>{ try{ const t=JSON.parse(get('jc_pf_tb')||'{}').trades||[], L=JSON.parse(get('jc_pf_led2')||'{}'); return {n:t.length,c:new Set(t.map(x=>x.c)).size,m:t.filter(x=>!x.src).length,l:Object.keys(L.E||{}).length}; }catch(e){ return {n:0,c:0,m:0,l:0}; } },
+        cd=cnt(k=>(st.data||{})[k]), cl=cnt(lsGetRaw), line=x=>x.n+' trades · '+x.c+' clients · '+x.m+' manual · '+x.l+' ledgers';
+      const same=cd.n===cl.n&&cd.c===cl.c&&cd.m===cl.m&&cd.l===cl.l;
+      if(!(j.t>mine)||document.hidden){ await statePush(); return {n:0}; }
+      if(!same||cl.n<cd.n){ if(!confirm('Two different Portfolio copies:\n\nDRIVE   (saved '+new Date(j.t).toLocaleString('en-IN')+'):\n   '+line(cd)+'\nTHIS BROWSER (unsaved changes):\n   '+line(cl)+'\n\nOK = load the Drive copy\nCancel = keep this browser\'s copy and save it over Drive\n\n(the copy with more trades / ledgers is usually the right one)')){ await statePush(); return {n:0}; } }
+      else { await statePush(); return {n:0}; } }   /* same trades / clients / ledgers on both sides: just save this browser's small changes, no question */
+    if(j.t>mine){ if(!stateApply(st)){ ST_READY=false; driveStat({ok:false,why:'browser storage full - Drive copy not loaded',dirty:false}); return {n:0}; }
+      const h=hsh(stRaw()); lsRaw('jc_pf_state_t',String(j.t)); lsRaw('jc_pf_state_h',h); lsRaw('jc_pf_dirty',null);
       driveStat({ok:true,loaded:1,restored:j.t,cleared:!!st.cleared,mode:'state'}); return {n:1}; }
     driveStat({ok:true,saved:mine,mode:'state'}); return {n:0}; }
   catch(e){ driveStat({ok:false,why:e.name==='AbortError'?'timeout':e.message}); return {n:0}; } }
