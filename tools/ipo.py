@@ -98,6 +98,7 @@ def run_details(op, A, budget_s=1500, per_run=700):
     todo = []
     for r in A:                                               # A is newest first
         k = r['s']; c = cur.get(k); new = r.get('ld') or r.get('cl') or ''
+        if r.get('sme'): continue                            # equity (main board) only for now
         if re.match(r'^\d', k) or re.search(r'DEBT|INVIT|REIT|NCD|BOND', str(r.get('sec') or ''), re.I): continue   # bonds / trusts: no equity issue sheet
         if c is None or (c.get('nf') and (new >= recent or c.get('v') != 2)) or (new >= recent and c.get('at0') != today): todo.append(r)   # v2 = SME / subscription-only records exist now: earlier 'nf' are retried once
     for r in todo[:per_run]:

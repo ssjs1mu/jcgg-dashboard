@@ -707,7 +707,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-27g';
+const BUILD='2026-11-27h';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -821,7 +821,8 @@ async function ipoData(force){ if(IPOD&&!force) return IPOD; try{ const j=await 
 let IPOX=null;
 async function ipoDet(force){ if(IPOX&&!force) return IPOX; try{ const j=await fetch('https://raw.githubusercontent.com/ssjs1mu/jcgg-dashboard/main/data/ipo_det.json?x='+Math.floor(Date.now()/36e5),{cache:'no-store'}).then(r=>r.json()); IPOX={asOf:j.asOf||'',d:j.d||{}}; }catch(e){ IPOX={asOf:'',d:{},err:String(e)}; } return IPOX; }
 const ipoDetOf=sym=>{ const r=((IPOX&&IPOX.d)||{})[sym]; return r&&!r.nf?r:null; };
-const ipoUniq=()=>{ const seen=new Set(), L=[]; Object.values((IPOD&&IPOD.by)||{}).forEach(r=>{ const k=(r.was||r.s)+'|'+(r.n||''); if(seen.has(k)) return; seen.add(k); L.push(r); }); return L; };
+const ipoUniq=()=>{ const seen=new Set(), L=[]; Object.values((IPOD&&IPOD.by)||{}).forEach(r=>{ if(r.sme||(r.sec&&!/equity/i.test(r.sec))) return;   /* equity shares (main board) only for now - no SME, debt or trusts */
+    const k=(r.was||r.s)+'|'+(r.n||''); if(seen.has(k)) return; seen.add(k); L.push(r); }); return L; };
 /* search by symbol (old or new) or company name: exact symbol first, then symbol starts / contains, then company name; newest first within a rank */
 function ipoFind(q){ q=String(q||'').trim().toUpperCase(); if(!q) return []; const out=[];
   ipoUniq().forEach(r=>{ const s=String(r.s||'').toUpperCase(), w=String(r.was||'').toUpperCase(), n=String(r.n||'').toUpperCase();
