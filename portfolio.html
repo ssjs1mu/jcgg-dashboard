@@ -110,7 +110,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=105"></script>
+<script src="pf-core.js?v=106"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -239,8 +239,8 @@ function render(){
     document.querySelectorAll('tr[data-stk]').forEach(tr=>tr.onclick=()=>{ SYF=tr.dataset.stk; $('sy').value=SYF; LS.set('jc_pf_sym',SYF); DV='client'; $('dv').value=DV; LS.set('jc_pf_dv',DV); render(); scrollTo(0,0); });
     document.querySelectorAll('tr[data-c]').forEach(tr=>tr.onclick=()=>{ CL=tr.dataset.c; LS.set('jc_pf_client',CL); render(); scrollTo(0,0); });
     $('st').innerHTML='<b>●</b> '+(CL==='ALL'?'All Clients':'Client '+esc(CL))+' · '+(TAB==='lq'?'liquidation':TAB==='cl'?'client list':TAB==='dp'?'DP holdings':TAB==='ca'?'corporate actions':TAB==='tal'?'tally':TAB==='tax'?'taxation & returns':TAB==='xs'?'broker billing check':TAB==='rec'?'reconciliation':'ledger'); ratesPanel(clients); return; }
-  const w=[]; { const BL=PF.LS.get('jc_pf_brkled',{})||{}, noR=[...new Set(TR.concat(OPEN).map(t=>t.c))].filter(c=>!(rateOf(c).bd>0)); if(noR.length) w.push('Brokerage not known for '+esc(noR.join(', '))+' - upload the client\'s ledger (the rate is read from its bills) or enter it in ⚙ Brokerage, charges & interest below. Taxes and exchange charges are already included.'); }
-  E.warn.filter(x=>CL==='ALL'||x.startsWith(CL+' ')).forEach(x=>w.push(esc(x)));
+  const w=[]; { const BL=PF.LS.get('jc_pf_brkled',{})||{}, noR=[...new Set(TR.concat(OPEN).filter(inC).map(t=>t.c))].filter(c=>!(rateOf(c).bd>0)); if(noR.length) w.push('Brokerage not known for '+esc(noR.join(', '))+' - upload the client\'s ledger (the rate is read from its bills) or enter it in ⚙ Brokerage, charges & interest below. Taxes and exchange charges are already included.'); }
+  E.warn.filter((x,i)=>{ const o=(E.short||[])[i]; return o?inC(o):(CL==='ALL'||x.startsWith(CL+' '))&&(!SYF||x.toUpperCase().includes(SYF.toUpperCase())); }).forEach(x=>w.push(esc(x)));   /* sold without a holding: follows the client and scrip filters */
   if(SYF) w.unshift('🔍 Showing only script <b>'+esc(SYF)+'</b> - <a href="#" id="clrSy">✕ show all scripts</a>');
   if(MF!=='all') w.unshift('Showing '+({T:'Trading',I:'Investment',trig:'holdings with alerts'}[MF]||MF)+' only - <a href="#" id="clrMf">✕ show all holdings</a>');
   if(!TR.length&&!OPEN.length) w.unshift((localStorage.getItem('jc_admin_key')||'')?'No trades yet - upload a trade file, ledger and DP statement (⬆ buttons above). Everything is saved to Google Drive automatically.':'Tap <b>☁ Drive: set passcode</b> (above) and enter the admin passcode - your saved Portfolio loads from Google Drive. New here? Upload a trade file, ledger and DP statement.');
