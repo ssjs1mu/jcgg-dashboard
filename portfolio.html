@@ -86,7 +86,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
    <button id="upL" title="LEDGER statement (PDF from the back office) or CSV / Excel template - only client code and entries are read">📒 Ledger</button>
    <button id="upD" title="DP HOLDING statement (PDF from the back office) or CSV / Excel template - only client code, DP a/c and holdings are read">🏦 DP Holdings</button><hr>
    <button id="upM" title="See and remove uploaded trade books and ledgers, client-wise">🗂 Manage Uploads</button>
-   <button id="clW" title="Every stock each client has traded (held now or sold out) and every DP holding is added to that client's watchlist in the Stock Analyst (Client reports) for the daily Telegram report. Runs by itself after uploads; this forces it now. Only client codes and symbols are sent.">📱 Sync Client Watchlists</button></div></div><input type="file" id="fD" accept=".pdf,.csv,.xlsx,.xls" hidden>
+   <button id="clW" title="Every stock each client has traded (held now or sold out) and every DP holding is added to that client's watchlist in the Stock Analyst (Client reports) for the daily Telegram report. Runs by itself after uploads; this forces it now. Only client codes and symbols are sent.">📱 Sync Client Watchlists</button></div></div><input type="file" id="fD" accept=".pdf,.csv,.xlsx,.xls" multiple hidden>
   <div class="dd" id="ddR"><button class="btn p" id="rpB">📊 Reports · Portfolio</button><div class="ddm">
    <button data-tab="pf">💼 Portfolio</button><button data-tab="cl">👥 Clients</button><button data-tab="lq">⚠ Liquidation</button><button data-tab="dp">🏦 DP Holdings</button><button data-tab="led">📒 Ledger</button><button data-tab="ca">🎁 Corporate Actions</button><button data-tab="tax">🧾 Taxation &amp; Returns</button><button data-tab="xs" title="For you only - never in the client report">🕵 Broker Billing Check</button><button data-tab="rec">🔁 Reconciliation</button><button data-tab="tal">🧩 Tally</button><hr>
    <div class="sub" id="crSub"><button id="crep" title="Colourful PDF report for the selected client: investment, return since start, dividends, costs, view and 1-2 yr outlook on each stock, comparison with Nifty 50, Sensex, bank FD and savings">📄 Client Report <span>▸</span></button><div class="ddm" style="min-width:150px">
@@ -98,7 +98,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
    <select id="lfy" title="Financial year (April - March)"><option value="">All FYs</option></select><label class="mu">From <input type="date" id="lf"></label><label class="mu">To <input type="date" id="lt"></label><input type="text" id="ls" placeholder="🔍 Particulars / voucher" style="width:170px"></span></span>
   <button class="btn" id="rf">↻ Prices</button>
   <button class="btn" id="dchip" title="Google Drive sync - tap to load the newest uploads from every device">☁ Drive…</button>
-  <input type="file" id="fT" accept=".csv,.xlsx,.xls,.pdf" hidden><input type="file" id="fL" accept=".pdf,.csv,.xlsx,.xls" hidden>
+  <input type="file" id="fT" accept=".csv,.xlsx,.xls,.pdf" multiple hidden><input type="file" id="fL" accept=".pdf,.csv,.xlsx,.xls" multiple hidden>
 </div>
  <div id="warn"></div>
  <div class="kpis" id="kpis"></div>
@@ -108,7 +108,7 @@ select.mk{padding:2px 4px;font-size:11.5px;border-radius:6px;width:96px}select.m
  <details class="pan" id="rates"><summary>⚙ Brokerage, Charges &amp; Interest (Per Client)</summary><div class="in" id="ratesIn"></div></details>
  <div class="note">Uploads are kept in this browser and a copy (client codes only, no personal details) is saved to Google Drive by type and client code. Intraday = the part of a client's buys and sells in the same symbol on the same day that offsets; the rest is delivery. Net rate includes brokerage and all charges (buy: rate + charges, sell: rate − charges). Holding cost = interest on the net cost of each delivery lot from T+1 to today (open) or to the sale date (closed). Prices: live during market hours, last close otherwise.</div>
 </div>
-<script src="pf-core.js?v=102"></script>
+<script src="pf-core.js?v=103"></script>
 <script>
 'use strict';
 const BACKEND='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqSw9e9VA1QhJNOPV35vOIYcfIChFL5PCDuD2Ahi5Q/exec';
@@ -957,10 +957,13 @@ const upTrades=f=>PF.importTrades(f), upLedger=f=>PF.importLedger(f);
 /* charges reconciliation (master rates vs ledger bills) - after every trade / ledger upload and on demand */
 function recon(){ try{ PF.reconAll(TR||[],true); RATES=LS.get('jc_pf_rates',RATES); $('ratesIn').dataset.n=''; }catch(e){ console.warn('recon',e); } render(); }
 $('upD').onclick=()=>$('fD').click();
-$('fD').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('dp',f); }catch(x){} render(); prices(); uploadsPanel(); setTimeout(dchip,3000); clSoon(); };
+/* several files at once: each is read and saved one after the other (its own progress box), then one summary */
+async function upMany(kind,files){ const F=[...files], ok=[], bad=[]; for(const f of F){ try{ await PF.upload(kind,f); ok.push(f.name); }catch(x){ bad.push(f.name+' - '+(x&&x.message||x)); } await new Promise(r=>setTimeout(r,400)); }
+  if(F.length>1) PF.toast?PF.toast(`${ok.length} of ${F.length} files uploaded`+(bad.length?' · not read: '+bad.join(' | '):''),!!bad.length):0; return ok.length; }
+$('fD').onchange=async e=>{ const F=[...e.target.files]; e.target.value=''; if(!F.length) return; await upMany('dp',F); render(); prices(); uploadsPanel(); setTimeout(dchip,3000); clSoon(); };
 $('upT').onclick=()=>$('fT').click(); $('upL').onclick=()=>$('fL').click();
-$('fT').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('trade',f); }catch(x){} await loadTrades(); recon(); prices(); history(); uploadsPanel(); setTimeout(dchip,3000); clSoon(); };
-$('fL').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(!f) return; try{ await PF.upload('ledger',f); }catch(x){} recon(); uploadsPanel(); setTimeout(dchip,3000); };
+$('fT').onchange=async e=>{ const F=[...e.target.files]; e.target.value=''; if(!F.length) return; await upMany('trade',F); await loadTrades(); recon(); prices(); history(); uploadsPanel(); setTimeout(dchip,3000); clSoon(); };
+$('fL').onchange=async e=>{ const F=[...e.target.files]; e.target.value=''; if(!F.length) return; await upMany('ledger',F); recon(); uploadsPanel(); setTimeout(dchip,3000); };
 /* ---------- client watchlists for the daily Telegram report (Stock Analyst > Client reports) ----------
    every stock a client traded (held now or sold out) + every DP holding goes to a client record keyed by the client code (list id pf_<code>).
    Additive only: stocks are never removed here; an existing record keeps its name, Telegram chat and any stocks added in the Stock Analyst. */

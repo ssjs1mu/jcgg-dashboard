@@ -450,7 +450,7 @@ function csvParse(t){ const out=[]; let row=[], f='', q=false; t=t.replace(/^\uF
 async function readRows(file){ if(/\.(csv|txt)$/i.test(file.name)){ const raw=csvParse(await file.text());
     let hi=raw.findIndex(r=>r.filter(x=>String(x).trim()).length>=3&&r.some(x=>/date/i.test(x))); if(hi<0) hi=0;
     const hd=raw[hi].map(x=>String(x).trim()); return raw.slice(hi+1).filter(r=>r.some(x=>String(x).trim())).map(r=>{ const o={}; hd.forEach((h,i)=>o[h]=r[i]); return o; }); }
-  await xlsxLib(); const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false}) /* serial day numbers - no time-zone shift */; const ws=wb.Sheets[wb.SheetNames[0]];
+  await xlsxLib(); const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:false}) /* serial day numbers - no time-zone shift */; const ws=wb.Sheets[file.__sheet&&wb.Sheets[file.__sheet]?file.__sheet:wb.SheetNames[0]];
   const raw=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});
   let hi=raw.findIndex(r=>r.filter(x=>String(x).trim()).length>=3&&r.some(x=>/date/i.test(x))); if(hi<0) hi=0;
   const hd=raw[hi].map(x=>String(x).trim()); return raw.slice(hi+1).filter(r=>r.some(x=>String(x).trim())).map(r=>{ const o={}; hd.forEach((h,i)=>o[h]=r[i]); return o; }); }
@@ -468,8 +468,22 @@ function codeCol(r0,rows){ const k=Object.keys(r0);
   let c=k.find(h=>/client\s*(code|id|cd|no)|ucc|party\s*code|acc(oun)?t\s*(code|no|id)|^code$|^client$/i.test(h)&&!/name/i.test(h));
   if(c){ const named=rows.slice(0,40).filter(r=>/[a-z]{2,}\s+[a-z]{2,}/i.test(String(r[c]).trim())).length; if(named>rows.slice(0,40).length/2) c=null; }
   return c; }
-function askCode(file){ const c=prompt('Client code for '+file.name+' (no client-code column found):',''); if(!c||!c.trim()) throw new Error('no client code given'); if(/\s/.test(c.trim())&&/[a-z]{2,}\s+[a-z]{2,}/i.test(c)) throw new Error('enter the client code, not the name'); return c.trim().toUpperCase(); }
-async function importTrades(file){
+/* the sheets of a workbook that hold rows (a workbook with one sheet per client, or several reports) */
+async function sheetsWithRows(file){ if(!/\.xls[xm]?$/i.test(file.name)) return []; await xlsxLib(); const wb=XLSX.read(await file.arrayBuffer(),{type:'array',sheetRows:30});
+  return wb.SheetNames.filter(n=>{ const r=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:''}); return r.filter(x=>x.filter(v=>String(v).trim()).length>=3).length>=2; }); }
+const sheetCode=sh=>sh&&/^[A-Z0-9][A-Z0-9_\-]{3,14}$/i.test(sh.trim())&&!/^sheet\s*\d*$/i.test(sh.trim())&&/\d/.test(sh)?sh.trim().toUpperCase():null;
+function askCode(file){ const sc=sheetCode(file.__sheet); if(sc) return sc;   /* sheet named after the client code */
+  const c=prompt('Client code for '+file.name+(file.__sheet?' · sheet '+file.__sheet:'')+' (no client-code column found):',''); if(!c||!c.trim()) throw new Error('no client code given'); if(/\s/.test(c.trim())&&/[a-z]{2,}\s+[a-z]{2,}/i.test(c)) throw new Error('enter the client code, not the name'); return c.trim().toUpperCase(); }
+/* a workbook with several sheets (e.g. one per client): every sheet is read and all fills are saved together, client-wise */
+async function importTrades(file){ const S=await sheetsWithRows(file).catch(()=>[]);
+  if(S.length>1){ const all=[], rep=[]; for(const sh of S){ const f={name:file.name,__sheet:sh,__collect:all,arrayBuffer:()=>file.arrayBuffer(),text:()=>file.text()};
+      try{ rep.push(sh+': '+(await importTrades1(f))); }catch(e){ rep.push(sh+': '+e.message); } }
+    if(!all.length) throw new Error('no valid fills in any sheet - '+rep.join(' · '));
+    const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),all);
+    driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(all.filter(x=>x.c===c))})));
+    return all.length+' fills for '+cl.join(', ')+' · '+S.length+' sheets ('+rep.join(' · ')+') · client name not read'; }
+  return importTrades1(file); }
+async function importTrades1(file){
   if(/\.pdf$/i.test(file.name)){ const out=parseTradePdf(await pdfLines(await file.arrayBuffer()),await isinMap());
     const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
     driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
@@ -483,6 +497,7 @@ async function importTrades(file){
   const out=[]; rows.forEach(r=>{ const d=pdate(r[cd]), q=Math.abs(num(r[cq])), rt=num(r[cr]), side=/^s/i.test(String(r[cb]).trim())?'S':/^b/i.test(String(r[cb]).trim())?'B':null, c=one||String(r[cc]).trim().toUpperCase();
     if(d&&q>0&&rt>0&&side&&c){ const o={d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}; if(cx) o.ex=String(r[cx]||'').trim(); if(csc) o.scode=String(r[csc]||'').trim(); if(cse) o.ser=String(r[cse]||'').trim(); if(cpt) o.prod=String(r[cpt]||'').trim(); if(cvp&&num(r[cvp])>0) o.varp=num(r[cvp]); if(cva&&num(r[cva])>0) o.vara=num(r[cva]); if(csr){ const sv=String(r[csr]||'').trim().toLowerCase(); if(sv==='entered') o.man=true; else if(sv==='edited') o.edited=true; } out.push(o); } });
   if(!out.length) throw new Error('no valid fills (check dates, quantities, rates and Buy/Sell)');
+  if(file.__collect){ file.__collect.push(...out); return out.length+' fills'; }
   const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
   driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
   return out.length+' fills for '+cl.join(', '); }
@@ -500,6 +515,7 @@ async function importNetPos(file,rows,K){ const r0=rows[0], cd=col(r0,/date/i), 
     if(b>0&&br>0) out.push(Object.assign({},base,{side:'B',q:b,r:br}));
     if(s>0&&sr>0) out.push(Object.assign({},base,{side:'S',q:s,r:sr})); });
   if(!out.length) throw new Error('no buy / sell quantities found');
+  if(file.__collect){ file.__collect.push(...out); return out.length+' fills'; }
   const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
   driveSave('trade',file.name,cl.map(c=>({client:c,csv:tradeCSV(out.filter(x=>x.c===c))})));
   const nv=out.filter(x=>x.varp).length;
@@ -754,7 +770,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-28f';
+const BUILD='2026-11-28g';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
