@@ -99,9 +99,15 @@ const grpLabels=k=>[...new Set(Object.values(grp()).map(g=>g[k]).filter(Boolean)
 const isRE=sym=>/-RE\d*$/i.test(String(sym||'').trim());   /* rights entitlement (e.g. ADANI-RE): credited free, so a rate of 0 is valid */
 const rateOk=(sym,r)=>+r>0||(isRE(sym)&&r!==''&&r!=null&&+r===0);
 function clean(x){ const o={d:String(x.d).slice(0,10),c:String(x.c).trim().toUpperCase(),sym:String(x.sym).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side:x.side==='S'?'S':'B',q:Math.abs(+x.q),r:+x.r}; if(x.ex) o.ex=String(x.ex).toUpperCase(); if(x.prod) o.prod=String(x.prod).trim(); if(x.tag==='IPO'&&x.side!=='S') o.tag='IPO';
-  if(!/^\d{4}-\d\d-\d\d$/.test(o.d)||!o.c||!o.sym||!(o.q>0)||!rateOk(o.sym,o.r)) throw new Error('date, client code, symbol, quantity and rate are all needed'); return o; }
+  /* TIN = shares received from another DP (rate = original cost, date = original buy date) · TOUT = shares sent to another DP (no sale, no P&L) */
+  if(x.tag==='TIN'&&x.side!=='S') o.tag='TIN'; if(x.tag==='TOUT'&&x.side==='S'){ o.tag='TOUT'; if(!(o.r>0)) o.r=0; }
+  if(String(x.by||'').toUpperCase()==='SELF') o.by='SELF';   /* who placed the trade: SELF = the client · unmarked = S1MY */
+  if(!/^\d{4}-\d\d-\d\d$/.test(o.d)||!o.c||!o.sym||!(o.q>0)||!(o.tag==='TOUT'||rateOk(o.sym,o.r))) throw new Error('date, client code, symbol, quantity and rate are all needed'+(x.tag==='TIN'?' (rate = original cost per share)':'')); return o; }
+const byOf=t=>t&&t.by==='SELF'?'Self':'S1MY';
+/* mark who placed trades: ids = list of trade ids, by = 'SELF' or '' (S1MY) */
+function setBy(ids,by){ const t=tb(), S=new Set(ids); let n=0; t.trades.forEach(x=>{ if(!S.has(x.id)) return; if(by==='SELF'){ if(x.by!=='SELF'){ x.by='SELF'; n++; } } else if(x.by){ delete x.by; n++; } }); if(n) LS.set('jc_pf_tb',t); return n; }
 function saveTrade(x){ const t=tb(), o=clean(x);
-  if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; const nt=Object.assign({},t.trades[i],o,{edited:true}); if(!o.tag) delete nt.tag; t.trades[i]=nt; }
+  if(x.id){ const i=t.trades.findIndex(y=>y.id===x.id); if(i<0) throw new Error('trade not found'); o.id=x.id; const nt=Object.assign({},t.trades[i],o,{edited:true}); if(!o.tag) delete nt.tag; if(!o.by) delete nt.by; t.trades[i]=nt; }
   else { o.id=nid(); o.man=true; t.trades.push(o); }
   if(!t.files.some(f=>f.clients.includes(o.c))) t.files.push({name:'entered',at:dmy(todayS()),clients:[o.c],n:1});
   LS.set('jc_pf_tb',t); return o; }
@@ -128,8 +134,9 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
     '<div><label style="'+lab+'">Client Code</label><input id="edC" list="edCl" style="'+inp+';text-transform:uppercase" value="'+q(x.c)+'" placeholder="code, not name"><datalist id="edCl">'+codes.map(c=>'<option value="'+c+'">').join('')+'</datalist></div>'+
     '<div><label style="'+lab+'">Exchange</label><select id="edE" style="'+inp+'"><option'+(exV==='NSE'?' selected':'')+'>NSE</option><option'+(exV==='BSE'?' selected':'')+'>BSE</option></select></div>'+
     '<div><label style="'+lab+'">Product</label><select id="edP" style="'+inp+'">'+['Delivery','Margin','Intraday'].map(v=>'<option'+((x.prod||'Delivery')===v?' selected':'')+'>'+v+'</option>').join('')+'</select></div>'+
-    '<div><label style="'+lab+'">Tag</label><select id="edG" style="'+inp+'"><option value="">Normal trade</option><option value="IPO"'+(x.tag==='IPO'?' selected':'')+'>🆕 IPO allotment</option></select></div></div>'+
-    '<div id="edGh" style="display:none;margin-top:6px;padding:6px 9px;border-radius:8px;background:#E3F1DF;color:#1C5C0D;font:700 11.5px Inter,sans-serif">IPO allotment: Trade Date = allotment date, Rate = issue price, Buy only, no brokerage / charges. Listing day details are fetched and kept on record (Corporate Actions → IPO Allotments & Listing).</div>'+
+    '<div><label style="'+lab+'">Tag</label><select id="edG" style="'+inp+'"><option value="">Normal trade</option><option value="IPO"'+(x.tag==='IPO'?' selected':'')+'>🆕 IPO allotment</option><option value="TIN"'+(x.tag==='TIN'?' selected':'')+'>⇲ Transfer In (from other DP)</option><option value="TOUT"'+(x.tag==='TOUT'?' selected':'')+'>⇱ Transfer Out (to other DP)</option></select></div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 2fr;gap:0 10px"><div><label style="'+lab+'">Placed By</label><select id="edB" style="'+inp+'"><option value="">S1MY (you)</option><option value="SELF"'+(x.by==='SELF'?' selected':'')+'>Self (client)</option></select></div><div></div></div>'+
+    '<div id="edGh" style="display:none;margin-top:6px;padding:6px 9px;border-radius:8px;background:#E3F1DF;color:#1C5C0D;font:700 11.5px Inter,sans-serif"></div>'+
     '<datalist id="edSl">'+syms.map(c=>'<option value="'+c+'">').join('')+'</datalist>'+
     '<table style="width:100%;border-collapse:collapse;margin-top:10px"><thead><tr><th style="'+th+'">#</th><th style="'+th+'">Date</th><th style="'+th+'">Symbol (NSE)</th><th style="'+th+'">Buy / Sell</th><th style="'+th+'">Quantity</th><th style="'+th+'">Rate (₹)</th><th style="'+th+';text-align:right">Value (₹)</th>'+(one?'':'<th></th>')+'</tr></thead><tbody id="edRows"></tbody></table>'+
     (one?'':'<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button id="edAdd" style="border:1px dashed #676300;background:#fff;color:#3f3c00;border-radius:8px;padding:5px 10px;font:800 12px Inter,sans-serif;cursor:pointer">＋ Add Row</button><span style="font:600 11.5px Inter,sans-serif;color:#6E6A45">Enter on the last rate adds a row · paste several lines into a Symbol box (a date in a line sets the date of that row)</span></div>')+
@@ -148,13 +155,13 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
   /* auto-save: a row that is complete (client, date, symbol, quantity, rate all valid) is saved the moment it is left, so closing the box by mistake loses nothing.
      The row remembers its trade id - later edits of the same row update that trade, never add a second one. Edit mode (one trade) keeps the explicit Save. */
   let CHG=false;
-  const headV=()=>({c:g('edC').value,ex:g('edE').value,prod:g('edP').value,tag:g('edG').value});
+  const headV=()=>({c:g('edC').value,ex:g('edE').value,prod:g('edP').value,tag:g('edG').value,by:g('edB').value});
   const rowV=tr=>({sym:tr.querySelector('.s').value,side:tr.querySelector('.b').value,q:tr.querySelector('.q').value,r:tr.querySelector('.r').value,d:tr.querySelector('.d').value});
   const svN=()=>body.querySelectorAll('tr[data-tid]').length;
   const svShow=()=>{ if(one) return; const n=svN(); g('edSv').textContent=n?'✓ '+n+' row'+(n>1?'s':'')+' saved automatically - closing this box keeps them':''; g('edX').textContent=n?'Close':'Cancel'; };
   const auto=tr=>{ if(one||!tr||!tr.isConnected) return; try{ const h=headV(), o=rowV(tr);
       if(/[a-z]{2,}\s+[a-z]{2,}/i.test(h.c)||!h.c.trim()||!o.sym.trim()||!(+o.q>0)||!rateOk(o.sym,o.r)||!o.d) return;
-      if(h.tag==='IPO'&&o.side==='S') return;
+      if((h.tag==='IPO'||h.tag==='TIN')&&o.side==='S') return; if(h.tag==='TOUT'&&o.side!=='S') return;
       clean(Object.assign({},h,o)); const t=saveTrade(Object.assign({id:tr.dataset.tid||undefined},h,o)); tr.dataset.tid=t.id; CHG=true; svShow(); }catch(e){} };
   const autoAll=()=>body.querySelectorAll('tr').forEach(auto);
   const pDate=t=>{ let m; t=String(t).trim();
@@ -182,12 +189,16 @@ function editor(x,onDone){ const old=document.getElementById('pfEd'); if(old) ol
     if(focus) setTimeout(()=>{ const e=tr.querySelector('.s'); e.focus(); e.select(); },20); tot(); return tr; };
   addRow(one||x.sym||x.q?x:{});   /* a pre-filled suggestion (e.g. a missing buy) lands in the first row */
   
-  const ipoH=()=>{ const on=g('edG').value==='IPO'; g('edGh').style.display=on?'block':'none'; if(on){ g('edP').value='Delivery'; body.querySelectorAll('.b').forEach(b=>b.value='B'); } }; g('edG').onchange=ipoH; ipoH();
+  const TGH={IPO:'IPO allotment: Trade Date = allotment date, Rate = issue price, Buy only, no brokerage / charges. Listing day details are fetched and kept on record (Corporate Actions → IPO Allotments & Listing).',
+    TIN:'Transfer In from another DP: Date = ORIGINAL buy date, Rate = ORIGINAL cost per share (keeps the real P&L and the long-term holding period). No brokerage, charges or holding interest; not counted in the bills check.',
+    TOUT:'Transfer Out to another DP: Date = transfer date, Rate = leave 0. The shares leave the book oldest first at their cost - no sale, no P&L, no charges; the DP mismatch clears.'};
+  const ipoH=()=>{ const v=g('edG').value, on=!!TGH[v]; g('edGh').style.display=on?'block':'none'; g('edGh').textContent=TGH[v]||''; if(on){ g('edP').value='Delivery'; body.querySelectorAll('.b').forEach(b=>b.value=v==='TOUT'?'S':'B'); } }; g('edG').onchange=ipoH; ipoH();
   const shut=()=>{ close(); if(CHG&&!one) onDone&&onDone(svN()); };
-  m.onclick=e=>{ if(e.target===m) shut(); }; g('edX').onclick=shut; ['edC','edE','edP','edG'].forEach(i=>g(i).addEventListener('change',autoAll)); if(g('edAdd')) g('edAdd').onclick=()=>{ const l=body.lastElementChild; auto(l); addRow(l?{side:l.querySelector('.b').value,d:l.querySelector('.d').value,sym:l.querySelector('.s').value}:{},true); }; 
+  m.onclick=e=>{ if(e.target===m) shut(); }; g('edX').onclick=shut; ['edC','edE','edP','edG','edB'].forEach(i=>g(i).addEventListener('change',autoAll)); if(g('edAdd')) g('edAdd').onclick=()=>{ const l=body.lastElementChild; auto(l); addRow(l?{side:l.querySelector('.b').value,d:l.querySelector('.d').value,sym:l.querySelector('.s').value}:{},true); }; 
   g('edOk').onclick=()=>{ try{ if(/[a-z]{2,}\s+[a-z]{2,}/i.test(g('edC').value)) throw new Error('enter the client code, not the name');
       const head=headV(), rows=[];
-      if(head.tag==='IPO'&&[...body.querySelectorAll('.b')].some(b=>b.value==='S')) throw new Error('an IPO allotment is a buy - set every row to Buy');
+      if((head.tag==='IPO'||head.tag==='TIN')&&[...body.querySelectorAll('.b')].some(b=>b.value==='S')) throw new Error((head.tag==='IPO'?'an IPO allotment':'a Transfer In')+' is a buy - set every row to Buy');
+      if(head.tag==='TOUT'&&[...body.querySelectorAll('.b')].some(b=>b.value!=='S')) throw new Error('a Transfer Out is a sell - set every row to Sell');
       body.querySelectorAll('tr').forEach((tr,k)=>{ const o={sym:tr.querySelector('.s').value,side:tr.querySelector('.b').value,q:tr.querySelector('.q').value,r:tr.querySelector('.r').value}; o.d=tr.querySelector('.d').value;
         if(!one&&!o.sym.trim()&&!o.q&&!o.r) return;   /* blank row - skipped */
         try{ clean(Object.assign({},head,o)); }catch(e){ throw new Error('Row '+(k+1)+': '+e.message); } rows.push({o,tr}); });
@@ -206,8 +217,8 @@ const sheetOn=(d,ex)=>{ let o=null; sheets().filter(x=>x.from<=d).sort((a,b)=>a.
 function compute(TR,STAT,rateOf){
   const fills=TR.map((t,i)=>Object.assign({i},t)).sort((a,b)=>a.d.localeCompare(b.d)||a.i-b.i);
   /* split each fill into intraday / delivery parts: per client + symbol + day, the offsetting quantity is intraday */
-  const grp={}; fills.forEach(f=>{ const k=f.c+'|'+f.sym+'|'+f.d; (grp[k]=grp[k]||{B:[],S:[]})[f.side==='S'?'S':'B'].push(f); });
-  const parts=[];
+  const XF=t=>t.tag==='TIN'||t.tag==='TOUT', grp={}; fills.forEach(f=>{ if(XF(f)) return; const k=f.c+'|'+f.sym+'|'+f.d; (grp[k]=grp[k]||{B:[],S:[]})[f.side==='S'?'S':'B'].push(f); });
+  const parts=fills.filter(XF).map(f=>Object.assign({},f,{type:'D'}));   /* transfers between DPs: always delivery, never offset as intraday */
   Object.values(grp).forEach(g=>{ const bq=g.B.reduce((a,f)=>a+f.q,0), sq=g.S.reduce((a,f)=>a+f.q,0); let iq={B:Math.min(bq,sq),S:Math.min(bq,sq)};
     ['B','S'].forEach(s=>g[s].forEach(f=>{ const qi=Math.min(f.q,iq[s]); iq[s]-=qi; if(qi>0) parts.push(Object.assign({},f,{q:qi,type:'I'})); if(f.q-qi>0) parts.push(Object.assign({},f,{q:f.q-qi,type:'D'})); })); });
   parts.sort((a,b)=>a.d.localeCompare(b.d)||((a.side==='S')-(b.side==='S'))||a.i-b.i);   /* same day: buys before sells, and each side in the order the trades were entered (FIFO lots) - the old comparator returned -1 for every pair of buys, so the lot order among same-day buys was arbitrary */
@@ -215,13 +226,13 @@ function compute(TR,STAT,rateOf){
   parts.forEach(p=>{ const R=rateOf(p.c,p.d); p.v=p.q*p.r; p.brk=p.v*(p.type==='D'?R.bd:R.bi)/100; });
   /* minimum brokerage per contract note = client + day + EXCHANGE (NSE and BSE each carry their own minimum, e.g. Rs 50):
      when that exchange's % brokerage for the day is below the minimum, the broker charges the minimum, spread over those trades */
-  { const og={}; parts.forEach(p=>{ if(p.tag==='IPO'||p.tag==='DPO') return; const k=p.c+'|'+p.d+'|'+exOfP(p); (og[k]=og[k]||[]).push(p); });
+  { const og={}; parts.forEach(p=>{ if(p.tag==='IPO'||p.tag==='DPO'||XF(p)) return; const k=p.c+'|'+p.d+'|'+exOfP(p); (og[k]=og[k]||[]).push(p); });
     /* the minimum is tested on brokerage at the card rate (Rate For Minimum, else the charged rate); the shortfall to the minimum is added */
     Object.values(og).forEach(P=>{ const R=rateOf(P[0].c,P[0].d), m=+R.bmin||0, v=P.reduce((a,p)=>a+p.v,0);
       const card=P.reduce((a,p)=>a+p.v*(p.type==='D'?(+R.bdc>0?+R.bdc:+R.bd||0):(+R.bic>0?+R.bic:+R.bi||0))/100,0);
       if(m>card&&v>0&&!(R.bminFrom&&P[0].d<R.bminFrom)) P.forEach(p=>{ p.brk+=(m-card)*p.v/v; p.minB=true; }); }); }   /* bminFrom: date the minimum started */
   parts.forEach(p=>{ const R=rateOf(p.c,p.d), v=p.v, buy=p.side!=='S', D=p.type==='D';
-    p.dp=0; if(D&&!buy){ const k=p.c+'|'+p.sym+'|'+p.d; if(!dpDone[k]){ dpDone[k]=1; p.dp=+R.dp||0; } }
+    p.dp=0; if(D&&!buy&&!XF(p)){ const k=p.c+'|'+p.sym+'|'+p.d; if(!dpDone[k]){ dpDone[k]=1; p.dp=+R.dp||0; } }
     /* official (law) charges - always worked out, for the comparison */
     const oStt=D?v*STAT.sttD/100:(buy?0:v*STAT.sttI/100), oEx=v*(Math.abs(STAT.exch-STAT0.exch)<1e-9?exchOn(p.d,exOfP(p)):STAT.exch)/100, oSe=v*STAT.sebi/100, oSd=buy?v*(D?STAT.stampD:STAT.stampI)/100:0;
     p.off={stt:oStt,exch:oEx,sebi:oSe,stamp:oSd,gst:(p.brk+oEx+oSe+p.dp)*STAT.gst/100}; p.chgOff=p.brk+oStt+oEx+oSe+oSd+p.dp+p.off.gst;
@@ -230,22 +241,23 @@ function compute(TR,STAT,rateOf){
     if(SH){ p.stt=D?v*SH.sttD/100:(buy?0:v*SH.sttI/100); p.exch=v*SH.exch/100; p.sebi=v*SH.sebi/100; p.stamp=(SH.stampBuyOnly&&!buy)?0:v*(D?SH.stampD:SH.stampI)/100;
       p.gst=(p.brk+p.exch+p.dp+(SH.gstSebi?p.sebi:0))*(SH.gst!=null?SH.gst:STAT.gst)/100; }
     else { p.stt=oStt; p.exch=oEx; p.sebi=oSe; p.stamp=oSd; p.gst=p.off.gst; }
-    if((p.tag==='IPO'||p.tag==='DPO')&&buy){ p.brk=p.stt=p.exch=p.sebi=p.stamp=p.dp=p.gst=0; p.off={stt:0,exch:0,sebi:0,stamp:0,gst:0}; p.chgOff=0; }   /* IPO allotment: no exchange trade, no charges */
+    if(((p.tag==='IPO'||p.tag==='DPO')&&buy)||XF(p)){ p.brk=p.stt=p.exch=p.sebi=p.stamp=p.dp=p.gst=0; p.off={stt:0,exch:0,sebi:0,stamp:0,gst:0}; p.chgOff=0; }   /* IPO allotment: no exchange trade, no charges */
     p.chg=p.brk+p.stt+p.exch+p.sebi+p.stamp+p.dp+p.gst;
     p.net=buy?v+p.chg:v-p.chg; p.nr=p.net/p.q; });
   /* delivery: FIFO lots per client + symbol, realised P&L and holding cost (interest from T+1) */
-  const lots={}, real=[], warn=[], short=[], today=todayS(), IR=STAT.int/100;
+  const lots={}, real=[], warn=[], short=[], xout=[], today=todayS(), IR=STAT.int/100;
   parts.filter(p=>p.type==='D').forEach(p=>{ const k=p.c+'|'+p.sym; const L=lots[k]=lots[k]||[];
-    if(p.side!=='S'){ L.push({c:p.c,sym:p.sym,d:p.d,q:p.q,cost:p.nr,tag:p.tag}); return; }
+    if(p.side!=='S'){ L.push({c:p.c,sym:p.sym,d:p.d,q:p.q,cost:p.nr,tag:p.tag,by:p.by}); return; }
     let q=p.q; while(q>0&&L.length){ const l=L[0], m=Math.min(q,l.q), dd=Math.max(0,days(addD(l.d,1),p.d)), cst=m*l.cost;
-      real.push({c:p.c,sym:p.sym,bd:l.d,sd:p.d,q:m,buy:l.cost,sell:p.nr,pl:m*(p.nr-l.cost),cost:cst,days:dd,hc:0});   // interest only while open
+      if(p.tag==='TOUT') xout.push({c:p.c,sym:p.sym,bd:l.d,d:p.d,q:m,cost:cst,by:l.by});   /* sent to another DP: leaves at cost, no P&L */
+      else real.push({c:p.c,sym:p.sym,bd:l.d,sd:p.d,q:m,buy:l.cost,sell:p.nr,pl:m*(p.nr-l.cost),cost:cst,days:dd,hc:0,bBy:l.by,sBy:p.by,btag:l.tag});   // interest only while open
       l.q-=m; q-=m; if(l.q<=1e-9) L.shift(); }
     if(q>0){ warn.push(p.c+' sold '+q+' '+p.sym+' on '+dmy(p.d)+' without a holding in this trade book'); short.push({c:p.c,sym:p.sym,d:p.d,q,r:p.r,adj:p.adj||1}); } });
-  const hold=[]; Object.values(lots).forEach(L=>L.forEach(l=>{ if(l.q>1e-9){ const dd=Math.max(0,days(addD(l.d,1),today)); hold.push(Object.assign({},l,{days:dd,hc:l.tag==='DPO'?0:l.q*l.cost*IR*dd/365})); } }));   /* DP-only start position: nobody funded it - no holding interest */
+  const hold=[]; Object.values(lots).forEach(L=>L.forEach(l=>{ if(l.q>1e-9){ const dd=Math.max(0,days(addD(l.d,1),today)); hold.push(Object.assign({},l,{days:dd,hc:l.tag==='DPO'||l.tag==='TIN'?0:l.q*l.cost*IR*dd/365})); } }));   /* DP-only start position: nobody funded it - no holding interest */
   /* intraday P&L per client + symbol + day */
-  const intra={}; parts.filter(p=>p.type==='I').forEach(p=>{ const k=p.c+'|'+p.sym+'|'+p.d; const x=intra[k]=intra[k]||{c:p.c,sym:p.sym,d:p.d,q:0,b:0,s:0,chg:0};
+  const intra={}; parts.filter(p=>p.type==='I').forEach(p=>{ const k=p.c+'|'+p.sym+'|'+p.d; const x=intra[k]=intra[k]||{c:p.c,sym:p.sym,d:p.d,q:0,b:0,s:0,chg:0,bys:{}}; x.bys[byOf(p)]=1;
     if(p.side==='S'){ x.s+=p.net; x.q+=p.q; } else x.b+=p.net; x.chg+=p.chg; });
-  return {parts,hold,real,intra:Object.values(intra).map(x=>Object.assign(x,{pl:x.s-x.b})),warn,short};
+  return {parts,hold,real,xout,intra:Object.values(intra).map(x=>Object.assign(x,{pl:x.s-x.b,by:Object.keys(x.bys).length>1?'Mixed':Object.keys(x.bys)[0]})),warn,short};
 }
 /* Loss recovery per client + script, in date order of booking (delivery lots after holding interest, and intraday):
    a loss adds to the balance to recover; a profit booked AFTER a loss first recovers that balance (only the excess is profit);
@@ -493,9 +505,10 @@ async function importTrades1(file){
     if(bq&&ba&&sq&&sa) return importNetPos(file,rows,{bq,ba,sq,sa}); }
   const r0=rows[0], cd=col(r0,/date/i), cc=codeCol(r0,rows), cs=col(r0,/^\s*symbol/i)||col(r0,/symbol|scrip(?!\s*code)|security|stock|instrument/i), cb=col(r0,/b\s*\/\s*s|buy.?sell|side|trans.*type|^type$/i), cq=col(r0,/qty|quantity/i), cr=col(r0,/rate|price|avg/i);
   const miss=[['Date',cd],['Symbol',cs],['Buy/Sell',cb],['Qty',cq],['Rate',cr]].filter(x=>!x[1]).map(x=>x[0]); if(miss.length) throw new Error('columns not found: '+miss.join(', '));
-  const one=cc?null:askCode(file), cx=col(r0,/^\s*exch/i), csc=col(r0,/scrip\s*code/i), cse=col(r0,/^\s*ser/i), cpt=col(r0,/product/i), cvp=col(r0,/var\s*%/i), cva=col(r0,/var\s*am/i), csr=col(r0,/^\s*source\s*$/i);
+  const one=cc?null:askCode(file), cx=col(r0,/^\s*exch/i), csc=col(r0,/scrip\s*code/i), cse=col(r0,/^\s*ser/i), cpt=col(r0,/product/i), cvp=col(r0,/var\s*%/i), cva=col(r0,/var\s*am/i), csr=col(r0,/^\s*source\s*$/i), ctg=col(r0,/^\s*tag\s*$/i), cby=col(r0,/placed\s*by/i);
   const out=[]; rows.forEach(r=>{ const d=pdate(r[cd]), q=Math.abs(num(r[cq])), rt=num(r[cr]), side=/^s/i.test(String(r[cb]).trim())?'S':/^b/i.test(String(r[cb]).trim())?'B':null, c=one||String(r[cc]).trim().toUpperCase();
-    if(d&&q>0&&rt>0&&side&&c){ const o={d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}; if(cx) o.ex=String(r[cx]||'').trim(); if(csc) o.scode=String(r[csc]||'').trim(); if(cse) o.ser=String(r[cse]||'').trim(); if(cpt) o.prod=String(r[cpt]||'').trim(); if(cvp&&num(r[cvp])>0) o.varp=num(r[cvp]); if(cva&&num(r[cva])>0) o.vara=num(r[cva]); if(csr){ const sv=String(r[csr]||'').trim().toLowerCase(); if(sv==='entered') o.man=true; else if(sv==='edited') o.edited=true; } out.push(o); } });
+    if(d&&q>0&&rt>0&&side&&c){ const o={d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:rt}; if(cx) o.ex=String(r[cx]||'').trim(); if(csc) o.scode=String(r[csc]||'').trim(); if(cse) o.ser=String(r[cse]||'').trim(); if(cpt) o.prod=String(r[cpt]||'').trim(); if(cvp&&num(r[cvp])>0) o.varp=num(r[cvp]); if(cva&&num(r[cva])>0) o.vara=num(r[cva]); if(csr){ const sv=String(r[csr]||'').trim().toLowerCase(); if(sv==='entered') o.man=true; else if(sv==='edited') o.edited=true; } if(ctg){ const tg=String(r[ctg]||'').trim().toUpperCase(); if(tg==='IPO'||tg==='TIN') { if(side==='B') o.tag=tg; } else if(tg==='TOUT'&&side==='S') o.tag='TOUT'; } if(cby&&/^self$/i.test(String(r[cby]||'').trim())) o.by='SELF'; out.push(o); }
+    else if(d&&q>0&&side==='S'&&c&&ctg&&String(r[ctg]||'').trim().toUpperCase()==='TOUT'){ const o={d,c,sym:String(r[cs]).trim().toUpperCase().replace(/[-\s]EQ$|\.NS$/,''),side,q,r:0,tag:'TOUT'}; if(cby&&/^self$/i.test(String(r[cby]||'').trim())) o.by='SELF'; out.push(o); } });
   if(!out.length) throw new Error('no valid fills (check dates, quantities, rates and Buy/Sell)');
   if(file.__collect){ file.__collect.push(...out); return out.length+' fills'; }
   const cl=addTrades(file.name,dmy(todayS())+' '+ist().toISOString().slice(11,16),out);
@@ -749,7 +762,7 @@ const BE='https://script.google.com/macros/s/AKfycbzMp82oHzLzKpaE0LrnUqEGGot7jqS
 const q2=v=>{ v=String(v==null?'':v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
 const csvOf=(head,rows)=>head.join(',')+'\n'+rows.map(r=>r.map(q2).join(',')).join('\n');
 function dpCSV(c,D){ const m=(D.M||{})[c]||{}; return csvOf(['Client Code','DP A/c','Holding as on','Rate date','Symbol','ISIN','Security','Holding','Rate','Value','Balance type'],D.H[c].map(x=>[c,m.dpac||'',m.asOf||'',m.rateDate||'',x.sym,x.isin||'',x.sec||'',x.q,x.rate==null?'':x.rate,x.value==null?'':x.value,x.type||''])); }
-function tradeCSV(rows){ return csvOf(['Date','Client Code','Exchange','Scrip Code','Symbol','Series','Product Type','Buy/Sell','Qty','Rate','VAR %','VAR Amount','Source'],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(x=>[x.d,x.c,x.ex||'',x.scode||'',x.sym,x.ser||'',x.prod||'',x.side==='S'?'SELL':'BUY',x.q,x.r,x.varp||'',x.vara||'',x.man?'entered':x.edited?'edited':'file'])); }
+function tradeCSV(rows){ return csvOf(['Date','Client Code','Exchange','Scrip Code','Symbol','Series','Product Type','Buy/Sell','Qty','Rate','VAR %','VAR Amount','Source','Tag','Placed By'],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(x=>[x.d,x.c,x.ex||'',x.scode||'',x.sym,x.ser||'',x.prod||'',x.side==='S'?'SELL':'BUY',x.q,x.r,x.varp||'',x.vara||'',x.man?'entered':x.edited?'edited':'file',x.tag&&x.tag!=='DPO'?x.tag:'',byOf(x)])); }
 function ledgerCSV(c,en){ return Array.isArray(en)?csvOf(['Date','Client Code','Voucher','Particulars','Debit','Credit','Balance (Dr +)','Type'],en.map(e=>[e.d,c,e.v||'',e.n||'',e.dr||0,e.cr||0,e.bal==null?'':e.bal,e.k])):csvOf(['Client Code','Balance (Dr +)'],[[c,en]]); }
 function toast(t,bad,html){ let d=document.getElementById('pfToast'); if(!d){ d=document.createElement('div'); d.id='pfToast'; document.body.appendChild(d); }
   d.style.cssText='position:fixed;right:14px;bottom:14px;z-index:9990;max-width:420px;padding:10px 14px;border-radius:12px;font:700 12.5px Inter,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);'+(bad?'background:#FBE3E1;color:#8a1010;border:1px solid #E29A93':'background:#E3F1DF;color:#1C5C0D;border:1px solid #8DC487');
@@ -770,7 +783,7 @@ async function driveSave(type,name,files,again,P){ if(!files.length) return null
 /* ---------- Drive -> this device: newest upload of every client and type, so an upload on the phone app shows on the laptop too.
    A Drive file loads when it is newer than this device's own upload / removal of that client (jc_pf_sync). ---------- */
 /* ---------- upload progress: every upload shows 3 steps - read the file · saved in the app · backed up to Google Drive ---------- */
-const BUILD='2026-11-28h';
+const BUILD='2026-11-28i';
 let PROG=null;
 function progCss(){ if(document.getElementById('pfProgCss')) return; const s=document.createElement('style'); s.id='pfProgCss';
   s.textContent=`#pfProg{position:fixed;inset:0;background:rgba(30,28,10,.45);z-index:10000;display:flex;align-items:center;justify-content:center;font:14px Inter,system-ui,sans-serif}
@@ -967,7 +980,7 @@ function caRows(trades,dpH,A){ A=A||(CA&&CA.a)||[]; const out=[], today=todayS()
    so the client's real brokerage rate comes out of the ledger, and any day that does not agree is flagged ---------- */
 function ledgerRecon(c,trades,ST,RX){ ST=ST||stat(); const L=(led().E||{})[c]; const T=trades.filter(t=>t.c===c); if(!L||!L.length||!T.length) return null;
   const E=compute(caAdjust(T),ST,()=>({bd:0,bi:0,dp:0})), g={};
-  E.parts.forEach(p=>{ const x=g[p.d]=g[p.d]||{d:p.d,net:0,stat:0,tD:0,tI:0,n:0,man:0,ex:{}}; x.ex[exOfP(p)]=1; x.net+=(p.side==='S'?-1:1)*p.v; x.stat+=p.chg; x.statOff=(x.statOff||0)+p.chgOff; x[p.type==='I'?'tI':'tD']+=p.v; x.n++; if(p.man||p.edited) x.man++; });
+  E.parts.forEach(p=>{ if(p.tag==='TIN'||p.tag==='TOUT') return; const x=g[p.d]=g[p.d]||{d:p.d,net:0,stat:0,tD:0,tI:0,n:0,man:0,ex:{}}; x.ex[exOfP(p)]=1; x.net+=(p.side==='S'?-1:1)*p.v; x.stat+=p.chg; x.statOff=(x.statOff||0)+p.chgOff; x[p.type==='I'?'tI':'tD']+=p.v; x.n++; if(p.man||p.edited) x.man++; });
   const bills={}, other=[]; L.forEach(e=>{ if(e.k!=='bill') return; const m=String(e.n||'').match(/\((\d\d)\/(\d\d)\/(\d\d)\)/); if(!m){ other.push(e); return; } const d='20'+m[3]+'-'+m[2]+'-'+m[1]; bills[d]=(bills[d]||0)+e.dr-e.cr; });
   const gst=1+ST.gst/100, med=a=>{ a=a.filter(x=>isFinite(x)).sort((x,y)=>x-y); return a.length?a[Math.floor(a.length/2)]:null; };
   const days=Object.values(g).filter(x=>bills[x.d]!=null&&!x.man).map(x=>Object.assign(x,{bill:bills[x.d],brk:(bills[x.d]-x.net-x.stat)/gst}));
@@ -1119,7 +1132,7 @@ function gapHints(gap,rc,rate,ST){ ST=ST||stat(); if(!rc) return []; const H=HIS
    ledger in debit (Dr) -> funded share = min(1, debit / cost of open holdings); ledger in credit or nil -> own money, no holding
    interest (the holding is judged against the return benchmark instead, STAT.hurdle % p.a.); no ledger uploaded -> assumed funded. */
 function fundAdj(E){ const by={}; E.hold.forEach(h=>{ (by[h.c]=by[h.c]||[]).push(h); }); E.fund={};
-  Object.keys(by).forEach(c=>{ const H=by[c], cost=H.filter(h=>h.tag!=='DPO').reduce((a,h)=>a+h.q*h.cost,0), bal=ledBal(c), f=bal==null?1:bal<=0?0:Math.min(1,bal/(cost||1));
+  Object.keys(by).forEach(c=>{ const H=by[c], cost=H.filter(h=>h.tag!=='DPO'&&h.tag!=='TIN').reduce((a,h)=>a+h.q*h.cost,0), bal=ledBal(c), f=bal==null?1:bal<=0?0:Math.min(1,bal/(cost||1));
     H.forEach(h=>{ h.hcFull=h.hc; h.hc=h.hc*f; h.fund=f; }); E.fund[c]={f,bal,cost,src:bal==null?'no ledger - assumed funded':bal<=0?'ledger in credit - own funds':f<1?'ledger debit covers '+Math.round(f*100)+'% of holdings':'ledger debit covers all holdings'}; });
   return E; }
 const hurdleOf=(days,ST)=>((ST||stat()).hurdle||0)*Math.max(days,1)/365;   /* benchmark % for the days held */
@@ -1244,5 +1257,5 @@ function wlSig(S0,p){ const S=S0.slice(-260).map(x=>Object.assign({},x)); if(S.l
   return {score:sc,conv:Math.abs(sc),call,lv,bull,rsi:R14,vr,e21:e21[L],atr:A}; }
 
 return wlSig; })();
-window.PF={liquidateNew,secLoad,secOf,secFill,dmPending,isRE,xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
+window.PF={setBy,byOf,liquidateNew,secLoad,secOf,secFill,dmPending,isRE,xlsxLib,wlSig,dpCost,setDpCost,dpOpenRows,withOpening,grp,setGrp,grpOk,grpLabels,ipoData,ipoDet,ipoDetOf,ipoDetAt:()=>(IPOX&&IPOX.asOf)||'',ipoFind,ipoUniq,ipoScripts,listInfo,listings,ipoRows,dmRecords,addDemerger,userDm,DEMERGERS,caRun,caExtra,ledCover,ledFresh,excessReport,sheets,sheetOn,SHEET0,reconWhy,reconFix,reconAll,rateAt,readListing,applyListing,chargeSplit,profitSplit,taxPlan,sectorOf,taxCalc,fyOf,isLT,markOf,markSplit,stateSync,statePush,clearAll,canonSym,dpKey,autoAlias,setAlias,aliases,backupClient,fundAdj,hurdleOf,tally,gapHints,histRange,ledgerRecon,brkFromLedgers,corpActs,caAdjust,caRows,caFactor,BUILD,upload,progOpen,driveLoad,syncMark,varMap,isinMap,template,pdfLines,parseDPpdf,parseLedgerPdf,importDP,dp,removeDP,driveSave,driveAll,toast,importTrades,importLedger,tb,addTrades,removeTrades,saveTrade,deleteTrade,editor,led,addLedger,removeLedger,ledBal,kindOf,tdays,ageing,sellNet,liquidate,xirr,ist,todayS,dmy,days,addD,LS,STAT0,stat,rates,rateOfFrom,loadTrades,compute,recovery,roundTrip,qtyFor,marks:()=>new Proxy(LS.get('jc_pf_mark',{}),{get:(o,k)=>typeof k==='string'?(o[k]||'T'):o[k]}) /* every script is Trading unless marked Investment */};
 })();
